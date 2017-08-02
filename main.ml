@@ -28,9 +28,10 @@ let rec read_eval_print lexbuf env tyenv =
     print_debug "CC U: %a\n" Pp.pp_ty u';
     assert (u = u');
     let u = Typing.CC.type_of_exp tyenv f in
-    let v, _ = Eval.eval f env [] in
-    (* Use gradual param substitutions *)
-    print "- : %a = %a\n" Pp.pp_ty u Pp.CC.pp_value v
+    let v, s = Eval.eval f in
+    (* print_debug substitutions *)
+    print_debug "CC v: %a\n" Pp.CC.pp_exp v;
+    print "- : %a = %a\n" Pp.pp_ty (Eval.subst_gtp_in_type s u) Pp.CC.pp_value v
   with
   | Failure message ->
       print "Failure: %s\n" message;
@@ -41,8 +42,8 @@ let rec read_eval_print lexbuf env tyenv =
       Lexing.flush_input lexbuf
   | Typing.Type_error message ->
       print "Type_error: %s\n" message
-  | Eval.Eval_error message ->
-      print "Eval_error: %s\n" message
+  | Eval.Blame ->
+      print "Blame!"
   end;
   read_eval_print lexbuf env tyenv
 
@@ -50,7 +51,7 @@ let () =
   let options = Arg.align [
     ("-d", Arg.Unit (fun () -> debug := true), " Enable debug mode");
   ] in
-  Arg.parse options (fun s -> ()) "help";
+  Arg.parse options (fun _ -> ()) "help";
   let lexbuf = Lexing.from_channel stdin in
   let env = Environment.empty in
   let tyenv = Environment.empty in

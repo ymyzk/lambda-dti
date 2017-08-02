@@ -20,6 +20,19 @@ type ty =
   | TyBool
   | TyFun of ty * ty
 
+let is_ground = function
+  | TyGParam _ -> true
+  | TyInt | TyBool -> true
+  | TyFun (u1, u2) when u1 = TyDyn && u2 = TyDyn -> true
+  | _ -> false
+
+let ground_of_ty = function
+  | TyGParam a -> TyGParam a
+  | TyInt -> TyInt
+  | TyBool -> TyBool
+  | TyFun _ -> TyFun (TyDyn, TyDyn)
+  | _ -> raise Not_found
+
 module GTLC = struct
   type constr =
     | CEqual of ty * ty
@@ -65,11 +78,29 @@ module CC = struct
     | AppExp of exp * exp
     | CastExp of exp * ty * ty
 
-  type tag = I | B | G of typaram | Ar
+  let map_exp f_ty f_exp = function
+    | Var _ as e -> e
+    | IConst _ as e -> e
+    | BConst _ as e -> e
+    | BinOp (op, e1, e2) -> BinOp (op, f_exp e1, f_exp e2)
+    | FunExp (x1, u1, e) -> FunExp (x1, f_ty u1, f_exp e)
+    | AppExp (e1, e2) -> AppExp (f_exp e1, f_exp e2)
+    | CastExp (e, u1, u2) -> CastExp (f_exp e, f_ty u1, f_ty u2)
 
-  type value =
-    | IntV of int
-    | BoolV of bool
-    | FunV of (value -> value)
-    | Tagged of tag * value
+  let rec is_value = function
+    | IConst _
+    | BConst _
+    | FunExp _ -> true
+    | CastExp (v, TyFun _, TyFun _) when is_value v -> true
+    | CastExp (v, g, TyDyn) when is_value v && is_ground g -> true
+    | _ -> false
+
+  type context =
+    | CTop
+    | CAppL of context * exp
+    | CAppR of value * context
+    | CBinOpL of op * context * exp
+    | CBinOpR of op * value * context
+    | CCast of context * ty * ty
+  and value = exp
 end

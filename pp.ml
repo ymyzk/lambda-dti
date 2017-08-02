@@ -2,6 +2,8 @@ open Format
 
 open Syntax
 
+exception Syntax_error
+
 let pp_binop ppf op =
   pp_print_string ppf begin
     match op with
@@ -54,7 +56,7 @@ module CC = struct
     | BConst b -> pp_print_bool ppf b
     | IConst i -> pp_print_int ppf i
     | BinOp (op, f1, f2) ->
-        fprintf ppf "%a %a %a"
+        fprintf ppf "(%a %a %a)"
           pp_exp f1
           pp_binop op
           pp_exp f2
@@ -73,15 +75,16 @@ module CC = struct
           pp_ty u1
           pp_ty u2
 
-  let pp_tag ppf = function
-    | I -> pp_print_string ppf "int"
-    | B -> pp_print_string ppf "bool"
-    | G a -> fprintf ppf "'a%d" a
-    | Ar -> pp_print_string ppf "? -> ?"
-
-  let rec pp_value ppf = function
-    | IntV i -> pp_print_int ppf i
-    | BoolV b -> pp_print_bool ppf b
-    | FunV _ -> pp_print_string ppf "<fun>"
-    | Tagged (t, v) -> fprintf ppf "%a: %a => ?" pp_value v pp_tag t
+  let rec pp_value ppf v =
+    assert (is_value v);
+    match v with
+    | BConst _
+    | IConst _ -> pp_exp ppf v
+    | FunExp _ -> pp_print_string ppf "<fun>"
+    | CastExp (v, u1, u2) ->
+        fprintf ppf "%a: %a => %a"
+          pp_value v
+          pp_ty u1
+          pp_ty u2
+    | _ -> raise Syntax_error
 end
