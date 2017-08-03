@@ -55,6 +55,7 @@ FILES[] =
     pp
     syntax
     typing
+    utils
 
 LIB = sgtplib
 PROGRAM = sgtp
