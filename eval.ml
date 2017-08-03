@@ -69,6 +69,14 @@ let reduce = function
   (* R_AppCast *)
   | AppExp (CastExp (v1, TyFun (u11, u12), TyFun (u21, u22)), v2) when is_value v1 && is_value v2 ->
       CastExp (AppExp (v1, CastExp (v2, u21, u11)), u12, u22), None
+  (* R_Ground *)
+  | CastExp (v, u, TyDyn) when u <> TyDyn && u <> ground_of_ty u ->
+      let g = ground_of_ty u in
+      CastExp (CastExp(v, u, g), g, TyDyn), None
+  (* R_Expand *)
+  | CastExp (v, TyDyn, u) when u <> TyDyn && u <> ground_of_ty u ->
+      let g = ground_of_ty u in
+      CastExp (CastExp(v, TyDyn, g), g, u), None
   | CastExp (CastExp (v, u1, u2), u2', u3) when is_value v && u2 = u2' ->
       begin match (u1, u2, u3) with
       (* R_Succeed *)
@@ -84,14 +92,6 @@ let reduce = function
       | g1, TyDyn, g2 when is_ground g1 && is_ground g2 && g1 <> g2 -> raise Blame
       | _ -> raise Reduce
       end
-  (* R_Ground *)
-  | CastExp (v, u, TyDyn) when u <> TyDyn && u <> ground_of_ty u ->
-      let g = ground_of_ty u in
-      CastExp (CastExp(v, u, g), g, TyDyn), None
-  (* R_Expand *)
-  | CastExp (v, TyDyn, u) when u <> TyDyn && u <> ground_of_ty u ->
-      let g = ground_of_ty u in
-      CastExp (CastExp(v, TyDyn, g), g, u), None
   | _ -> raise Reduce
 
 (* Evaluation *)
