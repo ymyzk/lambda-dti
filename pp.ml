@@ -35,7 +35,8 @@ module GTLC = struct
   open Syntax.GTLC
 
   let gt_exp e_up e = match e_up, e with
-    | AppExp _, _ -> true
+    | AppExp _, BinOp _ -> true
+    | AppExp _, AppExp _ -> true
     | BinOp (Mult, _, _), BinOp (Plus, _, _) -> true
     | BinOp (Mult, _, _), BinOp (Lt, _, _) -> true
     | BinOp (Plus, _, _), BinOp (Lt, _, _) -> true
