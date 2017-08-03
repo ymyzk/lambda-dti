@@ -65,24 +65,32 @@ end
 module CC = struct
   open Syntax.CC
 
+  let gt_exp f_up f = match f_up, f with
+    | AppExp _, BinOp _ -> true
+    | AppExp _, AppExp _ -> true
+    | BinOp (Mult, _, _), BinOp (Plus, _, _) -> true
+    | BinOp (Mult, _, _), BinOp (Lt, _, _) -> true
+    | BinOp (Plus, _, _), BinOp (Lt, _, _) -> true
+    | _ -> false
+
   let rec pp_exp ppf = function
     | Var x -> pp_print_string ppf x
     | BConst b -> pp_print_bool ppf b
     | IConst i -> pp_print_int ppf i
-    | BinOp (op, f1, f2) ->
-        fprintf ppf "(%a %a %a)"
-          pp_exp f1
+    | BinOp (op, f1, f2) as f ->
+        fprintf ppf "%a %a %a"
+          (with_paren gt_exp pp_exp f) f1
           pp_binop op
-          pp_exp f2
+          (with_paren gt_exp pp_exp f) f2
     | FunExp (x1, u1, f) ->
         fprintf ppf "fun (%s: %a) -> %a"
           x1
           pp_ty u1
           pp_exp f
-    | AppExp (f1, f2) ->
-        fprintf ppf "((%a) (%a))"
+    | AppExp (f1, f2) as f ->
+        fprintf ppf "%a %a"
           pp_exp f1
-          pp_exp f2
+          (with_paren gt_exp pp_exp f) f2
     | CastExp (f, u1, u2) ->
         fprintf ppf "(%a: %a => %a)"
           pp_exp f
