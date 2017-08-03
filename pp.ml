@@ -4,13 +4,12 @@ open Syntax
 
 exception Syntax_error
 
-let pp_binop ppf op =
-  pp_print_string ppf begin
-    match op with
-    | Plus -> "+"
-    | Mult -> "*"
-    | Lt -> "<"
-  end
+let with_paren gt ppf_e e_up ppf e =
+  fprintf ppf (if gt e_up e then "(%a)" else "%a") ppf_e e
+
+let gt_ty (_: ty) = function
+  | TyFun _ -> true
+  | _ -> false
 
 let rec pp_ty ppf = function
   | TyDyn -> pp_print_string ppf "?"
