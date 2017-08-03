@@ -36,6 +36,7 @@ module GTLC = struct
       "x y z";
       "1 * 2 + 3 * 4";
       "(1 + 2) * (3 + 4)";
+      "(fun (x: ?) -> x) (fun (y: ?) -> y)";
     ]
 
   let suite = [
@@ -58,8 +59,12 @@ module CC = struct
       "x (y z)", AppExp (x, AppExp (y, z));
       "x * y + z * x", BinOp (Plus, BinOp (Mult, x, y), BinOp (Mult, z, x));
       "(x + y) * (z + x)", BinOp (Mult, BinOp (Plus, x, y), BinOp (Plus, z, x));
-      "(x: int => ?)", CastExp (x, TyInt, TyDyn);
-      "((x: int => ?): ? => bool)", CastExp (CastExp (x, TyInt, TyDyn), TyDyn, TyBool);
+      "(fun (x: ?) -> x): ? -> ? => ?",
+      CastExp (FunExp ("x", TyDyn, x), TyFun (TyDyn, TyDyn), TyDyn);
+      "x: int => ?", CastExp (x, TyInt, TyDyn);
+      "x: int => ?: ? => bool", CastExp (CastExp (x, TyInt, TyDyn), TyDyn, TyBool);
+      "(fun (x: ?) -> x) (fun (y: ?) -> y)",
+      AppExp (FunExp ("x", TyDyn, x), FunExp ("y", TyDyn, y));
     ]
 
   let test_pp_value =

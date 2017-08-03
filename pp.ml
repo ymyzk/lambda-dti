@@ -4,8 +4,8 @@ open Syntax
 
 exception Syntax_error
 
-let with_paren gt ppf_e e_up ppf e =
-  fprintf ppf (if gt e_up e then "(%a)" else "%a") ppf_e e
+let with_paren flag ppf_e ppf e =
+  fprintf ppf (if flag then "(%a)" else "%a") ppf_e e
 
 let gt_ty (_: ty) = function
   | TyFun _ -> true
@@ -20,8 +20,16 @@ let rec pp_ty ppf = function
   | TyBool -> pp_print_string ppf "bool"
   | TyFun (u1, u2) as u ->
       fprintf ppf "%a -> %a"
-        (with_paren gt_ty pp_ty u) u1
+        (with_paren (gt_ty u u1) pp_ty) u1
         pp_ty u2
+
+let gt_binop op1 op2 = match op1, op2 with
+  | (Plus | Mult), Lt
+  | Mult, Plus -> true
+  | _ -> false
+
+let gte_binop op1 op2 =
+  if op1 = op2 then true else gt_binop op1 op2
 
 let pp_binop ppf op =
   pp_print_string ppf begin
@@ -34,13 +42,18 @@ let pp_binop ppf op =
 module GTLC = struct
   open Syntax.GTLC
 
-  let gt_exp e_up e = match e_up, e with
-    | AppExp _, BinOp _ -> true
-    | AppExp _, AppExp _ -> true
-    | BinOp (Mult, _, _), BinOp (Plus, _, _) -> true
-    | BinOp (Mult, _, _), BinOp (Lt, _, _) -> true
-    | BinOp (Plus, _, _), BinOp (Lt, _, _) -> true
+  let gt_exp e1 e2 = match e1, e2 with
+    | (Var _ | IConst _ | BConst _ | AppExp _ | BinOp _), FunExp _ -> true
+    | BinOp (op1, _, _), BinOp (op2, _, _) -> gt_binop op1 op2
+    | (Var _ | IConst _ | BConst _ | AppExp _), BinOp _ -> true
+    | (Var _ | IConst _ | BConst _), AppExp _ -> true
     | _ -> false
+
+  let gte_exp e1 e2 = match e1, e2 with
+    | FunExp _, FunExp _ -> true
+    | BinOp (op1, _, _), BinOp (op2, _, _) when op1 = op2 -> true
+    | AppExp _, AppExp _ -> true
+    | _ -> gt_exp e1 e2
 
   let rec pp_exp ppf = function
     | Var x -> pp_print_string ppf x
@@ -48,9 +61,9 @@ module GTLC = struct
     | IConst i -> pp_print_int ppf i
     | BinOp (op, e1, e2) as e ->
         fprintf ppf "%a %a %a"
-          (with_paren gt_exp pp_exp e) e1
+          (with_paren (gt_exp e e1) pp_exp) e1
           pp_binop op
-          (with_paren gt_exp pp_exp e) e2
+          (with_paren (gt_exp e e2) pp_exp) e2
     | FunExp (x1, u1, e) ->
         fprintf ppf "fun (%s: %a) -> %a"
           x1
@@ -58,20 +71,27 @@ module GTLC = struct
           pp_exp e
     | AppExp (e1, e2) as e ->
         fprintf ppf "%a %a"
-          pp_exp e1
-          (with_paren gt_exp pp_exp e) e2
+          (with_paren (gt_exp e e1) pp_exp) e1
+          (with_paren (gte_exp e e2) pp_exp) e2
 end
 
 module CC = struct
   open Syntax.CC
 
-  let gt_exp f_up f = match f_up, f with
-    | AppExp _, BinOp _ -> true
-    | AppExp _, AppExp _ -> true
-    | BinOp (Mult, _, _), BinOp (Plus, _, _) -> true
-    | BinOp (Mult, _, _), BinOp (Lt, _, _) -> true
-    | BinOp (Plus, _, _), BinOp (Lt, _, _) -> true
+  let gt_exp f1 f2 = match f1, f2 with
+    | (Var _ | IConst _ | BConst _ | CastExp _ | AppExp _ | BinOp _), FunExp _ -> true
+    | BinOp (op1, _, _), BinOp (op2, _, _) -> gt_binop op1 op2
+    | (Var _ | IConst _ | BConst _ | CastExp _ | AppExp _), BinOp _ -> true
+    | (Var _ | IConst _ | BConst _ | CastExp _), AppExp _ -> true
+    | (Var _ | IConst _ | BConst _), CastExp _ -> true
     | _ -> false
+
+  let gte_exp f1 f2 = match f1, f2 with
+    | FunExp _, FunExp _ -> true
+    | BinOp (op1, _, _), BinOp (op2, _, _) when op1 = op2 -> true
+    | AppExp _, AppExp _ -> true
+    | CastExp _, CastExp _ -> true
+    | _ -> gt_exp f1 f2
 
   let rec pp_exp ppf = function
     | Var x -> pp_print_string ppf x
@@ -79,9 +99,9 @@ module CC = struct
     | IConst i -> pp_print_int ppf i
     | BinOp (op, f1, f2) as f ->
         fprintf ppf "%a %a %a"
-          (with_paren gt_exp pp_exp f) f1
+          (with_paren (gt_exp f f1) pp_exp) f1
           pp_binop op
-          (with_paren gt_exp pp_exp f) f2
+          (with_paren (gt_exp f f2) pp_exp) f2
     | FunExp (x1, u1, f) ->
         fprintf ppf "fun (%s: %a) -> %a"
           x1
@@ -89,11 +109,11 @@ module CC = struct
           pp_exp f
     | AppExp (f1, f2) as f ->
         fprintf ppf "%a %a"
-          pp_exp f1
-          (with_paren gt_exp pp_exp f) f2
-    | CastExp (f, u1, u2) ->
-        fprintf ppf "(%a: %a => %a)"
-          pp_exp f
+          (with_paren (gt_exp f f1) pp_exp) f1
+          (with_paren (gte_exp f f2) pp_exp) f2
+    | CastExp (f1, u1, u2) as f ->
+        fprintf ppf "%a: %a => %a"
+          (with_paren (gt_exp f f1) pp_exp) f1
           pp_ty u1
           pp_ty u2
 
