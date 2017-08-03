@@ -1,24 +1,23 @@
 # .PHONY: all install clean
-.PHONY: clean
+.PHONY: all clean test
 
 #
 # This project requires ocamlfind (default - false).
-#
-# USE_OCAMLFIND = true
-#
-# OCAMLPACKS[] =
-#    pack1
-#    pack2
-#
-# if $(not $(OCAMLFIND_EXISTS))
-#    eprintln(This project requires ocamlfind, but is was not found.)
-#    eprintln(You need to install ocamlfind and run "omake --configure".)
-#    exit 1
+
+USE_OCAMLFIND = true
+
+OCAMLPACKS[] =
+    oUnit
+
+if $(not $(OCAMLFIND_EXISTS))
+   eprintln(This project requires ocamlfind, but is was not found.)
+   eprintln(You need to install ocamlfind and run "omake --configure".)
+   exit 1
 
 #
 # Include path
 #
-# OCAMLINCLUDES +=
+OCAMLINCLUDES += ../
 
 #
 # Compile native or byte code?
@@ -48,27 +47,29 @@ MENHIR_ENABLED = true
 #
 # OCamlGeneratedFiles(parser.ml lexer.ml)
 
+################################################
+# Build an OCaml program
+#
+
 FILES[] =
-    eval
-    lexer
-    parser
-    pp
-    syntax
-    typing
+    runtests
+    test_pp
 
-LIB = sgtplib
-PROGRAM = sgtp
+PROGRAM = runtests
+OCAML_LIBS += ../sgtplib
+# OCAML_CLIBS +=
+# OCAML_OTHER_LIBS +=
+# OCAML_LIB_FLAGS +=
 
-section
-    FILES[] = $(FILES) main
-    .DEFAULT: $(OCamlProgram $(PROGRAM), $(FILES))
+.DEFAULT: all
 
-section
-    .DEFAULT: $(OCamlLibrary $(LIB), $(FILES))
+all: $(OCamlProgram $(PROGRAM), $(FILES))
+
+test: all
+      ./$(PROGRAM)
 
 clean:
 rm -f \
     $(filter-proper-targets $(glob $(addsuffix .*, $(FILES)))) \
     $(glob $(addsuffix .{annot\,cmt\,cmti}, $(FILES))) \
-    $(LIB) $(LIB).run $(LIB).opt \
     $(PROGRAM) $(PROGRAM).run $(PROGRAM).opt

@@ -8,4 +8,4 @@ open build/OCaml
 DefineCommandVars()
 
 # Include the OMakefile in this directory.
-.SUBDIRS: .
+.SUBDIRS: . tests
