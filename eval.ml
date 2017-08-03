@@ -34,6 +34,14 @@ let rec subst_gtp_in_context s = function
   | CBinOpR (op, e, c) -> CBinOpR (op, subst_gtp_in_exp s e, subst_gtp_in_context s c)
   | CCast (c, u1, u2) -> CCast (subst_gtp_in_context s c, subst_gtp_in_type s u1, subst_gtp_in_type s u2)
 
+let pp_sep ppf () = fprintf ppf ", "
+
+let pp_substitution ppf (a, u) =
+  fprintf ppf "['a%d :-> %a]" a Pp.pp_ty u
+
+let pp_substitutions ppf ss =
+  pp_print_list pp_substitution ppf ss ~pp_sep:pp_sep
+
 (* Reduction *)
 
 (* e[x:=v] *)

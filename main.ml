@@ -29,8 +29,8 @@ let rec read_eval_print lexbuf env tyenv =
     assert (u = u');
     let u = Typing.CC.type_of_exp tyenv f in
     let v, s = Eval.eval f in
-    (* print_debug substitutions *)
     print_debug "CC v: %a\n" Pp.CC.pp_exp v;
+    print_debug "GTP Subst: %a\n"  Eval.pp_substitutions s;
     print "- : %a = %a\n" Pp.pp_ty (Eval.subst_gtp_in_type s u) Pp.CC.pp_value v
   with
   | Failure message ->
