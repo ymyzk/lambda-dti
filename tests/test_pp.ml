@@ -48,23 +48,25 @@ module CC = struct
   open Pp.CC
   open Syntax.CC
 
+  let r = Utils.Error.dummy_range
+
   let test_pp_exp =
     let test (expected, f) =
       expected >:: fun ctxt ->
         assert_equal ~ctxt:ctxt ~printer:id expected @@ asprintf "%a" pp_exp f
     in
-    let x, y, z = Var "x", Var "y", Var "z" in
+    let x, y, z = Var (r, "x"), Var (r, "y"), Var (r, "z") in
     List.map test [
-      "x y z", AppExp (AppExp (x, y), z);
-      "x (y z)", AppExp (x, AppExp (y, z));
-      "x * y + z * x", BinOp (Plus, BinOp (Mult, x, y), BinOp (Mult, z, x));
-      "(x + y) * (z + x)", BinOp (Mult, BinOp (Plus, x, y), BinOp (Plus, z, x));
+      "x y z", AppExp (r, AppExp (r, x, y), z);
+      "x (y z)", AppExp (r, x, AppExp (r, y, z));
+      "x * y + z * x", BinOp (r, Plus, BinOp (r, Mult, x, y), BinOp (r, Mult, z, x));
+      "(x + y) * (z + x)", BinOp (r, Mult, BinOp (r, Plus, x, y), BinOp (r, Plus, z, x));
       "(fun (x: ?) -> x): ? -> ? => ?",
-      CastExp (FunExp ("x", TyDyn, x), TyFun (TyDyn, TyDyn), TyDyn);
-      "x: int => ?", CastExp (x, TyInt, TyDyn);
-      "x: int => ?: ? => bool", CastExp (CastExp (x, TyInt, TyDyn), TyDyn, TyBool);
+      CastExp (r, FunExp (r, "x", TyDyn, x), TyFun (TyDyn, TyDyn), TyDyn);
+      "x: int => ?", CastExp (r, x, TyInt, TyDyn);
+      "x: int => ?: ? => bool", CastExp (r, CastExp (r, x, TyInt, TyDyn), TyDyn, TyBool);
       "(fun (x: ?) -> x) (fun (y: ?) -> y)",
-      AppExp (FunExp ("x", TyDyn, x), FunExp ("y", TyDyn, y));
+      AppExp (r, FunExp (r, "x", TyDyn, x), FunExp (r, "y", TyDyn, y));
     ]
 
   let test_pp_value =
@@ -72,15 +74,15 @@ module CC = struct
       expected >:: fun ctxt ->
         assert_equal ~ctxt:ctxt ~printer:id expected @@ asprintf "%a" pp_value v
     in
-    let b, i = BConst true, IConst 123 in
+    let b, i = BConst (r, true), IConst (r, 123) in
     List.map test [
       "true", b;
       "123", i;
-      "<fun>", FunExp ("x", TyDyn, i);
+      "<fun>", FunExp (r, "x", TyDyn, i);
       "<fun>: int -> ? => ? -> ?",
-      CastExp (FunExp ("x", TyDyn, i), TyFun (TyInt, TyDyn), TyFun (TyDyn, TyDyn));
+      CastExp (r, FunExp (r, "x", TyDyn, i), TyFun (TyInt, TyDyn), TyFun (TyDyn, TyDyn));
       "<fun>: ? -> ? => ?",
-      CastExp (FunExp ("x", TyDyn, CastExp (i, TyInt, TyDyn)), TyFun (TyDyn, TyDyn), TyDyn);
+      CastExp (r, FunExp (r, "x", TyDyn, CastExp (r, i, TyInt, TyDyn)), TyFun (TyDyn, TyDyn), TyDyn);
     ]
 
   let suite = [

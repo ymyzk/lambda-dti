@@ -17,8 +17,8 @@ let range_of lexbuf =
 }
 
 rule main = parse
-  (* ignore spacing and newline characters *)
-  [' ' '\009' '\012' '\n']+ { main lexbuf }
+  [' ' '\t']+ { main lexbuf }
+| [' ' '\t']* '\n'+ { Lexing.new_line lexbuf; main lexbuf }
 | ['0'-'9']+
   {
     let value = int_of_string (Lexing.lexeme lexbuf) in

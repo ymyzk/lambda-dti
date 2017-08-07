@@ -258,37 +258,39 @@ module GTLC = struct
     let tyvars_in_tau = Variables.elements tyvars_in_tau in
     s @ List.map (fun v -> (v, fresh_gparam ())) tyvars_in_tau
 
-  let cast f u1 u2 = if u1 = u2 then f else CC.CastExp (f, u1, u2)
+  let cast f u1 u2 =
+    if u1 = u2 then f
+    else CC.CastExp (CC.range_of_exp f, f, u1, u2)
 
   let rec translate env = function
-    | Var (_, x) -> begin
+    | Var (r, x) -> begin
         try
           let u = Environment.find x env in
-          CC.Var x, u
+          CC.Var (r, x), u
         with Not_found ->
           raise @@ Type_error "variable not found"
       end
-    | IConst (_, i) -> CC.IConst i, TyInt
-    | BConst (_, b) -> CC.BConst b, TyBool
-    | BinOp (_, op, e1, e2) ->
+    | IConst (r, i) -> CC.IConst (r, i), TyInt
+    | BConst (r, b) -> CC.BConst (r, b), TyBool
+    | BinOp (r, op, e1, e2) ->
         let ui1, ui2, ui = type_of_binop op in
         let f1, u1 = translate env e1 in
         let f2, u2 = translate env e2 in
-        CC.BinOp (op, cast f1 u1 ui1, cast f2 u2 ui2), ui
-    | FunExp (_, x, u1, e) ->
+        CC.BinOp (r, op, cast f1 u1 ui1, cast f2 u2 ui2), ui
+    | FunExp (r, x, u1, e) ->
         let f, u2 = translate (Environment.add x u1 env) e in
-        CC.FunExp (x, u1, f), TyFun (u1, u2)
-    | AppExp (_, e1, e2) ->
+        CC.FunExp (r, x, u1, f), TyFun (u1, u2)
+    | AppExp (r, e1, e2) ->
         let f1, u1 = translate env e1 in
         let f2, u2 = translate env e2 in
-        CC.AppExp (cast f1 u1 (TyFun (dom u1, cod u1)), cast f2 u2 (dom u1)), cod u1
+        CC.AppExp (r, cast f1 u1 (TyFun (dom u1, cod u1)), cast f2 u2 (dom u1)), cod u1
 end
 
 module CC = struct
   open Syntax.CC
 
   let rec type_of_exp env = function
-    | Var x -> begin
+    | Var (_, x) -> begin
         try
           Environment.find x env
         with Not_found ->
@@ -296,7 +298,7 @@ module CC = struct
       end
     | IConst _ -> TyInt
     | BConst _ -> TyBool
-    | BinOp (op, f1, f2) ->
+    | BinOp (_, op, f1, f2) ->
         let u1 = type_of_exp env f1 in
         let u2 = type_of_exp env f2 in
         begin match op, u1, u2 with
@@ -305,10 +307,10 @@ module CC = struct
           | Lt, TyInt, TyInt -> TyBool
           | _ -> raise @@ Type_error "binop"
         end
-    | FunExp (x, u1, f) ->
+    | FunExp (_, x, u1, f) ->
         let u2 = type_of_exp (Environment.add x u1 env) f in
         TyFun (u1, u2)
-    | AppExp (f1, f2) ->
+    | AppExp (_, f1, f2) ->
         let u1 = type_of_exp env f1 in
         let u2 = type_of_exp env f2 in
         begin match u1, u2 with
@@ -316,7 +318,7 @@ module CC = struct
               u12
           | _ -> raise @@ Type_error "app"
         end
-    | CastExp (f, u1, u2) ->
+    | CastExp (_, f, u1, u2) ->
         let u = type_of_exp env f in
         if u = u1 then
           if is_consistent u1 u2 then

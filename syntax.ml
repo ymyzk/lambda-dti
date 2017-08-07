@@ -80,37 +80,46 @@ end
 
 module CC = struct
   type exp =
-    | Var of id
-    | IConst of int
-    | BConst of bool
-    | BinOp of op * exp * exp
-    | FunExp of id * ty * exp
-    | AppExp of exp * exp
-    | CastExp of exp * ty * ty
+    | Var of range * id
+    | IConst of range * int
+    | BConst of range * bool
+    | BinOp of range * op * exp * exp
+    | FunExp of range * id * ty * exp
+    | AppExp of range * exp * exp
+    | CastExp of range * exp * ty * ty
 
   let map_exp f_ty f_exp = function
-    | Var _ as e -> e
-    | IConst _ as e -> e
-    | BConst _ as e -> e
-    | BinOp (op, e1, e2) -> BinOp (op, f_exp e1, f_exp e2)
-    | FunExp (x1, u1, e) -> FunExp (x1, f_ty u1, f_exp e)
-    | AppExp (e1, e2) -> AppExp (f_exp e1, f_exp e2)
-    | CastExp (e, u1, u2) -> CastExp (f_exp e, f_ty u1, f_ty u2)
+    | Var _
+    | IConst _
+    | BConst _ as f -> f
+    | BinOp (r, op, f1, f2) -> BinOp (r, op, f_exp f1, f_exp f2)
+    | FunExp (r, x1, u1, f) -> FunExp (r, x1, f_ty u1, f_exp f)
+    | AppExp (r, f1, f2) -> AppExp (r, f_exp f1, f_exp f2)
+    | CastExp (r, f, u1, u2) -> CastExp (r, f_exp f, f_ty u1, f_ty u2)
+
+  let range_of_exp = function
+    | Var (r, _)
+    | IConst (r, _)
+    | BConst (r, _)
+    | BinOp (r, _, _, _)
+    | FunExp (r, _, _, _)
+    | AppExp (r, _, _)
+    | CastExp (r, _, _, _) -> r
 
   let rec is_value = function
     | IConst _
     | BConst _
     | FunExp _ -> true
-    | CastExp (v, TyFun _, TyFun _) when is_value v -> true
-    | CastExp (v, g, TyDyn) when is_value v && is_ground g -> true
+    | CastExp (_, v, TyFun _, TyFun _) when is_value v -> true
+    | CastExp (_, v, g, TyDyn) when is_value v && is_ground g -> true
     | _ -> false
 
   type context =
     | CTop
-    | CAppL of context * exp
-    | CAppR of value * context
-    | CBinOpL of op * context * exp
-    | CBinOpR of op * value * context
-    | CCast of context * ty * ty
+    | CAppL of range * context * exp
+    | CAppR of range * value * context
+    | CBinOpL of range * op * context * exp
+    | CBinOpR of range * op * value * context
+    | CCast of range * context * ty * ty
   and value = exp
 end

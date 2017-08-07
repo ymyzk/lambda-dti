@@ -80,7 +80,7 @@ module CC = struct
 
   let gt_exp f1 f2 = match f1, f2 with
     | (Var _ | IConst _ | BConst _ | CastExp _ | AppExp _ | BinOp _), FunExp _ -> true
-    | BinOp (op1, _, _), BinOp (op2, _, _) -> gt_binop op1 op2
+    | BinOp (_, op1, _, _), BinOp (_, op2, _, _) -> gt_binop op1 op2
     | (Var _ | IConst _ | BConst _ | CastExp _ | AppExp _), BinOp _ -> true
     | (Var _ | IConst _ | BConst _ | CastExp _), AppExp _ -> true
     | (Var _ | IConst _ | BConst _), CastExp _ -> true
@@ -88,30 +88,30 @@ module CC = struct
 
   let gte_exp f1 f2 = match f1, f2 with
     | FunExp _, FunExp _ -> true
-    | BinOp (op1, _, _), BinOp (op2, _, _) when op1 = op2 -> true
+    | BinOp (_, op1, _, _), BinOp (_, op2, _, _) when op1 = op2 -> true
     | AppExp _, AppExp _ -> true
     | CastExp _, CastExp _ -> true
     | _ -> gt_exp f1 f2
 
   let rec pp_exp ppf = function
-    | Var x -> pp_print_string ppf x
-    | BConst b -> pp_print_bool ppf b
-    | IConst i -> pp_print_int ppf i
-    | BinOp (op, f1, f2) as f ->
+    | Var (_, x) -> pp_print_string ppf x
+    | BConst (_, b) -> pp_print_bool ppf b
+    | IConst (_, i) -> pp_print_int ppf i
+    | BinOp (_, op, f1, f2) as f ->
         fprintf ppf "%a %a %a"
           (with_paren (gt_exp f f1) pp_exp) f1
           pp_binop op
           (with_paren (gt_exp f f2) pp_exp) f2
-    | FunExp (x1, u1, f) ->
+    | FunExp (_, x1, u1, f) ->
         fprintf ppf "fun (%s: %a) -> %a"
           x1
           pp_ty u1
           pp_exp f
-    | AppExp (f1, f2) as f ->
+    | AppExp (_, f1, f2) as f ->
         fprintf ppf "%a %a"
           (with_paren (gt_exp f f1) pp_exp) f1
           (with_paren (gte_exp f f2) pp_exp) f2
-    | CastExp (f1, u1, u2) as f ->
+    | CastExp (_, f1, u1, u2) as f ->
         fprintf ppf "%a: %a => %a"
           (with_paren (gt_exp f f1) pp_exp) f1
           pp_ty u1
@@ -123,7 +123,7 @@ module CC = struct
     | BConst _
     | IConst _ -> pp_exp ppf v
     | FunExp _ -> pp_print_string ppf "<fun>"
-    | CastExp (v, u1, u2) ->
+    | CastExp (_, v, u1, u2) ->
         fprintf ppf "%a: %a => %a"
           pp_value v
           pp_ty u1

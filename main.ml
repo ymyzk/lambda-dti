@@ -42,8 +42,9 @@ let rec read_eval_print lexbuf env tyenv =
       Lexing.flush_input lexbuf
   | Typing.Type_error message ->
       print "Type_error: %s\n" message
-  | Eval.Blame ->
-      print "Blame!"
+  | Eval.Blame r ->
+      print "Blame: %a\n"
+        Utils.Error.pp_range r
   end;
   read_eval_print lexbuf env tyenv
 
