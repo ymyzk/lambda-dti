@@ -44,32 +44,32 @@ module GTLC = struct
 
   let gt_exp e1 e2 = match e1, e2 with
     | (Var _ | IConst _ | BConst _ | AppExp _ | BinOp _), FunExp _ -> true
-    | BinOp (op1, _, _), BinOp (op2, _, _) -> gt_binop op1 op2
+    | BinOp (_, op1, _, _), BinOp (_, op2, _, _) -> gt_binop op1 op2
     | (Var _ | IConst _ | BConst _ | AppExp _), BinOp _ -> true
     | (Var _ | IConst _ | BConst _), AppExp _ -> true
     | _ -> false
 
   let gte_exp e1 e2 = match e1, e2 with
     | FunExp _, FunExp _ -> true
-    | BinOp (op1, _, _), BinOp (op2, _, _) when op1 = op2 -> true
+    | BinOp (_, op1, _, _), BinOp (_, op2, _, _) when op1 = op2 -> true
     | AppExp _, AppExp _ -> true
     | _ -> gt_exp e1 e2
 
   let rec pp_exp ppf = function
-    | Var x -> pp_print_string ppf x
-    | BConst b -> pp_print_bool ppf b
-    | IConst i -> pp_print_int ppf i
-    | BinOp (op, e1, e2) as e ->
+    | Var (_, x) -> pp_print_string ppf x
+    | BConst (_, b) -> pp_print_bool ppf b
+    | IConst (_, i) -> pp_print_int ppf i
+    | BinOp (_, op, e1, e2) as e ->
         fprintf ppf "%a %a %a"
           (with_paren (gt_exp e e1) pp_exp) e1
           pp_binop op
           (with_paren (gt_exp e e2) pp_exp) e2
-    | FunExp (x1, u1, e) ->
+    | FunExp (_, x1, u1, e) ->
         fprintf ppf "fun (%s: %a) -> %a"
           x1
           pp_ty u1
           pp_exp e
-    | AppExp (e1, e2) as e ->
+    | AppExp (_, e1, e2) as e ->
         fprintf ppf "%a %a"
           (with_paren (gt_exp e e1) pp_exp) e1
           (with_paren (gte_exp e e2) pp_exp) e2

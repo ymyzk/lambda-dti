@@ -99,7 +99,7 @@ module GTLC = struct
     | _ -> raise @@ Type_error "failed to generate constraints: dom()~"
 
   let rec generate_constr env = function
-    | Var x ->
+    | Var (_, x) ->
         begin
           try
             let u = Environment.find x env in
@@ -109,7 +109,7 @@ module GTLC = struct
         end
     | IConst _ -> TyInt, Constraints.empty
     | BConst _ -> TyBool, Constraints.empty
-    | BinOp (op, e1, e2) ->
+    | BinOp (_, op, e1, e2) ->
         let ui1, ui2, ui = type_of_binop op in
         let u1, c1 = generate_constr env e1 in
         let u2, c2 = generate_constr env e2 in
@@ -119,10 +119,10 @@ module GTLC = struct
                 @@ Constraints.add (CConsistent (u2, ui2))
                 @@ Constraints.empty in
         ui, c
-    | FunExp (x, u1, e) ->
+    | FunExp (_, x, u1, e) ->
         let u2, c = generate_constr (Environment.add x u1 env) e in
         TyFun (u1, u2), c
-    | AppExp (e1, e2) ->
+    | AppExp (_, e1, e2) ->
         let u1, c1 = generate_constr env e1 in
         let u2, c2 = generate_constr env e2 in
         let u3, c3 = generate_constr_cod_eq u1 in
@@ -150,11 +150,11 @@ module GTLC = struct
     | Var _
     | BConst _
     | IConst _ -> Variables.empty
-    | BinOp (_, e1, e2) ->
+    | BinOp (_, _, e1, e2) ->
         Variables.union (tyvars_exp e1) (tyvars_exp e2)
-    | FunExp (_, u1, e) ->
+    | FunExp (_, _, u1, e) ->
         Variables.union (tyvars u1) @@ tyvars_exp e
-    | AppExp (e1, e2) ->
+    | AppExp (_, e1, e2) ->
         Variables.union (tyvars_exp e1) (tyvars_exp e2)
 
   (* Substitutions *)
@@ -261,24 +261,24 @@ module GTLC = struct
   let cast f u1 u2 = if u1 = u2 then f else CC.CastExp (f, u1, u2)
 
   let rec translate env = function
-    | Var x -> begin
+    | Var (_, x) -> begin
         try
           let u = Environment.find x env in
           CC.Var x, u
         with Not_found ->
           raise @@ Type_error "variable not found"
       end
-    | IConst i -> CC.IConst i, TyInt
-    | BConst b -> CC.BConst b, TyBool
-    | BinOp (op, e1, e2) ->
+    | IConst (_, i) -> CC.IConst i, TyInt
+    | BConst (_, b) -> CC.BConst b, TyBool
+    | BinOp (_, op, e1, e2) ->
         let ui1, ui2, ui = type_of_binop op in
         let f1, u1 = translate env e1 in
         let f2, u2 = translate env e2 in
         CC.BinOp (op, cast f1 u1 ui1, cast f2 u2 ui2), ui
-    | FunExp (x, u1, e) ->
+    | FunExp (_, x, u1, e) ->
         let f, u2 = translate (Environment.add x u1 env) e in
         CC.FunExp (x, u1, f), TyFun (u1, u2)
-    | AppExp (e1, e2) ->
+    | AppExp (_, e1, e2) ->
         let f1, u1 = translate env e1 in
         let f2, u2 = translate env e2 in
         CC.AppExp (cast f1 u1 (TyFun (dom u1, cod u1)), cast f2 u2 (dom u1)), cod u1

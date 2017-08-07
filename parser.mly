@@ -28,22 +28,34 @@ toplevel :
   | Expr SEMISEMI { $1 }
 
 Expr :
-  | FUN LPAREN x=ID COLON u=Type RPAREN RARROW f=Expr { FunExp (x.value, u, f) }
-  | FUN x=ID RARROW f=Expr { FunExp (x.value, Typing.fresh_tyvar (), f) }
-  | f1=Expr PLUS f2=Expr { BinOp (Plus, f1, f2) }
-  | f1=Expr STAR f2=Expr { BinOp (Mult, f1, f2) }
-  | f1=Expr LT f2=Expr { BinOp (Lt, f1, f2) }
+  | start=FUN LPAREN x=ID COLON u=Type RPAREN RARROW e=Expr {
+      FunExp (join_range start (range_of_exp e), x.value, u, e)
+    }
+  | start=FUN x=ID RARROW e=Expr {
+      FunExp (join_range start (range_of_exp e), x.value, Typing.fresh_tyvar (), e)
+    }
+  | e1=Expr PLUS e2=Expr {
+      BinOp (join_range (range_of_exp e1) (range_of_exp e2), Plus, e1, e2)
+    }
+  | e1=Expr STAR e2=Expr {
+      BinOp (join_range (range_of_exp e1) (range_of_exp e2), Mult, e1, e2)
+    }
+  | e1=Expr LT e2=Expr {
+      BinOp (join_range (range_of_exp e1) (range_of_exp e2), Lt, e1, e2)
+    }
   | AppExpr { $1 }
 
 AppExpr :
-  | f1=AppExpr f2=SimpleExpr { AppExp (f1, f2) }
+  | e1=AppExpr e2=SimpleExpr {
+      AppExp (join_range (range_of_exp e1) (range_of_exp e2), e1, e2)
+    }
   | SimpleExpr { $1 }
 
 SimpleExpr :
-  | i=INTV { IConst i.value }
-  | TRUE { BConst true }
-  | FALSE { BConst false }
-  | x=ID { Var x.value }
+  | i=INTV { IConst (i.range, i.value) }
+  | r=TRUE { BConst (r, true) }
+  | r=FALSE { BConst (r, false) }
+  | x=ID { Var (x.range, x.value) }
   | LPAREN f=Expr RPAREN { f }
 
 Type :

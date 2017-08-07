@@ -1,3 +1,5 @@
+open Utils.Error
+
 type id = string
 
 module Environment = Map.Make (
@@ -52,20 +54,28 @@ module GTLC = struct
   end
 
   type exp =
-    | Var of id
-    | IConst of int
-    | BConst of bool
-    | BinOp of op * exp * exp
-    | FunExp of id * ty * exp
-    | AppExp of exp * exp
+    | Var of range * id
+    | IConst of range * int
+    | BConst of range * bool
+    | BinOp of range * op * exp * exp
+    | FunExp of range * id * ty * exp
+    | AppExp of range * exp * exp
 
   let map_exp f_ty f_exp = function
     | Var _ as e -> e
     | IConst _ as e -> e
     | BConst _ as e -> e
-    | BinOp (op, e1, e2) -> BinOp (op, f_exp e1, f_exp e2)
-    | FunExp (x1, u1, e) -> FunExp (x1, f_ty u1, f_exp e)
-    | AppExp (e1, e2) -> AppExp (f_exp e1, f_exp e2)
+    | BinOp (r, op, e1, e2) -> BinOp (r, op, f_exp e1, f_exp e2)
+    | FunExp (r, x1, u1, e) -> FunExp (r, x1, f_ty u1, f_exp e)
+    | AppExp (r, e1, e2) -> AppExp (r, f_exp e1, f_exp e2)
+
+  let range_of_exp = function
+    | Var (r, _)
+    | IConst (r, _)
+    | BConst (r, _)
+    | BinOp (r, _, _, _)
+    | FunExp (r, _, _, _)
+    | AppExp (r, _, _) -> r
 end
 
 module CC = struct
