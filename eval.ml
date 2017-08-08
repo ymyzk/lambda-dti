@@ -90,10 +90,10 @@ let reduce = function
       begin match (u1, u2, u3) with
       (* R_Succeed *)
       | g1, TyDyn, g2 when is_ground g1 && is_ground g2 && g1 = g2 -> v, None
-      (* R_Instantiate4 *)
+      (* R_InstBase *)
       | TyBool, TyDyn, TyGParam a -> v, Some (a, TyBool)
       | TyInt, TyDyn, TyGParam a -> v, Some (a, TyInt)
-      (* R_Instantiate5 *)
+      (* R_InstArrow *)
       | TyFun (TyDyn, TyDyn), TyDyn, TyGParam a ->
           let a1, a2 = Typing.fresh_gparam (), Typing.fresh_gparam () in
           CastExp (r2, v, TyFun (TyDyn, TyDyn), TyFun (a1, a2)), Some (a, TyFun (a1, a2))
