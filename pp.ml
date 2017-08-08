@@ -79,12 +79,13 @@ module CC = struct
   open Syntax.CC
 
   let gt_exp f1 f2 = match f1, f2 with
-    | (Var _ | IConst _ | BConst _ | CastExp _ | AppExp _ | BinOp _), FunExp _ -> true
+    | (Var _ | IConst _ | BConst _ | AppExp _ | BinOp _ | CastExp _), FunExp _ -> true
+    | (Var _ | IConst _ | BConst _ | AppExp _ | BinOp _), CastExp _ -> true
     | BinOp (_, op1, _, _), BinOp (_, op2, _, _) -> gt_binop op1 op2
-    | (Var _ | IConst _ | BConst _ | CastExp _ | AppExp _), BinOp _ -> true
-    | (Var _ | IConst _ | BConst _ | CastExp _), AppExp _ -> true
-    | (Var _ | IConst _ | BConst _), CastExp _ -> true
+    | (Var _ | IConst _ | BConst _ | AppExp _), BinOp _ -> true
+    | (Var _ | IConst _ | BConst _), AppExp _ -> true
     | _ -> false
+
 
   let gte_exp f1 f2 = match f1, f2 with
     | FunExp _, FunExp _ -> true
@@ -112,10 +113,18 @@ module CC = struct
           (with_paren (gt_exp f f1) pp_exp) f1
           (with_paren (gte_exp f f2) pp_exp) f2
     | CastExp (_, f1, u1, u2) as f ->
-        fprintf ppf "%a: %a => %a"
-          (with_paren (gt_exp f f1) pp_exp) f1
-          pp_ty u1
-          pp_ty u2
+        match f1 with
+        | CastExp (_, _, _, u1') when u1 = u1' ->
+            fprintf ppf "%a => %a"
+              (with_paren (gt_exp f f1) pp_exp) f1
+              pp_ty u2
+        | CastExp _ ->
+            raise Syntax_error
+        | _ ->
+            fprintf ppf "(%a: %a => %a)"
+               (with_paren (gt_exp f f1) pp_exp) f1
+              pp_ty u1
+              pp_ty u2
 
   let rec pp_value ppf v =
     assert (is_value v);
