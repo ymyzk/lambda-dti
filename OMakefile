@@ -71,5 +71,5 @@ clean:
 rm -f \
     $(filter-proper-targets $(glob $(addsuffix .*, $(FILES)))) \
     $(glob $(addsuffix .{annot\,cmt\,cmti}, $(FILES))) \
-    $(LIB) $(LIB).run $(LIB).opt \
+    $(LIB).a $(LIB).cma $(LIB).cmxa \
     $(PROGRAM) $(PROGRAM).run $(PROGRAM).opt
