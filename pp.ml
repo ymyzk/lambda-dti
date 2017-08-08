@@ -121,7 +121,7 @@ module CC = struct
         | CastExp _ ->
             raise Syntax_error
         | _ ->
-            fprintf ppf "(%a: %a => %a)"
+            fprintf ppf "%a: %a => %a"
                (with_paren (gt_exp f f1) pp_exp) f1
               pp_ty u1
               pp_ty u2

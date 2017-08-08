@@ -61,14 +61,14 @@ module CC = struct
       "x (y z)", AppExp (r, x, AppExp (r, y, z));
       "x * y + z * x", BinOp (r, Plus, BinOp (r, Mult, x, y), BinOp (r, Mult, z, x));
       "(x + y) * (z + x)", BinOp (r, Mult, BinOp (r, Plus, x, y), BinOp (r, Plus, z, x));
-      "((fun (x: ?) -> x): ? -> ? => ?)",
+      "(fun (x: ?) -> x): ? -> ? => ?",
       CastExp (r, FunExp (r, "x", TyDyn, x), TyFun (TyDyn, TyDyn), TyDyn);
-      "(x: int => ?)", CastExp (r, x, TyInt, TyDyn);
-      "(x: int => ? => bool)c", CastExp (r, CastExp (r, x, TyInt, TyDyn), TyDyn, TyBool);
+      "x: int => ?", CastExp (r, x, TyInt, TyDyn);
+      "x: int => ? => bool", CastExp (r, CastExp (r, x, TyInt, TyDyn), TyDyn, TyBool);
       "(fun (x: ?) -> x) (fun (y: ?) -> y)",
       AppExp (r, FunExp (r, "x", TyDyn, x), FunExp (r, "y", TyDyn, y));
-      "(x y: int => ?)", CastExp (r, AppExp (r, x, y), TyInt, TyDyn);
-      "(x (y: int => ?))", AppExp (r, x, CastExp (r, y, TyInt, TyDyn));
+      "x y: int => ?", CastExp (r, AppExp (r, x, y), TyInt, TyDyn);
+      "x (y: int => ?)", AppExp (r, x, CastExp (r, y, TyInt, TyDyn));
     ]
 
   let test_pp_value =
