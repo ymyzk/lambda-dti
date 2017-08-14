@@ -152,7 +152,6 @@ let pp_context_exp ppf (c, e) =
   exp_with e ppf @@ fill_context (c, hole)
 
 let rec decompose_down (c, e as ce) =
-  (* fprintf std_formatter "decompose_down %d <-- %a\n" x pp_context_exp ce; *)
   let ce =
     match e with
   | Var _ -> raise @@ Error (c, e)
@@ -177,11 +176,9 @@ let rec decompose_down (c, e as ce) =
       try decompose_down (CCast (r, c, u1, u2), e1)
       with Value -> ce
   in
-  (* fprintf std_formatter "decompose_down %d --> %a\n" x pp_context_exp ce; *)
   ce
 
 let rec decompose_up (c, v) =
-  (* fprintf std_formatter "decompose_up <-- %a\n" pp_context_exp (c, v); *)
   if is_value v then
     match c with
     | CTop -> raise Not_found
@@ -201,18 +198,11 @@ let rec decompose_up (c, v) =
     c, v
 
 let decompose ce =
-  (* fprintf std_formatter "decompose <-- %a\n" pp_context_exp ce; *)
-  let result =
-    try decompose_down ce
-    with Value -> decompose_up ce
-  in
-  (* fprintf std_formatter "decompose --> %a\n" pp_context_exp result; *)
-  result
+  try decompose_down ce
+  with Value -> decompose_up ce
 
 let reduce_in (c, e) =
-  (* fprintf std_formatter "reduce <-- %a\n" Pp.CC.pp_exp e; *)
   let e, s = reduce e in
-  (* fprintf std_formatter "reduce --> %a\n" Pp.CC.pp_exp e; *)
   c, e, s
 
 let eval_step (ce: context * exp): (context * exp) * substitution option =
@@ -221,18 +211,18 @@ let eval_step (ce: context * exp): (context * exp) * substitution option =
   | Some s -> (subst_gtp_in_context [s] c, subst_gtp_in_exp [s] e), Some s
   | None -> (c, e), None
 
-let rec eval_all (ce: context * exp) (ss: substitutions): (context * exp) * substitutions =
+let rec eval_all ?(debug=false) (ce: context * exp) (ss: substitutions): (context * exp) * substitutions =
   try
     let ce, s = eval_step ce in
+    if debug then fprintf std_formatter "eval_step --> %a\n" pp_context_exp ce;
     let ss = begin
       match s with
       | None -> ss
       | Some s -> s :: ss
     end in
-    eval_all ce ss
+    eval_all ce ss ~debug:debug
   with Not_found -> ce, ss
 
-let eval (e: exp): exp * substitutions =
-  let e, s = eval_all (CTop, e) [] in
-  let e = fill_context e in
-  e, List.rev s
+let eval ?(debug=false) (e: exp): exp * substitutions =
+  let e, s = eval_all (CTop, e) [] ~debug:debug in
+  fill_context e, List.rev s
