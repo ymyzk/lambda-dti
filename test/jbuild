@@ -1,0 +1,10 @@
+(jbuild_version 1)
+
+(executable
+ ((name runtests)
+  (libraries (ounit sgtp))))
+
+(alias
+ ((name    runtest)
+  (deps    (runtests.exe))
+  (action  (run ${<}))))

@@ -1,4 +1,5 @@
 open Format
+open Sgtp
 open Syntax
 
 let debug = ref false

@@ -1,0 +1,9 @@
+(jbuild_version 1)
+
+(library
+ ((name sgtp)
+  (public_name sgtp)))
+
+(ocamllex (lexer))
+(menhir
+ ((modules (parser))))

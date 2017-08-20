@@ -2,6 +2,7 @@ open Format
 
 open OUnit2
 
+open Sgtp
 open Syntax
 open Pp
 
