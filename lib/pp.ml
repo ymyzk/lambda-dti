@@ -19,9 +19,9 @@ let rec pp_ty ppf = function
   | TyInt -> pp_print_string ppf "int"
   | TyBool -> pp_print_string ppf "bool"
   | TyFun (u1, u2) as u ->
-      fprintf ppf "%a -> %a"
-        (with_paren (gt_ty u u1) pp_ty) u1
-        pp_ty u2
+    fprintf ppf "%a -> %a"
+      (with_paren (gt_ty u u1) pp_ty) u1
+      pp_ty u2
 
 let gt_binop op1 op2 = match op1, op2 with
   | (Plus | Mult), Lt
@@ -60,19 +60,19 @@ module GTLC = struct
     | BConst (_, b) -> pp_print_bool ppf b
     | IConst (_, i) -> pp_print_int ppf i
     | BinOp (_, op, e1, e2) as e ->
-        fprintf ppf "%a %a %a"
-          (with_paren (gt_exp e e1) pp_exp) e1
-          pp_binop op
-          (with_paren (gt_exp e e2) pp_exp) e2
+      fprintf ppf "%a %a %a"
+        (with_paren (gt_exp e e1) pp_exp) e1
+        pp_binop op
+        (with_paren (gt_exp e e2) pp_exp) e2
     | FunExp (_, x1, u1, e) ->
-        fprintf ppf "fun (%s: %a) -> %a"
-          x1
-          pp_ty u1
-          pp_exp e
+      fprintf ppf "fun (%s: %a) -> %a"
+        x1
+        pp_ty u1
+        pp_exp e
     | AppExp (_, e1, e2) as e ->
-        fprintf ppf "%a %a"
-          (with_paren (gt_exp e e1) pp_exp) e1
-          (with_paren (gte_exp e e2) pp_exp) e2
+      fprintf ppf "%a %a"
+        (with_paren (gt_exp e e1) pp_exp) e1
+        (with_paren (gte_exp e e2) pp_exp) e2
 end
 
 module CC = struct
@@ -99,32 +99,32 @@ module CC = struct
     | BConst (_, b) -> pp_print_bool ppf b
     | IConst (_, i) -> pp_print_int ppf i
     | BinOp (_, op, f1, f2) as f ->
-        fprintf ppf "%a %a %a"
-          (with_paren (gt_exp f f1) pp_exp) f1
-          pp_binop op
-          (with_paren (gt_exp f f2) pp_exp) f2
+      fprintf ppf "%a %a %a"
+        (with_paren (gt_exp f f1) pp_exp) f1
+        pp_binop op
+        (with_paren (gt_exp f f2) pp_exp) f2
     | FunExp (_, x1, u1, f) ->
-        fprintf ppf "fun (%s: %a) -> %a"
-          x1
-          pp_ty u1
-          pp_exp f
+      fprintf ppf "fun (%s: %a) -> %a"
+        x1
+        pp_ty u1
+        pp_exp f
     | AppExp (_, f1, f2) as f ->
-        fprintf ppf "%a %a"
-          (with_paren (gt_exp f f1) pp_exp) f1
-          (with_paren (gte_exp f f2) pp_exp) f2
+      fprintf ppf "%a %a"
+        (with_paren (gt_exp f f1) pp_exp) f1
+        (with_paren (gte_exp f f2) pp_exp) f2
     | CastExp (_, f1, u1, u2) as f ->
-        match f1 with
-        | CastExp (_, _, _, u1') when u1 = u1' ->
-            fprintf ppf "%a => %a"
-              (with_paren (gt_exp f f1) pp_exp) f1
-              pp_ty u2
-        | CastExp _ ->
-            raise Syntax_error
-        | _ ->
-            fprintf ppf "%a: %a => %a"
-               (with_paren (gt_exp f f1) pp_exp) f1
-              pp_ty u1
-              pp_ty u2
+      match f1 with
+      | CastExp (_, _, _, u1') when u1 = u1' ->
+        fprintf ppf "%a => %a"
+          (with_paren (gt_exp f f1) pp_exp) f1
+          pp_ty u2
+      | CastExp _ ->
+        raise Syntax_error
+      | _ ->
+        fprintf ppf "%a: %a => %a"
+          (with_paren (gt_exp f f1) pp_exp) f1
+          pp_ty u1
+          pp_ty u2
 
   let rec pp_value ppf v =
     assert (is_value v);
@@ -133,9 +133,9 @@ module CC = struct
     | IConst _ -> pp_exp ppf v
     | FunExp _ -> pp_print_string ppf "<fun>"
     | CastExp (_, v, u1, u2) ->
-        fprintf ppf "%a: %a => %a"
-          pp_value v
-          pp_ty u1
-          pp_ty u2
+      fprintf ppf "%a: %a => %a"
+        pp_value v
+        pp_ty u1
+        pp_ty u2
     | _ -> raise Syntax_error
 end

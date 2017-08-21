@@ -7,7 +7,7 @@ module Environment = Map.Make (
     type t = id
     let compare (x : id) y = compare x y
   end
-)
+  )
 
 type op = Plus | Mult | Lt
 
@@ -45,7 +45,7 @@ module GTLC = struct
       type t = constr
       let compare (x : constr) y = compare x y
     end
-  )
+    )
 
   module Constraints = struct
     include IConstraints
