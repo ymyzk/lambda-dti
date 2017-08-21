@@ -27,8 +27,7 @@ setup.log
 *.opt
 *.run
 *.swp
-.omakedb
-.omakedb.lock
+.merlin
 lexer.ml
 parser.conflicts
 parser.ml
