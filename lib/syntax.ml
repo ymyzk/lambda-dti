@@ -60,6 +60,7 @@ module GTLC = struct
     | BinOp of range * op * exp * exp
     | FunExp of range * id * ty * exp
     | AppExp of range * exp * exp
+    | LetExp of range * id * exp * exp
 
   let map_exp f_ty f_exp = function
     | Var _ as e -> e
@@ -68,6 +69,7 @@ module GTLC = struct
     | BinOp (r, op, e1, e2) -> BinOp (r, op, f_exp e1, f_exp e2)
     | FunExp (r, x1, u1, e) -> FunExp (r, x1, f_ty u1, f_exp e)
     | AppExp (r, e1, e2) -> AppExp (r, f_exp e1, f_exp e2)
+    | LetExp (r, x, e1, e2) -> LetExp (r, x, f_exp e1, f_exp e2)
 
   let range_of_exp = function
     | Var (r, _)
@@ -75,7 +77,8 @@ module GTLC = struct
     | BConst (r, _)
     | BinOp (r, _, _, _)
     | FunExp (r, _, _, _)
-    | AppExp (r, _, _) -> r
+    | AppExp (r, _, _)
+    | LetExp (r, _, _, _) -> r
 end
 
 module CC = struct

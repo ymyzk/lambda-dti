@@ -2,6 +2,8 @@
 open Utils.Error
 
 let reservedWords = [
+  ("let", fun r -> Parser.LET r);
+  ("in", fun r -> Parser.IN r);
   ("fun", fun r -> Parser.FUN r);
   ("true", fun r -> Parser.TRUE r);
   ("false", fun r -> Parser.FALSE r);
@@ -29,6 +31,7 @@ rule main = parse
 | ")" { Parser.RPAREN (range_of lexbuf) }
 | ":" { Parser.COLON (range_of lexbuf) }
 | ";;" { Parser.SEMISEMI (range_of lexbuf) }
+| "=" { Parser.EQ (range_of lexbuf) }
 | "->" { Parser.RARROW (range_of lexbuf) }
 | "+" { Parser.PLUS (range_of lexbuf) }
 | "*" { Parser.STAR (range_of lexbuf) }

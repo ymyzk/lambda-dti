@@ -131,6 +131,9 @@ module GTLC = struct
         @@ Constraints.union c2
         @@ Constraints.union c3 c4 in
       u3, c
+    | LetExp (r, x, e1, e2) ->
+      let e = AppExp (r, FunExp (r, x, fresh_tyvar (), e2), e1) in
+      generate_constr env e
 
   (* Type Variables *)
 
@@ -155,6 +158,8 @@ module GTLC = struct
     | FunExp (_, _, u1, e) ->
       Variables.union (tyvars u1) @@ tyvars_exp e
     | AppExp (_, e1, e2) ->
+      Variables.union (tyvars_exp e1) (tyvars_exp e2)
+    | LetExp (_, _, e1, e2) ->
       Variables.union (tyvars_exp e1) (tyvars_exp e2)
 
   (* Substitutions *)
@@ -284,6 +289,10 @@ module GTLC = struct
       let f1, u1 = translate env e1 in
       let f2, u2 = translate env e2 in
       CC.AppExp (r, cast f1 u1 (TyFun (dom u1, cod u1)), cast f2 u2 (dom u1)), cod u1
+    | LetExp (r, x, e1, e2) ->
+      let _, u1 = translate env e1 in
+      let e = AppExp (r, FunExp (r, x, u1, e2), e1) in
+      translate env e
 end
 
 module CC = struct

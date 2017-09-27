@@ -43,6 +43,7 @@ module GTLC = struct
   open Syntax.GTLC
 
   let gt_exp e1 e2 = match e1, e2 with
+    | (Var _ | IConst _ | BConst _ | AppExp _ | BinOp _), LetExp _ -> true
     | (Var _ | IConst _ | BConst _ | AppExp _ | BinOp _), FunExp _ -> true
     | BinOp (_, op1, _, _), BinOp (_, op2, _, _) -> gt_binop op1 op2
     | (Var _ | IConst _ | BConst _ | AppExp _), BinOp _ -> true
@@ -50,6 +51,7 @@ module GTLC = struct
     | _ -> false
 
   let gte_exp e1 e2 = match e1, e2 with
+    | LetExp _, LetExp _ -> true
     | FunExp _, FunExp _ -> true
     | BinOp (_, op1, _, _), BinOp (_, op2, _, _) when op1 = op2 -> true
     | AppExp _, AppExp _ -> true
@@ -71,6 +73,11 @@ module GTLC = struct
         pp_exp e
     | AppExp (_, e1, e2) as e ->
       fprintf ppf "%a %a"
+        (with_paren (gt_exp e e1) pp_exp) e1
+        (with_paren (gte_exp e e2) pp_exp) e2
+    | LetExp (_, x, e1, e2) as e ->
+      fprintf ppf "let %s = %a in %a"
+        x
         (with_paren (gt_exp e e1) pp_exp) e1
         (with_paren (gte_exp e e2) pp_exp) e2
 end
