@@ -14,30 +14,26 @@ let rec read_eval_print lexbuf env tyenv =
   print "# @?";
   flush stdout;
   begin try
+      (* Parsing *)
       let e = Parser.toplevel Lexer.main lexbuf in
-      let e' = e in
-      let u, c = Typing.GTLC.generate_constr tyenv e in
-      let s = Typing.GTLC.unify c in
+
+      (* Type inference *)
+      let u, s, tau = Typing.GTLC.type_of_exp tyenv e in
       let e = Typing.GTLC.subst_exp_substitutions e s in
-      let u = Typing.GTLC.subst_type_substitutions u s in
-      let tvm = Typing.GTLC.TyVarMap.empty in
-      let tvm, e = Typing.GTLC.subst_exp_tyvars tvm e in
-      let _, u = Typing.GTLC.subst_tyvars tvm u in
+      let e, u = Typing.GTLC.subst_tyvars_gtyparams tau e u in
+      let e, u = Typing.GTLC.subst_tyvars_styparams e u in
       print_debug "GTLC e: %a\n" Pp.GTLC.pp_exp e;
       print_debug "GTLC U: %a\n" Pp.pp_ty u;
 
-      let e'u, s, tau = Typing.GTLC.type_of_exp tyenv e' in
-      let e' = Typing.GTLC.subst_exp_substitutions e' s in
-      let e', e'u = Typing.GTLC.subst_tyvars_gtyparams tau e' e'u in
-      let e', e'u = Typing.GTLC.subst_tyvars_styparams e' e'u in
-      print_debug "GTLC e': %a\n" Pp.GTLC.pp_exp e';
-      print_debug "GTLC U': %a\n" Pp.pp_ty e'u;
-
+      (* Translation *)
       let f, u' = Typing.GTLC.translate tyenv e in
       print_debug "CC e: %a\n" Pp.CC.pp_exp f;
       print_debug "CC U: %a\n" Pp.pp_ty u';
       assert (u = u');
-      let u = Typing.CC.type_of_exp tyenv f in
+      let u'' = Typing.CC.type_of_exp tyenv f in
+      assert (u = u'');
+
+      (* Evaluation *)
       let v, s = Eval.eval f ~debug:!debug in
       print_debug "CC v: %a\n" Pp.CC.pp_exp v;
       print_debug "GTP Subst: %a\n" Eval.pp_substitutions s;
