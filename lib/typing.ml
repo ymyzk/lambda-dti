@@ -81,6 +81,8 @@ let rec is_consistent u1 u2 = match u1, u2 with
 module GTLC = struct
   open Syntax.GTLC
 
+  (* Constraint generation *)
+
   let generate_constr_cod_eq = function
     | TyVar x ->
       let x1, x2 = fresh_tyvar (), fresh_tyvar () in
@@ -162,7 +164,7 @@ module GTLC = struct
     | LetExp (_, _, e1, e2) ->
       Variables.union (tyvars_exp e1) (tyvars_exp e2)
 
-  (* Substitutions *)
+  (* Substitutions for type variables *)
 
   type substitution = tyvar * ty
   type substitutions = substitution list
@@ -227,6 +229,8 @@ module GTLC = struct
     let tvm = Variables.fold f (tyvars_exp e) tvm in
     tvm, subst_exp_tyvar tvm e
 
+  (* Unification *)
+
   let unify constraints =
     let rec unify tau = function
       | [] -> tau, []
@@ -263,8 +267,10 @@ module GTLC = struct
     let tyvars_in_tau = Variables.elements tyvars_in_tau in
     s @ List.map (fun v -> (v, fresh_gparam ())) tyvars_in_tau
 
+  (* Cast insertion translation *)
+
   let cast f u1 u2 =
-    if u1 = u2 then f
+    if u1 = u2 then f  (* Omit identity cast for better performance *)
     else CC.CastExp (CC.range_of_exp f, f, u1, u2)
 
   let rec translate env = function
@@ -335,5 +341,5 @@ module CC = struct
         else
           raise @@ Type_error "not consistent"
       else
-        raise @@ Type_error ("invalid source type")
+        raise @@ Type_error "invalid source type"
 end
