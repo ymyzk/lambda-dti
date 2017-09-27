@@ -15,6 +15,7 @@ let rec read_eval_print lexbuf env tyenv =
   flush stdout;
   begin try
       let e = Parser.toplevel Lexer.main lexbuf in
+      let e' = e in
       let u, c = Typing.GTLC.generate_constr tyenv e in
       let s = Typing.GTLC.unify c in
       let e = Typing.GTLC.subst_exp_substitutions e s in
@@ -24,6 +25,14 @@ let rec read_eval_print lexbuf env tyenv =
       let _, u = Typing.GTLC.subst_tyvars tvm u in
       print_debug "GTLC e: %a\n" Pp.GTLC.pp_exp e;
       print_debug "GTLC U: %a\n" Pp.pp_ty u;
+
+      let e'u, s, tau = Typing.GTLC.type_of_exp tyenv e' in
+      let e' = Typing.GTLC.subst_exp_substitutions e' s in
+      let e', e'u = Typing.GTLC.subst_tyvars_gtyparams tau e' e'u in
+      let e', e'u = Typing.GTLC.subst_tyvars_styparams e' e'u in
+      print_debug "GTLC e': %a\n" Pp.GTLC.pp_exp e';
+      print_debug "GTLC U': %a\n" Pp.pp_ty e'u;
+
       let f, u' = Typing.GTLC.translate tyenv e in
       print_debug "CC e: %a\n" Pp.CC.pp_exp f;
       print_debug "CC U: %a\n" Pp.pp_ty u';

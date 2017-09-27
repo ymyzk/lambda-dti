@@ -231,41 +231,103 @@ module GTLC = struct
 
   (* Unification *)
 
+  let rec unify' tau = function
+    | [] -> tau, []
+    | constr :: c -> begin match constr with
+        | CConsistent (u1, u2) when u1 = u2 && is_bvp_type u1 ->
+          unify' tau c
+        | CConsistent (TyDyn, u)
+        | CConsistent (u, TyDyn) ->
+          unify' (u :: tau) c
+        | CConsistent (TyFun (u11, u12), TyFun (u21, u22)) ->
+          unify' tau @@ CConsistent (u11, u21) :: CConsistent (u12, u22) :: c
+        | CConsistent (u, TyVar x) when not (is_tyvar u) ->
+          unify' tau @@ CConsistent (TyVar x, u) :: c
+        | CConsistent (TyVar x, u) when is_bvp_type u ->
+          unify' tau @@ CEqual (TyVar x, u) :: c
+        | CConsistent (TyVar x, TyFun (u1, u2)) when not @@ Variables.mem x (tyvars (TyFun (u1, u2))) ->
+          let x1, x2 = fresh_tyvar (), fresh_tyvar () in
+          unify' tau @@ CEqual (TyVar x, TyFun (x1, x2)) :: CConsistent (x1, u1) :: CConsistent (x2, u2) :: c
+        | CEqual (t1, t2) when t1 = t2 && is_static_type t1 && is_bvp_type t1 ->
+          unify' tau c
+        | CEqual (TyFun (t11, t12), TyFun (t21, t22)) when is_static_types [t11; t12; t21; t22] ->
+          unify' tau @@ CEqual (t11, t21) :: CEqual (t12, t22) :: c
+        | CEqual (t, TyVar x) when is_static_type t && not (is_tyvar t) ->
+          unify' tau @@ CEqual (TyVar x, t) :: c
+        | CEqual (TyVar x, t) when not (Variables.mem x (tyvars t)) ->
+          let tau, s = unify' (subst_tau x t tau) (subst_constraints x t c) in
+          tau, (x, t) :: s
+        | _ ->
+          raise @@ Type_error "cannot unify"
+      end
+
   let unify constraints =
-    let rec unify tau = function
-      | [] -> tau, []
-      | constr :: c -> begin match constr with
-          | CConsistent (u1, u2) when u1 = u2 && is_bvp_type u1 ->
-            unify tau c
-          | CConsistent (TyDyn, u)
-          | CConsistent (u, TyDyn) ->
-            unify (u :: tau) c
-          | CConsistent (TyFun (u11, u12), TyFun (u21, u22)) ->
-            unify tau @@ CConsistent (u11, u21) :: CConsistent (u12, u22) :: c
-          | CConsistent (u, TyVar x) when not (is_tyvar u) ->
-            unify tau @@ CConsistent (TyVar x, u) :: c
-          | CConsistent (TyVar x, u) when is_bvp_type u ->
-            unify tau @@ CEqual (TyVar x, u) :: c
-          | CConsistent (TyVar x, TyFun (u1, u2)) when not @@ Variables.mem x (tyvars (TyFun (u1, u2))) ->
-            let x1, x2 = fresh_tyvar (), fresh_tyvar () in
-            unify tau @@ CEqual (TyVar x, TyFun (x1, x2)) :: CConsistent (x1, u1) :: CConsistent (x2, u2) :: c
-          | CEqual (t1, t2) when t1 = t2 && is_static_type t1 && is_bvp_type t1 ->
-            unify tau c
-          | CEqual (TyFun (t11, t12), TyFun (t21, t22)) when is_static_types [t11; t12; t21; t22] ->
-            unify tau @@ CEqual (t11, t21) :: CEqual (t12, t22) :: c
-          | CEqual (t, TyVar x) when is_static_type t && not (is_tyvar t) ->
-            unify tau @@ CEqual (TyVar x, t) :: c
-          | CEqual (TyVar x, t) when not (Variables.mem x (tyvars t)) ->
-            let tau, s = unify (subst_tau x t tau) (subst_constraints x t c) in
-            tau, (x, t) :: s
-          | _ ->
-            raise @@ Type_error "cannot unify"
-        end
-    in
-    let tau, s = unify [] @@ Constraints.to_list constraints in
+    let tau, s = unify' [] @@ Constraints.to_list constraints in
     let tyvars_in_tau = List.fold_left (fun vars u -> Variables.union vars (tyvars u)) Variables.empty tau in
     let tyvars_in_tau = Variables.elements tyvars_in_tau in
     s @ List.map (fun v -> (v, fresh_gparam ())) tyvars_in_tau
+
+  (* New type inference *)
+
+  let constr_of_subst (s: substitutions) =
+    Constraints.of_list @@ List.map (fun (x, u) -> CEqual (TyVar x, u)) s
+
+  let rec type_of_exp env = function
+    | Var (_, x) ->
+      begin
+        try
+          let u = Environment.find x env in
+          u, [], []
+        with Not_found ->
+          raise @@ Type_error (Printf.sprintf "variable '%s' not found in the environment" x)
+      end
+    | IConst _ -> TyInt, [], []
+    | BConst _ -> TyBool, [], []
+    | BinOp (_, op, e1, e2) ->
+      let ui1, ui2, ui = type_of_binop op in (* replace this with const generator TODO *)
+      let u1, s1, tau1 = type_of_exp env e1 in
+      let u2, s2, tau2 = type_of_exp env e2 in
+      let c1 = constr_of_subst s1 in
+      let c2 = constr_of_subst s2 in
+      let c3 = Constraints.of_list [CConsistent (u1, ui1); CConsistent (u2, ui2)] in
+      let tau = tau1 @ tau2 in
+      let c = Constraints.union c1 @@ Constraints.union c2 c3 in
+      let tau, s = unify' tau @@ Constraints.to_list c in
+      (subst_type_substitutions ui s), s, tau
+    | FunExp (_, x, u1, e) ->
+      let u2, s2, tau2 = type_of_exp (Environment.add x u1 env) e in
+      (subst_type_substitutions (TyFun (u1, u2)) s2), s2, tau2
+    | AppExp (_, e1, e2) ->
+      let u1, s1, tau1 = type_of_exp env e1 in
+      let u2, s2, tau2 = type_of_exp env e2 in
+      let c1 = constr_of_subst s1 in
+      let c2 = constr_of_subst s2 in
+      let u3, c3 = generate_constr_cod_eq u1 in
+      let c4 = generate_constr_dom_con u1 u2 in
+      let tau = tau1 @ tau2 in
+      let c = Constraints.union c1
+        @@ Constraints.union c2
+        @@ Constraints.union c3 c4 in
+      let tau, s = unify' tau @@ Constraints.to_list c in
+      (subst_type_substitutions u3 s), s, tau
+    | LetExp (r, x, e1, e2) ->
+      type_of_exp env @@ AppExp (r, FunExp (r, x, fresh_tyvar (), e2), e1)
+
+  (* Replace free type variables in a term and a type with gradual type parameters
+   * if a type variable is in tau *)
+  let subst_tyvars_gtyparams tau e u =
+    let tyvars_in_tau = List.map tyvars tau in
+    let tyvars_in_tau = List.fold_left Variables.union Variables.empty tyvars_in_tau in
+    let tyvars_in_tau = Variables.elements tyvars_in_tau in
+    let s = List.map (fun v -> (v, fresh_gparam ())) tyvars_in_tau in
+    subst_exp_substitutions e s, subst_type_substitutions u s
+
+  (* Replace free type variables in a term and a type with static type parameters *)
+  let subst_tyvars_styparams e u =
+    let tvm = TyVarMap.empty in
+    let tvm, e = subst_exp_tyvars tvm e in
+    let _, u = subst_tyvars tvm u in
+    e, u
 
   (* Cast insertion translation *)
 
