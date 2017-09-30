@@ -8,12 +8,12 @@ val fresh_tyvar : unit -> ty
 type substitution = tyvar * ty
 type substitutions = substitution list
 val subst_type : tyvar -> ty -> ty -> ty
-val subst_type_substitutions : ty -> substitutions -> ty
+val subst_type_substitutions : substitutions -> ty -> ty
 
 module GTLC : sig
   open Syntax.GTLC
 
-  val subst_exp_substitutions : exp -> substitutions -> exp
+  val subst_exp_substitutions : substitutions -> exp -> exp
 
   val generate_typaram_subst : ty list -> exp -> substitutions
 

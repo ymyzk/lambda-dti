@@ -19,10 +19,10 @@ let rec read_eval_print lexbuf env tyenv =
 
       (* Type inference *)
       let u, s, tau = Typing.GTLC.type_of_exp tyenv e in
-      let e = Typing.GTLC.subst_exp_substitutions e s in
+      let e = Typing.GTLC.subst_exp_substitutions s e in
       let s = Typing.GTLC.generate_typaram_subst tau e in
-      let e = Typing.GTLC.subst_exp_substitutions e s in
-      let u = Typing.subst_type_substitutions u s in
+      let e = Typing.GTLC.subst_exp_substitutions s e in
+      let u = Typing.subst_type_substitutions s u in
       print_debug "GTLC e: %a\n" Pp.GTLC.pp_exp e;
       print_debug "GTLC U: %a\n" Pp.pp_ty u;
 

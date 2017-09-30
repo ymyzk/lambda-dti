@@ -86,14 +86,14 @@ type substitution = tyvar * ty
 type substitutions = substitution list
 
 (* [x:=t]u *)
-let rec subst_type (x : tyvar) (t : ty) = function
+let rec subst_type x t = function
   | TyFun (u1, u2) -> TyFun (subst_type x t u1, subst_type x t u2)
   | TyVar x' when x = x' -> t
   | _ as u -> u
 
 (* S(t) *)
-let subst_type_substitutions (t : ty) (s : substitutions) =
-  List.fold_left (fun u -> fun (x, t) -> subst_type x t u) t s
+let subst_type_substitutions s u =
+  List.fold_left (fun u -> fun (x, t) -> subst_type x t u) u s
 
 module GTLC = struct
   open Syntax.GTLC
@@ -158,7 +158,7 @@ module GTLC = struct
   (* Substitutions for type variables *)
 
   (* S(e) *)
-  let subst_exp_substitutions (e: exp) (s: substitutions) =
+  let subst_exp_substitutions s e =
     (* [x:=t]e *)
     let rec subst_exp (x: tyvar) (t: ty) (e: exp) =
       let subst_exp = subst_exp x t in
@@ -244,7 +244,7 @@ module GTLC = struct
           let TyScheme (xs, u) = Environment.find x env in
           ys := List.map (fun _ -> fresh_tyvar ()) xs;
           let s = Utils.zip xs !ys in
-          let u = subst_type_substitutions u s in
+          let u = subst_type_substitutions s u in
           u, [], []
         with Not_found ->
           raise @@ Type_error (Printf.sprintf "variable '%s' not found in the environment" x)
@@ -261,10 +261,10 @@ module GTLC = struct
       let tau = tau1 @ tau2 in
       let c = Constraints.union c1 @@ Constraints.union c2 c3 in
       let tau, s = unify tau @@ Constraints.to_list c in
-      (subst_type_substitutions ui s), s, tau
+      (subst_type_substitutions s ui), s, tau
     | FunExp (_, x, u1, e) ->
       let u2, s2, tau2 = type_of_exp (Environment.add x (tysc_of_ty u1) env) e in
-      (subst_type_substitutions (TyFun (u1, u2)) s2), s2, tau2
+      (subst_type_substitutions s2 (TyFun (u1, u2))), s2, tau2
     | AppExp (_, e1, e2) ->
       let u1, s1, tau1 = type_of_exp env e1 in
       let u2, s2, tau2 = type_of_exp env e2 in
@@ -277,12 +277,12 @@ module GTLC = struct
         @@ Constraints.union c2
         @@ Constraints.union c3 c4 in
       let tau, s = unify tau @@ Constraints.to_list c in
-      (subst_type_substitutions u3 s), s, tau
+      (subst_type_substitutions s u3), s, tau
     | LetExp (_, x, xs, e1, e2) when is_value e1 ->
       let u1, s1, tau1 = type_of_exp env e1 in (* TODO: how to handle tau for polymorphism *)
       let free_tyvars_in_tyenv =
         List.fold_left Variables.union Variables.empty @@
-          List.map (fun x -> tyvars_ty (subst_type_substitutions (TyVar x) s1)) @@
+          List.map (fun x -> tyvars_ty (subst_type_substitutions s1 (TyVar x))) @@
           Variables.elements @@
           free_tyvars_tyenv env in
       let free_tyvars = Variables.diff (tyvars_ty u1) free_tyvars_in_tyenv in
@@ -293,7 +293,7 @@ module GTLC = struct
       let tau = tau1 @ tau2 in
       let c = Constraints.union (constr_of_subst s1) (constr_of_subst s2) in
       let tau, s = unify tau @@ Constraints.to_list c in
-      (subst_type_substitutions u2 s), s, tau
+      (subst_type_substitutions s u2), s, tau
     | LetExp (r, x, _, e1, e2) ->
       type_of_exp env @@ AppExp (r, FunExp (r, x, fresh_tyvar (), e2), e1)
 
@@ -308,7 +308,7 @@ module GTLC = struct
         try
           let TyScheme (xs, u) = Environment.find x env in
           let s = Utils.zip xs !ys in
-          let u = subst_type_substitutions u s in
+          let u = subst_type_substitutions s u in
           CC.Var (r, x, !ys), u
         with Not_found ->
           raise @@ Type_error "variable not found (translate)"
@@ -345,8 +345,10 @@ module CC = struct
     | Var (_, x, ys) -> begin
         try
           let TyScheme (xs, u) = Environment.find x env in
-          (* TODO: check length of xs and ys are equal *)
-          subst_type_substitutions u @@ Utils.zip xs ys
+          if List.length xs = List.length ys then
+            subst_type_substitutions (Utils.zip xs ys) u
+          else
+            raise @@ Type_error "invalid type application"
         with Not_found ->
           raise @@ Type_error "variable not found (CC.type_of_exp)"
       end
