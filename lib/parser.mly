@@ -27,16 +27,26 @@ toplevel :
   | Expr SEMISEMI { $1 }
 
 Expr :
-  | start=LET x=ID EQ e1=Expr IN e2=Expr {
-      LetExp (join_range start (range_of_exp e2), x.value, ref [], e1, e2)
+  | start=LET x=ID params=LetParams EQ e1=Expr IN e2=Expr {
+      let r = join_range start (range_of_exp e2) in
+      let e1 = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e1 in
+      LetExp (r, x.value, ref [], e1, e2)
     }
-  | start=FUN LPAREN x=ID COLON u=Type RPAREN RARROW e=Expr {
-      FunExp (join_range start (range_of_exp e), x.value, u, e)
-    }
-  | start=FUN x=ID RARROW e=Expr {
-      FunExp (join_range start (range_of_exp e), x.value, Typing.fresh_tyvar (), e)
+  | start=FUN params=FunParams RARROW e=Expr {
+      let r = join_range start (range_of_exp e) in
+      List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e
     }
   | BinOpExpr { $1 }
+
+LetParams :
+  | /* empty */ { [] }
+  | params=FunParams { params }
+
+FunParams :
+  | x=ID { [x, Typing.fresh_tyvar ()] }
+  | LPAREN x=ID COLON u=Type RPAREN { [x, u] }
+  | x=ID rest=FunParams { (x, Typing.fresh_tyvar ()) :: rest }
+  | LPAREN x=ID COLON u=Type RPAREN rest=FunParams { (x, u) :: rest }
 
 BinOpExpr :
   | e1=BinOpExpr PLUS e2=BinOpExpr {
