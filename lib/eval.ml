@@ -127,7 +127,7 @@ let reduce = function
       | _ -> raise Reduce
     end
   (* R_LetP *)
-  | LetExp (r, x, xs, v1, f2) when is_value v1 ->
+  | LetExp (_, x, xs, v1, f2) when is_value v1 ->
     subst_var x xs v1 f2, None
   | _ -> raise Reduce
 
