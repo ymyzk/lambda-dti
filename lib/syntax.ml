@@ -22,6 +22,8 @@ type ty =
   | TyBool
   | TyFun of ty * ty
 
+type tysc = TyScheme of tyvar list * ty
+
 let is_ground = function
   | TyGParam _ -> true
   | TyInt | TyBool -> true
@@ -54,42 +56,50 @@ module GTLC = struct
   end
 
   type exp =
-    | Var of range * id
+    | Var of range * id * ty list ref
     | IConst of range * int
     | BConst of range * bool
     | BinOp of range * op * exp * exp
     | FunExp of range * id * ty * exp
     | AppExp of range * exp * exp
-    | LetExp of range * id * exp * exp
+    | LetExp of range * id * tyvar list ref * exp * exp
 
   let map_exp f_ty f_exp = function
-    | Var _ as e -> e
+    | Var (r, x, ys) -> Var (r, x, ref @@ List.map f_ty !ys)
     | IConst _ as e -> e
     | BConst _ as e -> e
     | BinOp (r, op, e1, e2) -> BinOp (r, op, f_exp e1, f_exp e2)
     | FunExp (r, x1, u1, e) -> FunExp (r, x1, f_ty u1, f_exp e)
     | AppExp (r, e1, e2) -> AppExp (r, f_exp e1, f_exp e2)
-    | LetExp (r, x, e1, e2) -> LetExp (r, x, f_exp e1, f_exp e2)
+    | LetExp (r, x, xs, e1, e2) -> LetExp (r, x, xs, f_exp e1, f_exp e2)
 
   let range_of_exp = function
-    | Var (r, _)
+    | Var (r, _, _)
     | IConst (r, _)
     | BConst (r, _)
     | BinOp (r, _, _, _)
     | FunExp (r, _, _, _)
     | AppExp (r, _, _)
-    | LetExp (r, _, _, _) -> r
+    | LetExp (r, _, _, _, _) -> r
+
+  (* For value restriction *)
+  let is_value = function
+    | IConst _
+    | BConst _
+    | FunExp _ -> true
+    | _ -> false
 end
 
 module CC = struct
   type exp =
-    | Var of range * id
+    | Var of range * id * ty list
     | IConst of range * int
     | BConst of range * bool
     | BinOp of range * op * exp * exp
     | FunExp of range * id * ty * exp
     | AppExp of range * exp * exp
     | CastExp of range * exp * ty * ty
+    | LetExp of range * id * tyvar list * exp * exp
 
   let map_exp f_ty f_exp = function
     | Var _
@@ -99,15 +109,17 @@ module CC = struct
     | FunExp (r, x1, u1, f) -> FunExp (r, x1, f_ty u1, f_exp f)
     | AppExp (r, f1, f2) -> AppExp (r, f_exp f1, f_exp f2)
     | CastExp (r, f, u1, u2) -> CastExp (r, f_exp f, f_ty u1, f_ty u2)
+    | LetExp (r, x, xs, f1, f2) -> LetExp (r, x, xs, f_exp f1, f_exp f2)
 
   let range_of_exp = function
-    | Var (r, _)
+    | Var (r, _, _)
     | IConst (r, _)
     | BConst (r, _)
     | BinOp (r, _, _, _)
     | FunExp (r, _, _, _)
     | AppExp (r, _, _)
-    | CastExp (r, _, _, _) -> r
+    | CastExp (r, _, _, _)
+    | LetExp (r, _, _, _, _) -> r
 
   let rec is_value = function
     | IConst _

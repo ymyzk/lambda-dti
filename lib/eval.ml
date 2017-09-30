@@ -45,12 +45,34 @@ let pp_substitutions ppf ss =
 
 (* Reduction *)
 
+(* TODO: better name *)
+let subst_tyvar_tyapp (e: exp) (s: (tyvar * ty) list): exp =
+  let rec subst_exp (x: tyvar) (t: ty) (e: exp): exp =
+    let subst_exp = subst_exp x t in
+    let subst_type = Typing.GTLC.subst_type x t in
+    match e with
+    | Var (r, x, ys) -> Var (r, x, List.map subst_type ys)
+    | IConst _
+    | BConst _ as e -> e
+    | BinOp (r, op, e1, e2) -> BinOp (r, op, subst_exp e1, subst_exp e2)
+    | FunExp (r, x1, u1, f) -> FunExp (r, x1, subst_type u1, subst_exp f)
+    | AppExp (r, e1, e2) -> AppExp (r, subst_exp e1, subst_exp e2)
+    | CastExp (r, e, u1, u2) -> CastExp (r, subst_exp e, subst_type u1, subst_type u2)
+    | LetExp (r, y, ys, e1, e2) ->
+      LetExp (r, y, ys, (if List.mem x ys then e1 else subst_exp e1), subst_exp e2)
+  in
+  List.fold_left (fun e (x, y) -> subst_exp x y e) e s
+
 (* e[x:=v] *)
-let rec subst_var x v e =
+let rec subst_var (x: id) (xs: tyvar list) (v: exp) (e: exp): exp =
   assert (is_value v);
-  let subst = subst_var x v in
+  let subst = subst_var x xs v in
   match e with
-  | Var (_, y) -> if x = y then v else e
+  | Var (_, y, ys) ->
+    if x <> y then
+      e
+    else
+      subst_tyvar_tyapp v @@ Utils.zip xs ys
   | IConst _
   | BConst _ -> e
   | BinOp (r, op, e1, e2) -> BinOp (r, op, subst e1, subst e2)
@@ -58,11 +80,13 @@ let rec subst_var x v e =
     if x = y then e else FunExp (r, y, u, subst e')
   | AppExp (r, e1, e2) -> AppExp (r, subst e1, subst e2)
   | CastExp (r, e1, u1, u2) -> CastExp (r, subst e1, u1, u2)
+  | LetExp (r, y, ys, f1, f2) ->
+      LetExp (r, y, ys, (if x = y then f1 else subst f1), subst f2)
 
 let reduce = function
   (* R_Beta *)
   | AppExp (_, FunExp (_, x, _, e), v) when is_value v ->
-    subst_var x v e, None
+    subst_var x [] v e, None
   (* R_Op *)
   | BinOp (r, Plus, IConst (_, i1), IConst (_, i2)) ->
     IConst (r, i1 + i2), None
@@ -102,6 +126,9 @@ let reduce = function
         raise @@ Blame (r2)
       | _ -> raise Reduce
     end
+  (* R_LetP *)
+  | LetExp (r, x, xs, v1, f2) when is_value v1 ->
+    subst_var x xs v1 f2, None
   | _ -> raise Reduce
 
 (* Evaluation *)
@@ -125,7 +152,7 @@ let rec exp_with exp_in_hole ppf =
     fprintf ppf "[ %a ]"
       (exp_with hole)
       exp_in_hole
-  | Var (_, x) -> pp_print_string ppf x
+  | Var (_, x, ys) -> Pp.pp_print_var ppf (x, ys)
   | BConst (_, b) -> pp_print_bool ppf b
   | IConst (_, i) -> pp_print_int ppf i
   | BinOp (_, op, f1, f2) ->
@@ -147,6 +174,12 @@ let rec exp_with exp_in_hole ppf =
       exp f
       Pp.pp_ty u1
       Pp.pp_ty u2
+  | LetExp (_, x, xs, f1, f2) ->
+    fprintf ppf "let %s = %a%a in %a"
+      x
+      Pp.pp_let_tyabses xs
+      exp f1
+      exp f2
 
 let pp_context_exp ppf (c, e) =
   exp_with e ppf @@ fill_context (c, hole)
@@ -172,9 +205,11 @@ let rec decompose_down (c, e as ce) =
       end
     | CastExp (_, v, g, TyDyn) when is_value v && is_ground g -> raise Value
     | CastExp (_, v, TyFun _, TyFun _) when is_value v -> raise Value
-    | CastExp (r, e1, u1, u2) ->
-      try decompose_down (CCast (r, c, u1, u2), e1)
-      with Value -> ce
+    | CastExp (r, e1, u1, u2) -> begin
+        try decompose_down (CCast (r, c, u1, u2), e1)
+        with Value -> ce
+      end
+    | LetExp _ -> raise Value
   in
   ce
 

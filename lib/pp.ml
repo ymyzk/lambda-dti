@@ -39,6 +39,24 @@ let pp_binop ppf op =
     | Lt -> "<"
   end
 
+let pp_print_var ppf (x, ys) =
+  if List.length ys = 0 then
+    fprintf ppf "%s" x
+  else
+    let pp_sep ppf () = fprintf ppf "," in
+    let pp_list ppf types = pp_print_list pp_ty ppf types ~pp_sep:pp_sep in
+    fprintf ppf "%s[%a]"
+      x
+      pp_list ys
+
+let pp_let_tyabses ppf tyvars =
+  if List.length tyvars = 0 then
+    fprintf ppf ""
+  else
+    let pp_sep ppf () = fprintf ppf "," in
+    let pp_list ppf types = pp_print_list pp_ty ppf types ~pp_sep:pp_sep in
+    fprintf ppf "fun %a -> " pp_list @@ List.map (fun x -> TyVar x) tyvars
+
 module GTLC = struct
   open Syntax.GTLC
 
@@ -58,7 +76,7 @@ module GTLC = struct
     | _ -> gt_exp e1 e2
 
   let rec pp_exp ppf = function
-    | Var (_, x) -> pp_print_string ppf x
+    | Var (_, x, ys) -> pp_print_var ppf (x, !ys)
     | BConst (_, b) -> pp_print_bool ppf b
     | IConst (_, i) -> pp_print_int ppf i
     | BinOp (_, op, e1, e2) as e ->
@@ -75,9 +93,10 @@ module GTLC = struct
       fprintf ppf "%a %a"
         (with_paren (gt_exp e e1) pp_exp) e1
         (with_paren (gte_exp e e2) pp_exp) e2
-    | LetExp (_, x, e1, e2) as e ->
-      fprintf ppf "let %s = %a in %a"
+    | LetExp (_, x, xs, e1, e2) as e ->
+      fprintf ppf "let %s = %a%a in %a"
         x
+        pp_let_tyabses !xs
         (with_paren (gt_exp e e1) pp_exp) e1
         (with_paren (gte_exp e e2) pp_exp) e2
 end
@@ -102,7 +121,7 @@ module CC = struct
     | _ -> gt_exp f1 f2
 
   let rec pp_exp ppf = function
-    | Var (_, x) -> pp_print_string ppf x
+    | Var (_, x, ys) -> pp_print_var ppf (x, ys)
     | BConst (_, b) -> pp_print_bool ppf b
     | IConst (_, i) -> pp_print_int ppf i
     | BinOp (_, op, f1, f2) as f ->
@@ -120,7 +139,7 @@ module CC = struct
         (with_paren (gt_exp f f1) pp_exp) f1
         (with_paren (gte_exp f f2) pp_exp) f2
     | CastExp (_, f1, u1, u2) as f ->
-      match f1 with
+      begin match f1 with
       | CastExp (_, _, _, u1') when u1 = u1' ->
         fprintf ppf "%a => %a"
           (with_paren (gt_exp f f1) pp_exp) f1
@@ -132,6 +151,13 @@ module CC = struct
           (with_paren (gt_exp f f1) pp_exp) f1
           pp_ty u1
           pp_ty u2
+      end
+    | LetExp (_, x, xs, f1, f2) as f ->
+      fprintf ppf "let %s = %a%a in %a"
+        x
+        pp_let_tyabses xs
+        (with_paren (gt_exp f f1) pp_exp) f1
+        (with_paren (gte_exp f f2) pp_exp) f2
 
   let rec pp_value ppf v =
     assert (is_value v);

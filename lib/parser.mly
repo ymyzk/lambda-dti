@@ -28,7 +28,7 @@ toplevel :
 
 Expr :
   | start=LET x=ID EQ e1=Expr IN e2=Expr {
-      LetExp (join_range start (range_of_exp e2), x.value, e1, e2)
+      LetExp (join_range start (range_of_exp e2), x.value, ref [], e1, e2)
     }
   | start=FUN LPAREN x=ID COLON u=Type RPAREN RARROW e=Expr {
       FunExp (join_range start (range_of_exp e), x.value, u, e)
@@ -60,7 +60,7 @@ SimpleExpr :
   | i=INTV { IConst (i.range, i.value) }
   | r=TRUE { BConst (r, true) }
   | r=FALSE { BConst (r, false) }
-  | x=ID { Var (x.range, x.value) }
+  | x=ID { Var (x.range, x.value, ref []) }
   | LPAREN f=Expr RPAREN { f }
 
 Type :
