@@ -159,8 +159,7 @@ module GTLC = struct
   (* Substitutions for type variables *)
 
   (* S(e) *)
-  let rec subst_exp s e =
-    match e with
+  let rec subst_exp s = function
     | Var (r, x, ys) -> Var (r, x, ref @@ List.map (subst_type s) !ys)
     | IConst _
     | BConst _ as e -> e
@@ -386,4 +385,17 @@ module CC = struct
       u2
     | LetExp _ ->
       raise @@ Type_error "invalid translation for let expression"
+
+  let rec subst_exp s = function
+    | Var (r, x, ys) -> Var (r, x, List.map (subst_type s) ys)
+    | IConst _
+    | BConst _ as e -> e
+    | BinOp (r, op, e1, e2) -> BinOp (r, op, subst_exp s e1, subst_exp s e2)
+    | FunExp (r, x1, u1, f) -> FunExp (r, x1, subst_type s u1, subst_exp s f)
+    | AppExp (r, e1, e2) -> AppExp (r, subst_exp s e1, subst_exp s e2)
+    | CastExp (r, e, u1, u2) -> CastExp (r, subst_exp s e, subst_type s u1, subst_type s u2)
+    | LetExp (r, y, ys, e1, e2) ->
+      (* Remove substitutions captured by let exp s *)
+      let s = List.filter (fun (x, _) -> not @@ List.mem x ys) s in
+      LetExp (r, y, ys, subst_exp s e1, subst_exp s e2)
 end

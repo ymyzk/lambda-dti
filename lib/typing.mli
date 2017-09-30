@@ -25,4 +25,6 @@ module CC : sig
   open Syntax.CC
 
   val type_of_exp : tysc Environment.t -> exp -> ty
+
+  val subst_exp : substitutions -> exp -> exp
 end

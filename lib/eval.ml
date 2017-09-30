@@ -1,6 +1,7 @@
 open Format
 open Syntax
 open Syntax.CC
+open Typing.CC
 open Utils.Error
 
 exception Blame of range
@@ -43,24 +44,6 @@ let pp_substitutions ppf ss =
 
 (* Reduction *)
 
-(* TODO: better name *)
-let subst_tyvar_tyapp (e: exp) (s: (tyvar * ty) list): exp =
-  let rec subst_exp (x: tyvar) (t: ty) (e: exp): exp =
-    let subst_exp = subst_exp x t in
-    let subst_type = Typing.subst_type [x, t] in
-    match e with
-    | Var (r, x, ys) -> Var (r, x, List.map subst_type ys)
-    | IConst _
-    | BConst _ as e -> e
-    | BinOp (r, op, e1, e2) -> BinOp (r, op, subst_exp e1, subst_exp e2)
-    | FunExp (r, x1, u1, f) -> FunExp (r, x1, subst_type u1, subst_exp f)
-    | AppExp (r, e1, e2) -> AppExp (r, subst_exp e1, subst_exp e2)
-    | CastExp (r, e, u1, u2) -> CastExp (r, subst_exp e, subst_type u1, subst_type u2)
-    | LetExp (r, y, ys, e1, e2) ->
-      LetExp (r, y, ys, (if List.mem x ys then e1 else subst_exp e1), subst_exp e2)
-  in
-  List.fold_left (fun e (x, y) -> subst_exp x y e) e s
-
 (* e[x:=v] *)
 let rec subst_var (x: id) (xs: tyvar list) (v: exp) (e: exp): exp =
   assert (is_value v);
@@ -70,7 +53,7 @@ let rec subst_var (x: id) (xs: tyvar list) (v: exp) (e: exp): exp =
     if x <> y then
       e
     else
-      subst_tyvar_tyapp v @@ Utils.zip xs ys
+      subst_exp (Utils.zip xs ys) v
   | IConst _
   | BConst _ -> e
   | BinOp (r, op, e1, e2) -> BinOp (r, op, subst e1, subst e2)
