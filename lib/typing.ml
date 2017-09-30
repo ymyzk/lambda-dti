@@ -379,7 +379,7 @@ module CC = struct
           raise @@ Type_error "not consistent"
       else
         raise @@ Type_error "invalid source type"
-    | LetExp (r, x, xs, f1, f2) when is_value f1 ->
+    | LetExp (_, x, xs, f1, f2) when is_value f1 ->
       let u1 = type_of_exp env f1 in
       let us1 = TyScheme (xs, u1) in
       let u2 = type_of_exp (Environment.add x us1 env) f2 in
