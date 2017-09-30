@@ -389,13 +389,13 @@ module CC = struct
   let rec subst_exp s = function
     | Var (r, x, ys) -> Var (r, x, List.map (subst_type s) ys)
     | IConst _
-    | BConst _ as e -> e
-    | BinOp (r, op, e1, e2) -> BinOp (r, op, subst_exp s e1, subst_exp s e2)
+    | BConst _ as f -> f
+    | BinOp (r, op, f1, f2) -> BinOp (r, op, subst_exp s f1, subst_exp s f2)
     | FunExp (r, x1, u1, f) -> FunExp (r, x1, subst_type s u1, subst_exp s f)
-    | AppExp (r, e1, e2) -> AppExp (r, subst_exp s e1, subst_exp s e2)
-    | CastExp (r, e, u1, u2) -> CastExp (r, subst_exp s e, subst_type s u1, subst_type s u2)
-    | LetExp (r, y, ys, e1, e2) ->
+    | AppExp (r, f1, f2) -> AppExp (r, subst_exp s f1, subst_exp s f2)
+    | CastExp (r, f, u1, u2) -> CastExp (r, subst_exp s f, subst_type s u1, subst_type s u2)
+    | LetExp (r, y, ys, f1, f2) ->
       (* Remove substitutions captured by let exp s *)
       let s = List.filter (fun (x, _) -> not @@ List.mem x ys) s in
-      LetExp (r, y, ys, subst_exp s e1, subst_exp s e2)
+      LetExp (r, y, ys, subst_exp s f1, subst_exp s f2)
 end
