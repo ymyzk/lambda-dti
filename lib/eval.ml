@@ -47,7 +47,7 @@ let pp_substitutions ppf ss =
 let subst_tyvar_tyapp (e: exp) (s: (tyvar * ty) list): exp =
   let rec subst_exp (x: tyvar) (t: ty) (e: exp): exp =
     let subst_exp = subst_exp x t in
-    let subst_type = Typing.subst_type x t in
+    let subst_type = Typing.subst_type [x, t] in
     match e with
     | Var (r, x, ys) -> Var (r, x, List.map subst_type ys)
     | IConst _

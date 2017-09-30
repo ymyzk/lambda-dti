@@ -86,14 +86,15 @@ type substitution = tyvar * ty
 type substitutions = substitution list
 
 (* [x:=t]u *)
-let rec subst_type x t = function
-  | TyFun (u1, u2) -> TyFun (subst_type x t u1, subst_type x t u2)
-  | TyVar x' when x = x' -> t
-  | _ as u -> u
 
 (* S(t) *)
-let subst_type_substitutions s u =
-  List.fold_left (fun u -> fun (x, t) -> subst_type x t u) u s
+let subst_type s u =
+  let rec subst_type' x t = function
+    | TyFun (u1, u2) -> TyFun (subst_type' x t u1, subst_type' x t u2)
+    | TyVar x' when x = x' -> t
+    | _ as u -> u
+  in
+  List.fold_left (fun u (x, t) -> subst_type' x t u) u s
 
 module GTLC = struct
   open Syntax.GTLC
@@ -158,37 +159,33 @@ module GTLC = struct
   (* Substitutions for type variables *)
 
   (* S(e) *)
-  let subst_exp_substitutions s e =
-    (* [x:=t]e *)
-    let rec subst_exp (x: tyvar) (t: ty) (e: exp) =
-      let subst_exp = subst_exp x t in
-      let subst_type = subst_type x t in
-      match e with
-      | Var (r, x, ys) -> Var (r, x, ref @@ List.map subst_type !ys)
-      | IConst _
-      | BConst _ as e -> e
-      | BinOp (r, op, e1, e2) -> BinOp (r, op, subst_exp e1, subst_exp e2)
-      | FunExp (r, x1, u1, e) -> FunExp (r, x1, subst_type u1, subst_exp e)
-      | AppExp (r, e1, e2) -> AppExp (r, subst_exp e1, subst_exp e2)
-      | LetExp (r, y, ys, e1, e2) ->
-        LetExp (r, y, ys, (if List.mem x !ys then e1 else subst_exp e1), subst_exp e2)
-    in
-    List.fold_left (fun e (x, t) -> subst_exp x t e) e s
+  let rec subst_exp s e =
+    match e with
+    | Var (r, x, ys) -> Var (r, x, ref @@ List.map (subst_type s) !ys)
+    | IConst _
+    | BConst _ as e -> e
+    | BinOp (r, op, e1, e2) -> BinOp (r, op, subst_exp s e1, subst_exp s e2)
+    | FunExp (r, x1, u1, e) -> FunExp (r, x1, subst_type s u1, subst_exp s e)
+    | AppExp (r, e1, e2) -> AppExp (r, subst_exp s e1, subst_exp s e2)
+    | LetExp (r, y, ys, e1, e2) ->
+      (* Remove substitutions captured by let exp s *)
+      let s = List.filter (fun (x, _) -> not @@ List.mem x !ys) s in
+      LetExp (r, y, ys, subst_exp s e1, subst_exp s e2)
 
   (* [x:=t]C *)
   let subst_constraints (x: tyvar) (t: ty) (c : constr list) =
     (* [x:=t]c *)
-    let subst_constraint (x: tyvar) (t: ty) = function
-      | CEqual (u1, u2) -> CEqual (subst_type x t u1, subst_type x t u2)
-      | CConsistent (u1, u2) -> CConsistent (subst_type x t u1, subst_type x t u2)
+    let subst_constraint s = function
+      | CEqual (u1, u2) -> CEqual (subst_type s u1, subst_type s u2)
+      | CConsistent (u1, u2) -> CConsistent (subst_type s u1, subst_type s u2)
     in
     (* TODO: OK? *)
-    List.map (subst_constraint x t) c
+    List.map (subst_constraint [x, t]) c
 
   (* [x:=t]T *)
   let subst_tau (x: tyvar) (t: ty) (tau: ty list) =
     (* TODO: OK? *)
-    List.map (subst_type x t) tau
+    List.map (subst_type [x, t]) tau
 
   (* Replace free type variables with fresh type parameters *)
 
@@ -244,8 +241,7 @@ module GTLC = struct
           let TyScheme (xs, u) = Environment.find x env in
           ys := List.map (fun _ -> fresh_tyvar ()) xs;
           let s = Utils.zip xs !ys in
-          let u = subst_type_substitutions s u in
-          u, [], []
+          (subst_type s u), [], []
         with Not_found ->
           raise @@ Type_error (Printf.sprintf "variable '%s' not found in the environment" x)
       end
@@ -261,10 +257,10 @@ module GTLC = struct
       let tau = tau1 @ tau2 in
       let c = Constraints.union c1 @@ Constraints.union c2 c3 in
       let tau, s = unify tau @@ Constraints.elements c in
-      (subst_type_substitutions s ui), s, tau
+      (subst_type s ui), s, tau
     | FunExp (_, x, u1, e) ->
       let u2, s2, tau2 = type_of_exp (Environment.add x (tysc_of_ty u1) env) e in
-      (subst_type_substitutions s2 (TyFun (u1, u2))), s2, tau2
+      (subst_type s2 (TyFun (u1, u2))), s2, tau2
     | AppExp (_, e1, e2) ->
       let u1, s1, tau1 = type_of_exp env e1 in
       let u2, s2, tau2 = type_of_exp env e2 in
@@ -277,12 +273,12 @@ module GTLC = struct
         @@ Constraints.union c2
         @@ Constraints.union c3 c4 in
       let tau, s = unify tau @@ Constraints.elements c in
-      (subst_type_substitutions s u3), s, tau
+      (subst_type s u3), s, tau
     | LetExp (_, x, xs, e1, e2) when is_value e1 ->
       let u1, s1, tau1 = type_of_exp env e1 in (* TODO: how to handle tau for polymorphism *)
       let free_tyvars_in_tyenv =
         List.fold_left V.union V.empty @@
-          List.map (fun x -> tyvars_ty (subst_type_substitutions s1 (TyVar x))) @@
+          List.map (fun x -> tyvars_ty (subst_type s1 (TyVar x))) @@
           V.elements @@
           free_tyvars_tyenv env in
       let free_tyvars = V.diff (tyvars_ty u1) free_tyvars_in_tyenv in
@@ -293,7 +289,7 @@ module GTLC = struct
       let tau = tau1 @ tau2 in
       let c = Constraints.union (constr_of_subst s1) (constr_of_subst s2) in
       let tau, s = unify tau @@ Constraints.elements c in
-      (subst_type_substitutions s u2), s, tau
+      (subst_type s u2), s, tau
     | LetExp (r, x, _, e1, e2) ->
       type_of_exp env @@ AppExp (r, FunExp (r, x, fresh_tyvar (), e2), e1)
 
@@ -308,7 +304,7 @@ module GTLC = struct
         try
           let TyScheme (xs, u) = Environment.find x env in
           let s = Utils.zip xs !ys in
-          let u = subst_type_substitutions s u in
+          let u = subst_type s u in
           CC.Var (r, x, !ys), u
         with Not_found ->
           raise @@ Type_error "variable not found (translate)"
@@ -346,7 +342,7 @@ module CC = struct
         try
           let TyScheme (xs, u) = Environment.find x env in
           if List.length xs = List.length ys then
-            subst_type_substitutions (Utils.zip xs ys) u
+            subst_type (Utils.zip xs ys) u
           else
             raise @@ Type_error "invalid type application"
         with Not_found ->
