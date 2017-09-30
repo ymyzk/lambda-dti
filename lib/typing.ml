@@ -260,7 +260,7 @@ module GTLC = struct
       let c3 = Constraints.of_list [CConsistent (u1, ui1); CConsistent (u2, ui2)] in
       let tau = tau1 @ tau2 in
       let c = Constraints.union c1 @@ Constraints.union c2 c3 in
-      let tau, s = unify tau @@ Constraints.to_list c in
+      let tau, s = unify tau @@ Constraints.elements c in
       (subst_type_substitutions s ui), s, tau
     | FunExp (_, x, u1, e) ->
       let u2, s2, tau2 = type_of_exp (Environment.add x (tysc_of_ty u1) env) e in
@@ -276,7 +276,7 @@ module GTLC = struct
       let c = Constraints.union c1
         @@ Constraints.union c2
         @@ Constraints.union c3 c4 in
-      let tau, s = unify tau @@ Constraints.to_list c in
+      let tau, s = unify tau @@ Constraints.elements c in
       (subst_type_substitutions s u3), s, tau
     | LetExp (_, x, xs, e1, e2) when is_value e1 ->
       let u1, s1, tau1 = type_of_exp env e1 in (* TODO: how to handle tau for polymorphism *)
@@ -292,7 +292,7 @@ module GTLC = struct
       let u2, s2, tau2 = type_of_exp (Environment.add x us1 env) e2 in
       let tau = tau1 @ tau2 in
       let c = Constraints.union (constr_of_subst s1) (constr_of_subst s2) in
-      let tau, s = unify tau @@ Constraints.to_list c in
+      let tau, s = unify tau @@ Constraints.elements c in
       (subst_type_substitutions s u2), s, tau
     | LetExp (r, x, _, e1, e2) ->
       type_of_exp env @@ AppExp (r, FunExp (r, x, fresh_tyvar (), e2), e1)

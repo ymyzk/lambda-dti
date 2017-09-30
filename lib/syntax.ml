@@ -42,18 +42,12 @@ module GTLC = struct
     | CEqual of ty * ty
     | CConsistent of ty * ty
 
-  module IConstraints = Set.Make (
+  module Constraints = Set.Make (
     struct
       type t = constr
       let compare (x : constr) y = compare x y
     end
     )
-
-  module Constraints = struct
-    include IConstraints
-
-    let to_list c = IConstraints.fold (fun x l -> x :: l) c []
-  end
 
   type exp =
     | Var of range * id * ty list ref
