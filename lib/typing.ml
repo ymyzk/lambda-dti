@@ -119,41 +119,41 @@ module GTLC = struct
 
   (* Set of type variables used for tau and let polymorphism *)
 
-  module Variables = Set.Make(
+  module V = Set.Make(
     struct
       type t = tyvar
       let compare (x : tyvar) y = compare x y
     end
     )
 
-  let rec tyvars_ty: ty -> Variables.t = function
-    | TyVar x -> Variables.singleton x
-    | TyFun (u1, u2) -> Variables.union (tyvars_ty u1) (tyvars_ty u2)
-    | _ -> Variables.empty
+  let rec tyvars_ty: ty -> V.t = function
+    | TyVar x -> V.singleton x
+    | TyFun (u1, u2) -> V.union (tyvars_ty u1) (tyvars_ty u2)
+    | _ -> V.empty
 
-  let free_tyvars_tysc: tysc -> Variables.t = function
+  let free_tyvars_tysc: tysc -> V.t = function
     | TyScheme (xs, u) ->
-      Variables.diff (tyvars_ty u) @@ Variables.of_list xs
+      V.diff (tyvars_ty u) @@ V.of_list xs
 
   let rec free_tyvars_exp = function
     | Var (_, _, us) ->
-      List.fold_left Variables.union Variables.empty @@
+      List.fold_left V.union V.empty @@
         List.map tyvars_ty !us
     | BConst _
-    | IConst _ -> Variables.empty
+    | IConst _ -> V.empty
     | BinOp (_, _, e1, e2) ->
-      Variables.union (free_tyvars_exp e1) (free_tyvars_exp e2)
+      V.union (free_tyvars_exp e1) (free_tyvars_exp e2)
     | FunExp (_, _, u1, e) ->
-      Variables.union (tyvars_ty u1) @@ free_tyvars_exp e
+      V.union (tyvars_ty u1) @@ free_tyvars_exp e
     | AppExp (_, e1, e2) ->
-      Variables.union (free_tyvars_exp e1) (free_tyvars_exp e2)
+      V.union (free_tyvars_exp e1) (free_tyvars_exp e2)
     | LetExp (_, _, xs, e1, e2) ->
-      Variables.diff
-        (Variables.union (free_tyvars_exp e1) (free_tyvars_exp e2))
-        (Variables.of_list !xs)
+      V.diff
+        (V.union (free_tyvars_exp e1) (free_tyvars_exp e2))
+        (V.of_list !xs)
 
   let free_tyvars_tyenv env =
-    Environment.fold (fun _ us vars -> Variables.union vars (free_tyvars_tysc us)) env Variables.empty
+    Environment.fold (fun _ us vars -> V.union vars (free_tyvars_tysc us)) env V.empty
 
   (* Substitutions for type variables *)
 
@@ -194,11 +194,11 @@ module GTLC = struct
 
   let generate_typaram_subst tau e =
     let free_tyvars = free_tyvars_exp e in
-    let tyvars_gtp = List.fold_left Variables.union Variables.empty @@
+    let tyvars_gtp = List.fold_left V.union V.empty @@
       List.map tyvars_ty tau in
-    let tyvars_stp = Variables.diff free_tyvars tyvars_gtp in
-    List.map (fun x -> x, fresh_gparam ()) (Variables.elements tyvars_gtp) @
-    List.map (fun x -> x, fresh_sparam ()) (Variables.elements tyvars_stp)
+    let tyvars_stp = V.diff free_tyvars tyvars_gtp in
+    List.map (fun x -> x, fresh_gparam ()) (V.elements tyvars_gtp) @
+    List.map (fun x -> x, fresh_sparam ()) (V.elements tyvars_stp)
 
   (* Unification *)
 
@@ -216,7 +216,7 @@ module GTLC = struct
           unify tau @@ CConsistent (TyVar x, u) :: c
         | CConsistent (TyVar x, u) when is_bvp_type u ->
           unify tau @@ CEqual (TyVar x, u) :: c
-        | CConsistent (TyVar x, TyFun (u1, u2)) when not @@ Variables.mem x (tyvars_ty (TyFun (u1, u2))) ->
+        | CConsistent (TyVar x, TyFun (u1, u2)) when not @@ V.mem x (tyvars_ty (TyFun (u1, u2))) ->
           let x1, x2 = fresh_tyvar (), fresh_tyvar () in
           unify tau @@ CEqual (TyVar x, TyFun (x1, x2)) :: CConsistent (x1, u1) :: CConsistent (x2, u2) :: c
         | CEqual (t1, t2) when t1 = t2 && is_static_type t1 && is_bvp_type t1 ->
@@ -225,7 +225,7 @@ module GTLC = struct
           unify tau @@ CEqual (t11, t21) :: CEqual (t12, t22) :: c
         | CEqual (t, TyVar x) when is_static_type t && not (is_tyvar t) ->
           unify tau @@ CEqual (TyVar x, t) :: c
-        | CEqual (TyVar x, t) when not (Variables.mem x (tyvars_ty t)) ->
+        | CEqual (TyVar x, t) when not (V.mem x (tyvars_ty t)) ->
           let tau, s = unify (subst_tau x t tau) (subst_constraints x t c) in
           tau, (x, t) :: s
         | _ ->
@@ -281,12 +281,12 @@ module GTLC = struct
     | LetExp (_, x, xs, e1, e2) when is_value e1 ->
       let u1, s1, tau1 = type_of_exp env e1 in (* TODO: how to handle tau for polymorphism *)
       let free_tyvars_in_tyenv =
-        List.fold_left Variables.union Variables.empty @@
+        List.fold_left V.union V.empty @@
           List.map (fun x -> tyvars_ty (subst_type_substitutions s1 (TyVar x))) @@
-          Variables.elements @@
+          V.elements @@
           free_tyvars_tyenv env in
-      let free_tyvars = Variables.diff (tyvars_ty u1) free_tyvars_in_tyenv in
-      let free_tyvars = Variables.elements free_tyvars in
+      let free_tyvars = V.diff (tyvars_ty u1) free_tyvars_in_tyenv in
+      let free_tyvars = V.elements free_tyvars in
       xs := free_tyvars;
       let us1 = TyScheme (free_tyvars, u1) in
       let u2, s2, tau2 = type_of_exp (Environment.add x us1 env) e2 in
