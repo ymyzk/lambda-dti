@@ -8,9 +8,7 @@ exception Reduce
 
 (* Gradual Type Parameters Substitution *)
 
-(* [a:->u] *)
 type substitution = typaram * ty
-(* if S = [a1:->a2], [a2:->u1], then S(a1)=u1 *)
 type substitutions = substitution list
 
 (* s(u) *)
