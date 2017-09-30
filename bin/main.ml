@@ -22,7 +22,7 @@ let rec read_eval_print lexbuf env tyenv =
       let e = Typing.GTLC.subst_exp_substitutions e s in
       let s = Typing.GTLC.generate_typaram_subst tau e in
       let e = Typing.GTLC.subst_exp_substitutions e s in
-      let u = Typing.GTLC.subst_type_substitutions u s in
+      let u = Typing.subst_type_substitutions u s in
       print_debug "GTLC e: %a\n" Pp.GTLC.pp_exp e;
       print_debug "GTLC U: %a\n" Pp.pp_ty u;
 

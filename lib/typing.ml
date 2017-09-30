@@ -80,6 +80,21 @@ let rec is_consistent u1 u2 = match u1, u2 with
     (is_consistent u11 u21) && (is_consistent u12 u22)
   | _ -> false
 
+(* Substitutions for type variables *)
+
+type substitution = tyvar * ty
+type substitutions = substitution list
+
+(* [x:=t]u *)
+let rec subst_type (x : tyvar) (t : ty) = function
+  | TyFun (u1, u2) -> TyFun (subst_type x t u1, subst_type x t u2)
+  | TyVar x' when x = x' -> t
+  | _ as u -> u
+
+(* S(t) *)
+let subst_type_substitutions (t : ty) (s : substitutions) =
+  List.fold_left (fun u -> fun (x, t) -> subst_type x t u) t s
+
 module GTLC = struct
   open Syntax.GTLC
 
@@ -141,19 +156,6 @@ module GTLC = struct
     Environment.fold (fun _ us vars -> Variables.union vars (free_tyvars_tysc us)) env Variables.empty
 
   (* Substitutions for type variables *)
-
-  type substitution = tyvar * ty
-  type substitutions = substitution list
-
-  (* [x:=t]u *)
-  let rec subst_type (x : tyvar) (t : ty) = function
-    | TyFun (u1, u2) -> TyFun (subst_type x t u1, subst_type x t u2)
-    | TyVar x' when x = x' -> t
-    | _ as u -> u
-
-  (* S(t) *)
-  let subst_type_substitutions (t : ty) (s : substitutions) =
-    List.fold_left (fun u -> fun (x, t) -> subst_type x t u) t s
 
   (* S(e) *)
   let subst_exp_substitutions (e: exp) (s: substitutions) =
@@ -344,7 +346,7 @@ module CC = struct
         try
           let TyScheme (xs, u) = Environment.find x env in
           (* TODO: check length of xs and ys are equal *)
-          GTLC.subst_type_substitutions u @@ Utils.zip xs ys
+          subst_type_substitutions u @@ Utils.zip xs ys
         with Not_found ->
           raise @@ Type_error "variable not found (CC.type_of_exp)"
       end
