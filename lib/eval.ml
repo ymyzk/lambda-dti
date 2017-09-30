@@ -63,6 +63,7 @@ let rec subst_var (x: id) (xs: tyvar list) (v: exp) (f: exp): exp =
   | CastExp (r, f1, u1, u2) -> CastExp (r, subst f1, u1, u2)
   | LetExp (r, y, ys, f1, f2) ->
     LetExp (r, y, ys, (if x = y then f1 else subst f1), subst f2)
+  | Hole as f -> f
 
 (* Reduction *)
 
@@ -127,14 +128,9 @@ let rec fill_context = function
 exception Error of context * exp
 exception Value
 
-let hole = IConst (dummy_range, -12345)
 let rec exp_with exp_in_hole ppf =
   let exp = exp_with exp_in_hole in
   function
-  | IConst _ as c when c = hole ->
-    fprintf ppf "[ %a ]"
-      (exp_with hole)
-      exp_in_hole
   | Var (_, x, ys) -> Pp.pp_print_var ppf (x, ys)
   | BConst (_, b) -> pp_print_bool ppf b
   | IConst (_, i) -> pp_print_int ppf i
@@ -163,9 +159,13 @@ let rec exp_with exp_in_hole ppf =
       Pp.pp_let_tyabses xs
       exp f1
       exp f2
+  | Hole ->
+    fprintf ppf "[ %a ]"
+      (exp_with Hole)
+      exp_in_hole
 
 let pp_context_exp ppf (c, e) =
-  exp_with e ppf @@ fill_context (c, hole)
+  exp_with e ppf @@ fill_context (c, Hole)
 
 let rec decompose_down (c, e as ce) =
   let ce =
@@ -193,6 +193,7 @@ let rec decompose_down (c, e as ce) =
         with Value -> ce
       end
     | LetExp _ -> raise Value
+    | Hole -> raise Not_found
   in
   ce
 

@@ -94,6 +94,7 @@ module CC = struct
     | AppExp of range * exp * exp
     | CastExp of range * exp * ty * ty
     | LetExp of range * id * tyvar list * exp * exp
+    | Hole  (* Only used during evaluation *)
 
   let map_exp f_ty f_exp = function
     | Var _
@@ -104,6 +105,7 @@ module CC = struct
     | AppExp (r, f1, f2) -> AppExp (r, f_exp f1, f_exp f2)
     | CastExp (r, f, u1, u2) -> CastExp (r, f_exp f, f_ty u1, f_ty u2)
     | LetExp (r, x, xs, f1, f2) -> LetExp (r, x, xs, f_exp f1, f_exp f2)
+    | Hole as f -> f
 
   let range_of_exp = function
     | Var (r, _, _)
@@ -114,6 +116,7 @@ module CC = struct
     | AppExp (r, _, _)
     | CastExp (r, _, _, _)
     | LetExp (r, _, _, _, _) -> r
+    | Hole -> raise Not_found
 
   let rec is_value = function
     | IConst _

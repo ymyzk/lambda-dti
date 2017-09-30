@@ -158,6 +158,7 @@ module CC = struct
         pp_let_tyabses xs
         (with_paren (gt_exp f f1) pp_exp) f1
         (with_paren (gte_exp f f2) pp_exp) f2
+    | Hole -> raise Syntax_error
 
   let rec pp_value ppf v =
     assert (is_value v);

@@ -385,6 +385,8 @@ module CC = struct
       u2
     | LetExp _ ->
       raise @@ Type_error "invalid translation for let expression"
+    | Hole ->
+      raise @@ Type_error "hole"
 
   let rec subst_exp s = function
     | Var (r, x, ys) -> Var (r, x, List.map (subst_type s) ys)
@@ -398,4 +400,5 @@ module CC = struct
       (* Remove substitutions captured by let exp s *)
       let s = List.filter (fun (x, _) -> not @@ List.mem x ys) s in
       LetExp (r, y, ys, subst_exp s f1, subst_exp s f2)
+    | Hole as f -> f
 end
