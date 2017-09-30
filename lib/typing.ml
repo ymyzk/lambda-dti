@@ -292,13 +292,22 @@ module GTLC = struct
     | LetExp (r, x, _, e1, e2) ->
       type_of_exp env @@ AppExp (r, FunExp (r, x, fresh_tyvar (), e2), e1)
 
+  let type_of_program tyenv = function
+    | Exp e ->
+      let u, s, tau = type_of_exp tyenv e in
+      let e = subst_exp s e in
+      let s = generate_typaram_subst tau e in
+      let e = subst_exp s e in
+      let u = subst_type s u in
+      Exp e, u
+
   (* Cast insertion translation *)
 
   let cast f u1 u2 =
     if u1 = u2 then f  (* Omit identity cast for better performance *)
     else CC.CastExp (CC.range_of_exp f, f, u1, u2)
 
-  let rec translate env = function
+  let rec translate_exp env = function
     | Var (r, x, ys) -> begin
         try
           let TyScheme (xs, u) = Environment.find x env in
@@ -306,31 +315,36 @@ module GTLC = struct
           let u = subst_type s u in
           CC.Var (r, x, !ys), u
         with Not_found ->
-          raise @@ Type_error "variable not found (translate)"
+          raise @@ Type_error "variable not found (translate_exp)"
       end
     | IConst (r, i) -> CC.IConst (r, i), TyInt
     | BConst (r, b) -> CC.BConst (r, b), TyBool
     | BinOp (r, op, e1, e2) ->
       let ui1, ui2, ui = type_of_binop op in
-      let f1, u1 = translate env e1 in
-      let f2, u2 = translate env e2 in
+      let f1, u1 = translate_exp env e1 in
+      let f2, u2 = translate_exp env e2 in
       CC.BinOp (r, op, cast f1 u1 ui1, cast f2 u2 ui2), ui
     | FunExp (r, x, u1, e) ->
-      let f, u2 = translate (Environment.add x (tysc_of_ty u1) env) e in
+      let f, u2 = translate_exp (Environment.add x (tysc_of_ty u1) env) e in
       CC.FunExp (r, x, u1, f), TyFun (u1, u2)
     | AppExp (r, e1, e2) ->
-      let f1, u1 = translate env e1 in
-      let f2, u2 = translate env e2 in
+      let f1, u1 = translate_exp env e1 in
+      let f2, u2 = translate_exp env e2 in
       CC.AppExp (r, cast f1 u1 (TyFun (dom u1, cod u1)), cast f2 u2 (dom u1)), cod u1
     | LetExp (r, x, xs, e1, e2) when is_value e1 ->
-      let f1, u1 = translate env e1 in
+      let f1, u1 = translate_exp env e1 in
       let us1 = TyScheme (!xs, u1) in
-      let f2, u2 = translate (Environment.add x us1 env) e2 in
+      let f2, u2 = translate_exp (Environment.add x us1 env) e2 in
       CC.LetExp (r, x, !xs, f1, f2), u2
     | LetExp (r, x, _, e1, e2) ->
-      let _, u1 = translate env e1 in
+      let _, u1 = translate_exp env e1 in
       let e = AppExp (r, FunExp (r, x, u1, e2), e1) in
-      translate env e
+      translate_exp env e
+
+  let translate tyenv = function
+    | Exp e ->
+      let f, u = translate_exp tyenv e in
+      CC.Exp f, u
 end
 
 module CC = struct
@@ -401,4 +415,7 @@ module CC = struct
       let s = List.filter (fun (x, _) -> not @@ List.mem x ys) s in
       LetExp (r, y, ys, subst_exp s f1, subst_exp s f2)
     | Hole as f -> f
+
+  let type_of_program tyenv = function
+    | Exp e -> type_of_exp tyenv e
 end

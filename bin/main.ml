@@ -18,24 +18,22 @@ let rec read_eval_print lexbuf env tyenv =
       let e = Parser.toplevel Lexer.main lexbuf in
 
       (* Type inference *)
-      let u, s, tau = Typing.GTLC.type_of_exp tyenv e in
-      let e = Typing.GTLC.subst_exp s e in
-      let s = Typing.GTLC.generate_typaram_subst tau e in
-      let e = Typing.GTLC.subst_exp s e in
-      let u = Typing.subst_type s u in
-      print_debug "GTLC e: %a\n" Pp.GTLC.pp_exp e;
+      let e, u = Typing.GTLC.type_of_program tyenv e in
+      print_debug "GTLC e: %a\n" Pp.GTLC.pp_program e;
       print_debug "GTLC U: %a\n" Pp.pp_ty u;
 
       (* Translation *)
       let f, u' = Typing.GTLC.translate tyenv e in
-      print_debug "CC e: %a\n" Pp.CC.pp_exp f;
+      print_debug "CC e: %a\n" Pp.CC.pp_program f;
       print_debug "CC U: %a\n" Pp.pp_ty u';
       assert (u = u');
-      let u'' = Typing.CC.type_of_exp tyenv f in
+      let u'' = Typing.CC.type_of_program tyenv f in
       assert (u = u'');
 
       (* Evaluation *)
-      let v, s = Eval.eval f ~debug:!debug in
+      let v, s = match f with
+        | Exp f -> Eval.eval f ~debug:!debug
+      in
       print_debug "CC v: %a\n" Pp.CC.pp_exp v;
       print_debug "GTP Subst: %a\n" Eval.pp_substitutions s;
       print "- : %a = %a\n" Pp.pp_ty (Eval.subst_gtp_type s u) Pp.CC.pp_value v

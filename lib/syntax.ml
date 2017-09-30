@@ -82,6 +82,9 @@ module GTLC = struct
     | BConst _
     | FunExp _ -> true
     | _ -> false
+
+  type program =
+    | Exp of exp
 end
 
 module CC = struct
@@ -125,6 +128,9 @@ module CC = struct
     | CastExp (_, v, TyFun _, TyFun _) when is_value v -> true
     | CastExp (_, v, g, TyDyn) when is_value v && is_ground g -> true
     | _ -> false
+
+  type program =
+    | Exp of exp
 
   type context =
     | CTop

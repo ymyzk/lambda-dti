@@ -99,6 +99,9 @@ module GTLC = struct
         pp_let_tyabses !xs
         (with_paren (gt_exp e e1) pp_exp) e1
         (with_paren (gte_exp e e2) pp_exp) e2
+
+  let pp_program ppf = function
+    | Exp e -> pp_exp ppf e
 end
 
 module CC = struct
@@ -172,4 +175,7 @@ module CC = struct
         pp_ty u1
         pp_ty u2
     | _ -> raise Syntax_error
+
+  let pp_program ppf = function
+    | Exp e -> pp_exp ppf e
 end

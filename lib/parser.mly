@@ -14,7 +14,7 @@ open Utils.Error
 %token <Syntax.id Utils.Error.with_range> ID
 
 %start toplevel
-%type <Syntax.GTLC.exp> toplevel
+%type <Syntax.GTLC.program> toplevel
 
 (* Ref: https://caml.inria.fr/pub/docs/manual-ocaml/expr.html *)
 %left  LT
@@ -24,7 +24,7 @@ open Utils.Error
 %%
 
 toplevel :
-  | Expr SEMISEMI { $1 }
+  | Expr SEMISEMI { Exp $1 }
 
 Expr :
   | start=LET x=ID params=LetParams EQ e1=Expr IN e2=Expr {
