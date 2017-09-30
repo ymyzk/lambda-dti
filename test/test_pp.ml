@@ -56,7 +56,7 @@ module CC = struct
       expected >:: fun ctxt ->
         assert_equal ~ctxt:ctxt ~printer:id expected @@ asprintf "%a" pp_exp f
     in
-    let x, y, z = Var (r, "x"), Var (r, "y"), Var (r, "z") in
+    let x, y, z = Var (r, "x", []), Var (r, "y", []), Var (r, "z", []) in
     List.map test [
       "x y z", AppExp (r, AppExp (r, x, y), z);
       "x (y z)", AppExp (r, x, AppExp (r, y, z));
