@@ -7,13 +7,13 @@ open Utils.Error
 exception Blame of range
 exception Reduce
 
-(* Gradual Type Parameters Substitution *)
+(* Substitution for gradual type parameters *)
 
 type substitution = typaram * ty
 type substitutions = substitution list
 
 (* s(u) *)
-let subst_gtp_in_type s u =
+let subst_gtp_type s u =
   let rec subst_gtp (a, u as s) = function
     | TyFun (u1, u2) -> TyFun (subst_gtp s u1, subst_gtp s u2)
     | TyGParam a' when a = a' -> u
@@ -22,17 +22,17 @@ let subst_gtp_in_type s u =
   List.fold_left (fun u -> fun s0 -> subst_gtp s0 u) u s
 
 (* s(e) *)
-let rec subst_gtp_in_exp s e =
-  map_exp (fun u -> subst_gtp_in_type s u) (subst_gtp_in_exp s) e
+let rec subst_gtp_exp s e =
+  map_exp (fun u -> subst_gtp_type s u) (subst_gtp_exp s) e
 
 (* s(c) *)
-let rec subst_gtp_in_context s = function
+let rec subst_gtp_context s = function
   | CTop -> CTop
-  | CAppL (r, c, e) -> CAppL (r, subst_gtp_in_context s c, subst_gtp_in_exp s e)
-  | CAppR (r, e, c) -> CAppR (r, subst_gtp_in_exp s e, subst_gtp_in_context s c)
-  | CBinOpL (r, op, c, e) -> CBinOpL (r, op, subst_gtp_in_context s c, subst_gtp_in_exp s e)
-  | CBinOpR (r, op, e, c) -> CBinOpR (r, op, subst_gtp_in_exp s e, subst_gtp_in_context s c)
-  | CCast (r, c, u1, u2) -> CCast (r, subst_gtp_in_context s c, subst_gtp_in_type s u1, subst_gtp_in_type s u2)
+  | CAppL (r, c, e) -> CAppL (r, subst_gtp_context s c, subst_gtp_exp s e)
+  | CAppR (r, e, c) -> CAppR (r, subst_gtp_exp s e, subst_gtp_context s c)
+  | CBinOpL (r, op, c, e) -> CBinOpL (r, op, subst_gtp_context s c, subst_gtp_exp s e)
+  | CBinOpR (r, op, e, c) -> CBinOpR (r, op, subst_gtp_exp s e, subst_gtp_context s c)
+  | CCast (r, c, u1, u2) -> CCast (r, subst_gtp_context s c, subst_gtp_type s u1, subst_gtp_type s u2)
 
 let pp_sep ppf () = fprintf ppf ", "
 
@@ -42,27 +42,29 @@ let pp_substitution ppf (a, u) =
 let pp_substitutions ppf ss =
   pp_print_list pp_substitution ppf ss ~pp_sep:pp_sep
 
-(* Reduction *)
+(* Substitution for variables *)
 
-(* e[x:=v] *)
-let rec subst_var (x: id) (xs: tyvar list) (v: exp) (e: exp): exp =
+(* f[x:=v] *)
+let rec subst_var (x: id) (xs: tyvar list) (v: exp) (f: exp): exp =
   assert (is_value v);
   let subst = subst_var x xs v in
-  match e with
+  match f with
   | Var (_, y, ys) ->
     if x <> y then
-      e
+      f
     else
       subst_exp (Utils.zip xs ys) v
   | IConst _
-  | BConst _ -> e
-  | BinOp (r, op, e1, e2) -> BinOp (r, op, subst e1, subst e2)
-  | FunExp (r, y, u, e') ->
-    if x = y then e else FunExp (r, y, u, subst e')
-  | AppExp (r, e1, e2) -> AppExp (r, subst e1, subst e2)
-  | CastExp (r, e1, u1, u2) -> CastExp (r, subst e1, u1, u2)
+  | BConst _ as f -> f
+  | BinOp (r, op, f1, f2) -> BinOp (r, op, subst f1, subst f2)
+  | FunExp (r, y, u, f') as f ->
+    if x = y then f else FunExp (r, y, u, subst f')
+  | AppExp (r, f1, f2) -> AppExp (r, subst f1, subst f2)
+  | CastExp (r, f1, u1, u2) -> CastExp (r, subst f1, u1, u2)
   | LetExp (r, y, ys, f1, f2) ->
-      LetExp (r, y, ys, (if x = y then f1 else subst f1), subst f2)
+    LetExp (r, y, ys, (if x = y then f1 else subst f1), subst f2)
+
+(* Reduction *)
 
 let reduce = function
   (* R_Beta *)
@@ -224,7 +226,7 @@ let reduce_in (c, e) =
 let eval_step (ce: context * exp): (context * exp) * substitution option =
   let c, e, s = reduce_in @@ decompose ce in
   match s with
-  | Some s -> (subst_gtp_in_context [s] c, subst_gtp_in_exp [s] e), Some s
+  | Some s -> (subst_gtp_context [s] c, subst_gtp_exp [s] e), Some s
   | None -> (c, e), None
 
 let rec eval_all ?(debug=false) (ce: context * exp) (ss: substitutions): (context * exp) * substitutions =

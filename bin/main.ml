@@ -38,7 +38,7 @@ let rec read_eval_print lexbuf env tyenv =
       let v, s = Eval.eval f ~debug:!debug in
       print_debug "CC v: %a\n" Pp.CC.pp_exp v;
       print_debug "GTP Subst: %a\n" Eval.pp_substitutions s;
-      print "- : %a = %a\n" Pp.pp_ty (Eval.subst_gtp_in_type s u) Pp.CC.pp_value v
+      print "- : %a = %a\n" Pp.pp_ty (Eval.subst_gtp_type s u) Pp.CC.pp_value v
     with
     | Failure message ->
       print "Failure: %s\n" message;
