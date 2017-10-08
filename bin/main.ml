@@ -31,9 +31,7 @@ let rec read_eval_print lexbuf env tyenv =
       assert (u = u'');
 
       (* Evaluation *)
-      let v, s = match f with
-        | Exp f -> Eval.eval f ~debug:!debug
-      in
+      let v, s = Eval.eval_program f ~debug:!debug in
       print_debug "CC v: %a\n" Pp.CC.pp_exp v;
       print_debug "GTP Subst: %a\n" Eval.pp_substitutions s;
       print "- : %a = %a\n" Pp.pp_ty (Eval.subst_gtp_type s u) Pp.CC.pp_value v

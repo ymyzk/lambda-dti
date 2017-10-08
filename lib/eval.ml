@@ -242,6 +242,10 @@ let rec eval_all ?(debug=false) (ce: context * exp) (ss: substitutions): (contex
     eval_all ce ss ~debug:debug
   with Not_found -> ce, ss
 
-let eval ?(debug=false) (e: exp): exp * substitutions =
+let eval ?(debug=false) e =
   let e, s = eval_all (CTop, e) [] ~debug:debug in
   fill_context e, List.rev s
+
+let eval_program ?(debug=false) p =
+  match p with
+  | Exp f -> eval f ~debug:debug
