@@ -36,7 +36,7 @@ let rec subst_var (x: id) (xs: tyvar list) (v: exp) (f: exp): exp =
   | AppExp (r, f1, f2) -> AppExp (r, subst f1, subst f2)
   | CastExp (r, f1, u1, u2) -> CastExp (r, subst f1, u1, u2)
   | LetExp (r, y, ys, f1, f2) ->
-    LetExp (r, y, ys, (if x = y then f1 else subst f1), subst f2)
+    LetExp (r, y, ys, subst f1, if x = y then f2 else subst f2)
   | Hole as f -> f
 
 (* Reduction *)
