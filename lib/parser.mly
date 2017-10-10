@@ -25,6 +25,11 @@ open Utils.Error
 
 toplevel :
   | Expr SEMISEMI { Exp $1 }
+  | start=LET x=ID params=LetParams EQ e=Expr SEMISEMI {
+      let r = join_range start (range_of_exp e) in
+      let e = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e in
+      LetDecl (x.value, ref [], e)
+    }
 
 Expr :
   | start=LET x=ID params=LetParams EQ e1=Expr IN e2=Expr {

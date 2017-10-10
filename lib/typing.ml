@@ -156,6 +156,14 @@ module GTLC = struct
   let free_tyvars_tyenv env =
     Environment.fold (fun _ us vars -> V.union vars (free_tyvars_tysc us)) env V.empty
 
+  let closure_tyvars env s u =
+    let free_tyvars_in_tyenv =
+      List.fold_left V.union V.empty @@
+      List.map (fun x -> tyvars_ty (subst_type s (TyVar x))) @@
+      V.elements @@
+      free_tyvars_tyenv env in
+    V.diff (tyvars_ty u) free_tyvars_in_tyenv
+
   (* Substitutions for type variables *)
 
   (* S(e) *)
@@ -188,10 +196,12 @@ module GTLC = struct
 
   (* Replace free type variables with fresh type parameters *)
 
-  let generate_typaram_subst tau e =
+  let generate_typaram_subst tau tyvars e =
     let free_tyvars = free_tyvars_exp e in
+    let free_tyvars = V.diff free_tyvars tyvars in
     let tyvars_gtp = List.fold_left V.union V.empty @@
       List.map tyvars_ty tau in
+    let tyvars_gtp = V.diff tyvars_gtp tyvars in
     let tyvars_stp = V.diff free_tyvars tyvars_gtp in
     List.map (fun x -> x, fresh_gparam ()) (V.elements tyvars_gtp) @
     List.map (fun x -> x, fresh_sparam ()) (V.elements tyvars_stp)
@@ -275,13 +285,7 @@ module GTLC = struct
       (subst_type s u3), s, tau
     | LetExp (_, x, xs, e1, e2) when is_value e1 ->
       let u1, s1, tau1 = type_of_exp env e1 in (* TODO: how to handle tau for polymorphism *)
-      let free_tyvars_in_tyenv =
-        List.fold_left V.union V.empty @@
-          List.map (fun x -> tyvars_ty (subst_type s1 (TyVar x))) @@
-          V.elements @@
-          free_tyvars_tyenv env in
-      let free_tyvars = V.diff (tyvars_ty u1) free_tyvars_in_tyenv in
-      let free_tyvars = V.elements free_tyvars in
+      let free_tyvars = V.elements @@ closure_tyvars env s1 u1 in
       xs := free_tyvars;
       let us1 = TyScheme (free_tyvars, u1) in
       let u2, s2, tau2 = type_of_exp (Environment.add x us1 env) e2 in
@@ -296,10 +300,26 @@ module GTLC = struct
     | Exp e ->
       let u, s, tau = type_of_exp tyenv e in
       let e = subst_exp s e in
-      let s = generate_typaram_subst tau e in
+      let s = generate_typaram_subst tau V.empty e in
       let e = subst_exp s e in
       let u = subst_type s u in
-      Exp e, u
+      tyenv, Exp e, u
+    | LetDecl (x, xs, e) ->
+      let u, s, tau = type_of_exp tyenv e in
+      let e = subst_exp s e in
+      let free_tyvars =
+        if is_value e then
+          closure_tyvars tyenv s u
+        else
+          V.empty
+      in
+      xs := V.elements free_tyvars;
+      let s = generate_typaram_subst tau free_tyvars e in
+      let e = subst_exp s e in
+      let u = subst_type s u in
+      let us = TyScheme (!xs, u) in
+      let tyenv = Environment.add x us tyenv in
+      tyenv, LetDecl (x, xs, e), u
 
   (* Cast insertion translation *)
 
@@ -345,6 +365,9 @@ module GTLC = struct
     | Exp e ->
       let f, u = translate_exp tyenv e in
       CC.Exp f, u
+    | LetDecl (x, xs, e) ->
+      let f, u = translate_exp tyenv e in
+      CC.LetDecl (x, !xs, f), u
 end
 
 module CC = struct
@@ -418,4 +441,5 @@ module CC = struct
 
   let type_of_program tyenv = function
     | Exp e -> type_of_exp tyenv e
+    | LetDecl (_, _, f) -> type_of_exp tyenv f
 end

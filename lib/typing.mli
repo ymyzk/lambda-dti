@@ -12,7 +12,7 @@ val subst_type : substitutions -> ty -> ty
 module GTLC : sig
   open Syntax.GTLC
 
-  val type_of_program : tysc Environment.t -> program -> (program * ty)
+  val type_of_program : tysc Environment.t -> program -> (tysc Environment.t * program * ty)
 
   val translate : tysc Environment.t -> program -> (CC.program * ty)
 end

@@ -85,6 +85,7 @@ module GTLC = struct
 
   type program =
     | Exp of exp
+    | LetDecl of id * tyvar list ref * exp
 end
 
 module CC = struct
@@ -131,6 +132,7 @@ module CC = struct
 
   type program =
     | Exp of exp
+    | LetDecl of id * tyvar list * exp
 
   type context =
     | CTop

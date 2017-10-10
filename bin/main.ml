@@ -18,7 +18,7 @@ let rec read_eval_print lexbuf env tyenv =
       let e = Parser.toplevel Lexer.main lexbuf in
 
       (* Type inference *)
-      let e, u = Typing.GTLC.type_of_program tyenv e in
+      let tyenv, e, u = Typing.GTLC.type_of_program tyenv e in
       print_debug "GTLC e: %a\n" Pp.GTLC.pp_program e;
       print_debug "GTLC U: %a\n" Pp.pp_ty u;
 
@@ -31,10 +31,14 @@ let rec read_eval_print lexbuf env tyenv =
       assert (u = u'');
 
       (* Evaluation *)
-      let v, s = Eval_small.eval_program f ~debug:!debug in
+      let env, x, v, s = Eval_small.eval_program env f ~debug:!debug in
       print_debug "CC v: %a\n" Pp.CC.pp_exp v;
       print_debug "GTP Subst: %a\n" Eval.pp_substitutions s;
-      print "- : %a = %a\n" Pp.pp_ty (Eval.subst_gtp_type s u) Pp.CC.pp_value v
+      print "%a : %a = %a\n"
+        pp_print_string x
+        Pp.pp_ty (Eval.subst_gtp_type s u)
+        Pp.CC.pp_value v;
+      read_eval_print lexbuf env tyenv
     with
     | Failure message ->
       print "Failure: %s\n" message;

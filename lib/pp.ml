@@ -102,6 +102,11 @@ module GTLC = struct
 
   let pp_program ppf = function
     | Exp e -> pp_exp ppf e
+    | LetDecl (x, xs, e) ->
+      fprintf ppf "let %s = %a%a"
+        x
+        pp_let_tyabses !xs
+        pp_exp e
 end
 
 module CC = struct
@@ -178,4 +183,9 @@ module CC = struct
 
   let pp_program ppf = function
     | Exp e -> pp_exp ppf e
+    | LetDecl (x, xs, f) ->
+      fprintf ppf "let %s = %a%a"
+        x
+        pp_let_tyabses xs
+        pp_exp f
 end

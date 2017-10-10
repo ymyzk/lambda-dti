@@ -205,8 +205,8 @@ let eval_step (ce: context * exp): (context * exp) * substitution option =
 
 let rec eval_all ?(debug=false) (ce: context * exp) (ss: substitutions): (context * exp) * substitutions =
   try
-    let ce, s = eval_step ce in
     if debug then fprintf std_formatter "eval_step --> %a\n" pp_context_exp ce;
+    let ce, s = eval_step ce in
     let ss = begin
       match s with
       | None -> ss
@@ -215,10 +215,17 @@ let rec eval_all ?(debug=false) (ce: context * exp) (ss: substitutions): (contex
     eval_all ce ss ~debug:debug
   with Not_found -> ce, ss
 
-let eval ?(debug=false) e =
+let eval ?(debug=false) env e =
+  let e = Environment.fold (fun x (xs, v) f -> subst_var x xs v f) env e in
   let e, s = eval_all (CTop, e) [] ~debug:debug in
   fill_context e, List.rev s
 
-let eval_program ?(debug=false) p =
+let eval_program ?(debug=false) env p =
   match p with
-  | Exp f -> eval f ~debug:debug
+  | Exp f ->
+    let v, s = eval env f ~debug:debug in
+    env, "-", v, s
+  | LetDecl (x, xs, f) ->
+    let v, s =  eval env f ~debug:debug in
+    let env = Environment.add x (xs, v) env in
+    env, x, v, s
