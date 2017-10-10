@@ -1,5 +1,4 @@
 open Eval
-open Syntax
 open Syntax.CC
 
 val eval : ?debug:bool -> exp -> (exp * substitutions)

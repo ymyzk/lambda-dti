@@ -3,7 +3,6 @@ open Format
 open Syntax
 open Syntax.CC
 open Typing.CC
-open Utils.Error
 
 exception Reduce
 
