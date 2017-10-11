@@ -13,8 +13,6 @@ let gt_ty (_: ty) = function
 
 let rec pp_ty ppf = function
   | TyDyn -> pp_print_string ppf "?"
-  | TyGParam a -> fprintf ppf "'a%d" a
-  | TySParam b -> fprintf ppf "'b%d" b
   | TyVar x -> fprintf ppf "'x%d" x
   | TyInt -> pp_print_string ppf "int"
   | TyBool -> pp_print_string ppf "bool"

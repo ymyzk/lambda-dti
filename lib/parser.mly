@@ -9,8 +9,6 @@ open Utils.Error
 %token <Utils.Error.range> LET IN FUN EQ RARROW TRUE FALSE INT BOOL
 
 %token <int Utils.Error.with_range> INTV
-%token <Syntax.typaram Utils.Error.with_range> GPARAM
-%token <Syntax.typaram Utils.Error.with_range> SPARAM
 %token <Syntax.id Utils.Error.with_range> ID
 
 %start toplevel
@@ -86,6 +84,4 @@ AType :
   | LPAREN Type RPAREN { $2 }
   | INT { TyInt }
   | BOOL { TyBool }
-  | a=GPARAM { TyGParam a.value }
-  | b=SPARAM { TySParam b.value }
   | QUESTION { TyDyn }

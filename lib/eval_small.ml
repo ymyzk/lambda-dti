@@ -4,16 +4,17 @@ open Syntax
 open Syntax.CC
 open Typing.CC
 
+exception Decomposition_not_found
 exception Reduce
 
 (* s(c) *)
-let rec subst_gtp_context s = function
+let rec subst_tv_context s = function
   | CTop -> CTop
-  | CAppL (r, c, e) -> CAppL (r, subst_gtp_context s c, subst_gtp_exp s e)
-  | CAppR (r, e, c) -> CAppR (r, subst_gtp_exp s e, subst_gtp_context s c)
-  | CBinOpL (r, op, c, e) -> CBinOpL (r, op, subst_gtp_context s c, subst_gtp_exp s e)
-  | CBinOpR (r, op, e, c) -> CBinOpR (r, op, subst_gtp_exp s e, subst_gtp_context s c)
-  | CCast (r, c, u1, u2) -> CCast (r, subst_gtp_context s c, subst_gtp_type s u1, subst_gtp_type s u2)
+  | CAppL (r, c, e) -> CAppL (r, subst_tv_context s c, subst_tv_exp s e)
+  | CAppR (r, e, c) -> CAppR (r, subst_tv_exp s e, subst_tv_context s c)
+  | CBinOpL (r, op, c, e) -> CBinOpL (r, op, subst_tv_context s c, subst_tv_exp s e)
+  | CBinOpR (r, op, e, c) -> CBinOpR (r, op, subst_tv_exp s e, subst_tv_context s c)
+  | CCast (r, c, u1, u2) -> CCast (r, subst_tv_context s c, subst_tv_type s u1, subst_tv_type s u2)
 
 (* Substitution for variables *)
 
@@ -59,6 +60,22 @@ let reduce = function
   (* R_AppCast *)
   | AppExp (_, CastExp (r, v1, TyFun (u11, u12), TyFun (u21, u22)), v2) when is_value v1 && is_value v2 ->
     CastExp (r, AppExp (r, v1, CastExp (r, v2, u21, u11)), u12, u22), None
+  | CastExp (_, CastExp (r2, v, u1, u2), u2', u3) when is_value v && u2 = u2' ->
+    begin match (u1, u2, u3) with
+      (* R_Succeed *)
+      | g1, TyDyn, g2 when is_ground g1 && is_ground g2 && g1 = g2 -> v, None
+      (* R_InstBase *)
+      | TyBool, TyDyn, TyVar x -> v, Some (x, TyBool)
+      | TyInt, TyDyn, TyVar x -> v, Some (x, TyInt)
+      (* R_InstArrow *)
+      | TyFun (TyDyn, TyDyn), TyDyn, TyVar x ->
+        let x1, x2 = Typing.fresh_tyvar (), Typing.fresh_tyvar () in
+        CastExp (r2, v, TyFun (TyDyn, TyDyn), TyFun (x1, x2)), Some (x, TyFun (x1, x2))
+      (* R_Fail *)
+      | g1, TyDyn, g2 when is_ground g1 && is_ground g2 && g1 <> g2 ->
+        raise @@ Blame (r2)
+      | _ -> raise Reduce
+    end
   (* R_Ground *)
   | CastExp (r, v, u, TyDyn) when u <> TyDyn && u <> ground_of_ty u ->
     let g = ground_of_ty u in
@@ -67,26 +84,11 @@ let reduce = function
   | CastExp (r, v, TyDyn, u) when u <> TyDyn && u <> ground_of_ty u ->
     let g = ground_of_ty u in
     CastExp (r, CastExp(r, v, TyDyn, g), g, u), None
-  | CastExp (_, CastExp (r2, v, u1, u2), u2', u3) when is_value v && u2 = u2' ->
-    begin match (u1, u2, u3) with
-      (* R_Succeed *)
-      | g1, TyDyn, g2 when is_ground g1 && is_ground g2 && g1 = g2 -> v, None
-      (* R_InstBase *)
-      | TyBool, TyDyn, TyGParam a -> v, Some (a, TyBool)
-      | TyInt, TyDyn, TyGParam a -> v, Some (a, TyInt)
-      (* R_InstArrow *)
-      | TyFun (TyDyn, TyDyn), TyDyn, TyGParam a ->
-        let a1, a2 = Typing.fresh_gparam (), Typing.fresh_gparam () in
-        CastExp (r2, v, TyFun (TyDyn, TyDyn), TyFun (a1, a2)), Some (a, TyFun (a1, a2))
-      (* R_Fail *)
-      | g1, TyDyn, g2 when is_ground g1 && is_ground g2 && g1 <> g2 ->
-        raise @@ Blame (r2)
-      | _ -> raise Reduce
-    end
   (* R_LetP *)
   | LetExp (_, x, xs, v1, f2) when is_value v1 ->
     subst_var x xs v1 f2, None
-  | _ -> raise Reduce
+  | _ ->
+    raise Reduce
 
 (* Evaluation *)
 
@@ -166,14 +168,14 @@ let rec decompose_down (c, e as ce) =
         with Value -> ce
       end
     | LetExp _ -> raise Value
-    | Hole -> raise Not_found
+    | Hole -> raise Decomposition_not_found
   in
   ce
 
 let rec decompose_up (c, v) =
   if is_value v then
     match c with
-    | CTop -> raise Not_found
+    | CTop -> raise Decomposition_not_found
     | CAppL (r, c', e) -> begin
         try decompose_down (CAppR (r, v, c'), e)
         with Value -> c', AppExp (r, v, e)
@@ -200,7 +202,7 @@ let reduce_in (c, e) =
 let eval_step (ce: context * exp): (context * exp) * substitution option =
   let c, e, s = reduce_in @@ decompose ce in
   match s with
-  | Some s -> (subst_gtp_context [s] c, subst_gtp_exp [s] e), Some s
+  | Some s -> (subst_tv_context [s] c, subst_tv_exp [s] e), Some s
   | None -> (c, e), None
 
 let rec eval_all ?(debug=false) (ce: context * exp) (ss: substitutions): (context * exp) * substitutions =
@@ -213,7 +215,7 @@ let rec eval_all ?(debug=false) (ce: context * exp) (ss: substitutions): (contex
       | Some s -> s :: ss
     end in
     eval_all ce ss ~debug:debug
-  with Not_found -> ce, ss
+  with Decomposition_not_found -> ce, ss
 
 let eval ?(debug=false) env e =
   let e = Environment.fold (fun x (xs, v) f -> subst_var x xs v f) env e in

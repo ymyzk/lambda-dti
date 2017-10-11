@@ -11,12 +11,9 @@ module Environment = Map.Make (
 
 type op = Plus | Mult | Lt
 
-type typaram = int
 type tyvar = int
 type ty =
   | TyDyn
-  | TySParam of typaram
-  | TyGParam of typaram
   | TyVar of tyvar
   | TyInt
   | TyBool
@@ -25,13 +22,12 @@ type ty =
 type tysc = TyScheme of tyvar list * ty
 
 let is_ground = function
-  | TyGParam _ -> true
   | TyInt | TyBool -> true
   | TyFun (u1, u2) when u1 = TyDyn && u2 = TyDyn -> true
   | _ -> false
 
+(* TODO: Should return ty option? *)
 let ground_of_ty = function
-  | TyGParam a -> TyGParam a
   | TyInt -> TyInt
   | TyBool -> TyBool
   | TyFun _ -> TyFun (TyDyn, TyDyn)

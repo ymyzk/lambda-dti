@@ -2,7 +2,6 @@ open Syntax
 
 exception Type_error of string
 
-val fresh_gparam : unit -> ty
 val fresh_tyvar : unit -> ty
 
 type substitution = tyvar * ty

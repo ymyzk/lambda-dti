@@ -33,10 +33,10 @@ let rec read_eval_print lexbuf env tyenv =
       (* Evaluation *)
       let env, x, v, s = Eval_small.eval_program env f ~debug:!debug in
       print_debug "CC v: %a\n" Pp.CC.pp_exp v;
-      print_debug "GTP Subst: %a\n" Eval.pp_substitutions s;
+      print_debug "Substitution: %a\n" Eval.pp_substitutions s;
       print "%a : %a = %a\n"
         pp_print_string x
-        Pp.pp_ty (Eval.subst_gtp_type s u)
+        Pp.pp_ty (Eval.subst_tv_type s u)
         Pp.CC.pp_value v;
       read_eval_print lexbuf env tyenv
     with

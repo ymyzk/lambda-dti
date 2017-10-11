@@ -26,10 +26,10 @@ let test_pp_ty =
 module GTLC = struct
   open Pp.GTLC
 
-  let test_pp_exp =
+  let test_pp_program =
     let test (e) =
       e >:: fun ctxt ->
-        assert_equal ~ctxt:ctxt ~printer:id e @@ asprintf "%a" pp_exp @@ parse (e ^ ";;")
+        assert_equal ~ctxt:ctxt ~printer:id e @@ asprintf "%a" pp_program @@ parse (e ^ ";;")
     in
     List.map test [
       "fun (x: ?) -> fun (y: ?) -> fun (z: ?) -> z";
@@ -41,7 +41,7 @@ module GTLC = struct
     ]
 
   let suite = [
-    "test_pp_exp">::: test_pp_exp;
+    "test_pp_program">::: test_pp_program;
   ]
 end
 

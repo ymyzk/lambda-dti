@@ -37,18 +37,6 @@ rule main = parse
 | "*" { Parser.STAR (range_of lexbuf) }
 | "?" { Parser.QUESTION (range_of lexbuf) }
 | "<" { Parser.LT (range_of lexbuf) }
-| "'a" (['1'-'9'] ['0'-'9']* as a)
-  {
-    let value = int_of_string a in
-    let range = range_of lexbuf in
-    Parser.GPARAM { value=value; range=range }
-  }
-| "'b" (['1'-'9'] ['0'-'9']* as b)
-  {
-    let value = int_of_string b in
-    let range = range_of lexbuf in
-    Parser.SPARAM { value=value; range=range }
-  }
 | ['a'-'z'] ['a'-'z' '0'-'9' '_' '\'']*
   {
     let id = Lexing.lexeme lexbuf in
