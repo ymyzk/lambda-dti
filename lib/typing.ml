@@ -68,6 +68,11 @@ let subst_type s u =
   in
   List.fold_left (fun u s0 -> subst s0 u) u s
 
+(* S(Gamma) *)
+let subst_tyenv s tyenv =
+  (* TODO: Should avoid to substitute captured type variables? *)
+  Environment.map (fun (TyScheme (xs, u)) -> TyScheme (xs, subst_type s u)) tyenv
+
 module GTLC = struct
   open Syntax.GTLC
 
@@ -235,11 +240,13 @@ module GTLC = struct
   let type_of_program tyenv = function
     | Exp e ->
       let u, s = type_of_exp tyenv e in
+      let tyenv = subst_tyenv s tyenv in
       (* TODO: merge subst_exp s e in type_of_exp *)
       let e = subst_exp s e in
       tyenv, Exp e, u
     | LetDecl (x, xs, e) ->
       let u, s = type_of_exp tyenv e in
+      let tyenv = subst_tyenv s tyenv in
       let e = subst_exp s e in
       let free_tyvars =
         if is_value e then
