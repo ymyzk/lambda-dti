@@ -78,13 +78,19 @@ let reduce = function
       | _ -> raise Reduce
     end
   (* R_Ground *)
-  | CastExp (r, v, u, TyDyn) when u <> TyDyn && u <> ground_of_ty u ->
-    let g = ground_of_ty u in
-    CastExp (r, CastExp(r, v, u, g), g, TyDyn), None
+  | CastExp (r, v, u, TyDyn) when u <> TyDyn && Some u <> ground_of_ty u ->
+    begin match ground_of_ty u with
+    | Some g ->
+      CastExp (r, CastExp(r, v, u, g), g, TyDyn), None
+    | None -> raise Not_found
+    end
   (* R_Expand *)
-  | CastExp (r, v, TyDyn, u) when u <> TyDyn && u <> ground_of_ty u ->
-    let g = ground_of_ty u in
-    CastExp (r, CastExp(r, v, TyDyn, g), g, u), None
+  | CastExp (r, v, TyDyn, u) when u <> TyDyn && Some u <> ground_of_ty u ->
+    begin match ground_of_ty u with
+    | Some g ->
+      CastExp (r, CastExp(r, v, TyDyn, g), g, u), None
+    | None -> raise Not_found
+    end
   (* R_LetP *)
   | LetExp (_, x, xs, v1, f2) when is_value v1 ->
     subst_var x xs v1 f2, None

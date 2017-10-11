@@ -26,12 +26,11 @@ let is_ground = function
   | TyFun (u1, u2) when u1 = TyDyn && u2 = TyDyn -> true
   | _ -> false
 
-(* TODO: Should return ty option? *)
 let ground_of_ty = function
-  | TyInt -> TyInt
-  | TyBool -> TyBool
-  | TyFun _ -> TyFun (TyDyn, TyDyn)
-  | _ -> raise Not_found
+  | TyInt -> Some TyInt
+  | TyBool -> Some TyBool
+  | TyFun _ -> Some (TyFun (TyDyn, TyDyn))
+  | _ -> None
 
 module GTLC = struct
   type constr =
