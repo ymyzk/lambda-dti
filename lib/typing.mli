@@ -4,7 +4,9 @@ exception Type_error of string
 
 val fresh_tyvar : unit -> ty
 
+(* [X:->u] *)
 type substitution = tyvar * ty
+(* if S = [X1:->X2], [X2:->u1], then S(X1)=u1 *)
 type substitutions = substitution list
 val subst_type : substitutions -> ty -> ty
 

@@ -2,6 +2,7 @@ open Eval
 open Format
 open Syntax
 open Syntax.CC
+open Typing
 open Typing.CC
 
 exception Decomposition_not_found
@@ -10,11 +11,11 @@ exception Reduce
 (* s(c) *)
 let rec subst_tv_context s = function
   | CTop -> CTop
-  | CAppL (r, c, e) -> CAppL (r, subst_tv_context s c, subst_tv_exp s e)
-  | CAppR (r, e, c) -> CAppR (r, subst_tv_exp s e, subst_tv_context s c)
-  | CBinOpL (r, op, c, e) -> CBinOpL (r, op, subst_tv_context s c, subst_tv_exp s e)
-  | CBinOpR (r, op, e, c) -> CBinOpR (r, op, subst_tv_exp s e, subst_tv_context s c)
-  | CCast (r, c, u1, u2) -> CCast (r, subst_tv_context s c, subst_tv_type s u1, subst_tv_type s u2)
+  | CAppL (r, c, e) -> CAppL (r, subst_tv_context s c, subst_exp s e)
+  | CAppR (r, e, c) -> CAppR (r, subst_exp s e, subst_tv_context s c)
+  | CBinOpL (r, op, c, e) -> CBinOpL (r, op, subst_tv_context s c, subst_exp s e)
+  | CBinOpR (r, op, e, c) -> CBinOpR (r, op, subst_exp s e, subst_tv_context s c)
+  | CCast (r, c, u1, u2) -> CCast (r, subst_tv_context s c, subst_type s u1, subst_type s u2)
 
 (* Substitution for variables *)
 
@@ -202,7 +203,7 @@ let reduce_in (c, e) =
 let eval_step (ce: context * exp): (context * exp) * substitution option =
   let c, e, s = reduce_in @@ decompose ce in
   match s with
-  | Some s -> (subst_tv_context [s] c, subst_tv_exp [s] e), Some s
+  | Some s -> (subst_tv_context [s] c, subst_exp [s] e), Some s
   | None -> (c, e), None
 
 let rec eval_all ?(debug=false) (ce: context * exp) (ss: substitutions): (context * exp) * substitutions =

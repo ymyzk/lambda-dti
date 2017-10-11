@@ -61,12 +61,12 @@ type substitutions = substitution list
 
 (* S(t) *)
 let subst_type s u =
-  let rec subst_type' x t = function
-    | TyFun (u1, u2) -> TyFun (subst_type' x t u1, subst_type' x t u2)
-    | TyVar x' when x = x' -> t
+  let rec subst (x, u as s) = function
+    | TyFun (u1, u2) -> TyFun (subst s u1, subst s u2)
+    | TyVar x' when x = x' -> u
     | _ as u -> u
   in
-  List.fold_left (fun u (x, t) -> subst_type' x t u) u s
+  List.fold_left (fun u s0 -> subst s0 u) u s
 
 module GTLC = struct
   open Syntax.GTLC
