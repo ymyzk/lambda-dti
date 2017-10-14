@@ -5,6 +5,7 @@
 
 ## Syntax
 ### Top-level
+- Let declaration: `let x y ... = e;;`
 - Expression: `e;;`
 
 ### Expressions `e`
