@@ -6,7 +6,7 @@ open Typing
 open Typing.CC
 
 exception Decomposition_not_found
-exception Reduce
+exception Reduce  (* This expression means that there is a bug in this implementation *)
 
 (* s(c) *)
 let rec subst_tv_context s = function
@@ -61,6 +61,20 @@ let reduce = function
   (* R_AppCast *)
   | AppExp (_, CastExp (r, v1, TyFun (u11, u12), TyFun (u21, u22)), v2) when is_value v1 && is_value v2 ->
     CastExp (r, AppExp (r, v1, CastExp (r, v2, u21, u11)), u12, u22), None
+  (* R_Ground *)
+  | CastExp (r, v, u, TyDyn) when u <> TyDyn && Some u <> ground_of_ty u && None <> ground_of_ty u ->
+    begin match ground_of_ty u with
+    | Some g ->
+      CastExp (r, CastExp(r, v, u, g), g, TyDyn), None
+    | None -> raise Reduce
+    end
+  (* R_Expand *)
+  | CastExp (r, v, TyDyn, u) when u <> TyDyn && Some u <> ground_of_ty u && None <> ground_of_ty u ->
+    begin match ground_of_ty u with
+    | Some g ->
+      CastExp (r, CastExp(r, v, TyDyn, g), g, u), None
+    | None -> raise Reduce
+    end
   | CastExp (_, CastExp (r2, v, u1, u2), u2', u3) when is_value v && u2 = u2' ->
     begin match (u1, u2, u3) with
       (* R_Succeed *)
@@ -76,20 +90,6 @@ let reduce = function
       | g1, TyDyn, g2 when is_ground g1 && is_ground g2 && g1 <> g2 ->
         raise @@ Blame (r2)
       | _ -> raise Reduce
-    end
-  (* R_Ground *)
-  | CastExp (r, v, u, TyDyn) when u <> TyDyn && Some u <> ground_of_ty u ->
-    begin match ground_of_ty u with
-    | Some g ->
-      CastExp (r, CastExp(r, v, u, g), g, TyDyn), None
-    | None -> raise Not_found
-    end
-  (* R_Expand *)
-  | CastExp (r, v, TyDyn, u) when u <> TyDyn && Some u <> ground_of_ty u ->
-    begin match ground_of_ty u with
-    | Some g ->
-      CastExp (r, CastExp(r, v, TyDyn, g), g, u), None
-    | None -> raise Not_found
     end
   (* R_LetP *)
   | LetExp (_, x, xs, v1, f2) when is_value v1 ->
