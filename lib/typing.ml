@@ -22,6 +22,15 @@ let cod = function
   | TyDyn -> TyDyn
   | _ -> raise @@ Type_error "failed to match: cod"
 
+let rec meet u1 u2 = match u1, u2 with
+  | TyBool, TyBool -> TyBool
+  | TyInt, TyInt -> TyInt
+  | TyVar x1, TyVar x2 when x1 = x2 -> TyVar x1
+  | TyDyn, u | u, TyDyn -> u
+  | TyFun (u11, u12), TyFun (u21, u22) ->
+    TyFun (meet u11 u21, meet u12 u22)
+  | _ -> raise @@ Type_error "failed to meet"
+
 let type_of_binop = function
   | Plus | Minus | Mult | Div -> TyInt, TyInt, TyInt
   | Lt | Lte | Gt | Gte -> TyInt, TyInt, TyBool
@@ -94,6 +103,21 @@ module GTLC = struct
     | TyDyn -> Constraints.singleton @@ CConsistent (u1, u2)
     | _ -> raise @@ Type_error "failed to generate constraints: dom()~"
 
+  let rec generate_constr_meet u1 u2 = match u1, u2 with
+    | TyBool, TyBool -> TyBool, Constraints.empty
+    | TyInt, TyInt -> TyInt, Constraints.empty
+    | TyDyn, u
+    | u, TyDyn ->
+      u, Constraints.singleton @@ CConsistent (u, TyDyn)
+    | TyVar x, u
+    | u, TyVar x ->
+      TyVar x, Constraints.singleton @@ CConsistent (u, TyVar x)
+    | TyFun (u11, u12), TyFun (u21, u22) ->
+      let u1, c1 = generate_constr_meet u11 u21 in
+      let u2, c2 = generate_constr_meet u12 u22 in
+      TyFun (u1, u2), Constraints.union c1 c2
+    | _ -> raise @@ Type_error "failed to generate constraints: meet"
+
   (* Set of type variables used for tau and let polymorphism *)
 
   module V = Set.Make(
@@ -131,6 +155,7 @@ module GTLC = struct
     | IConst _
     | BConst _ as e -> e
     | BinOp (r, op, e1, e2) -> BinOp (r, op, subst_exp s e1, subst_exp s e2)
+    | IfExp (r, e1, e2, e3) -> IfExp (r, subst_exp s e1, subst_exp s e2, subst_exp s e3)
     | FunExp (r, x1, u1, e) -> FunExp (r, x1, subst_type s u1, subst_exp s e)
     | AppExp (r, e1, e2) -> AppExp (r, subst_exp s e1, subst_exp s e2)
     | LetExp (r, y, ys, e1, e2) ->
@@ -209,6 +234,18 @@ module GTLC = struct
       let c = Constraints.union c1 @@ Constraints.union c2 c3 in
       let s = unify @@ Constraints.elements c in
       (subst_type s ui), s
+    | IfExp (_, e1, e2, e3) ->
+      let u1, s1 = type_of_exp env e1 in
+      let u2, s2 = type_of_exp env e2 in
+      let u3, s3 = type_of_exp env e3 in
+      let c0 = Constraints.singleton @@ CConsistent (u1, TyBool) in
+      let c1 = constr_of_subst s1 in
+      let c2 = constr_of_subst s2 in
+      let c3 = constr_of_subst s3 in
+      let u4, c4 = generate_constr_meet u2 u3 in
+      let c = List.fold_left Constraints.union Constraints.empty [c0; c1; c2; c3; c4] in
+      let s = unify @@ Constraints.elements c in
+      (subst_type s u4), s
     | FunExp (_, x, u1, e) ->
       let u2, s2 = type_of_exp (Environment.add x (tysc_of_ty u1) env) e in
       (subst_type s2 (TyFun (u1, u2))), s2
@@ -281,6 +318,12 @@ module GTLC = struct
       let f1, u1 = translate_exp env e1 in
       let f2, u2 = translate_exp env e2 in
       CC.BinOp (r, op, cast f1 u1 ui1, cast f2 u2 ui2), ui
+    | IfExp (r, e1, e2, e3) ->
+      let f1, u1 = translate_exp env e1 in
+      let f2, u2 = translate_exp env e2 in
+      let f3, u3 = translate_exp env e3 in
+      let u = meet u2 u3 in
+      CC.IfExp (r, cast f1 u1 TyBool, cast f2 u2 u, cast f3 u3 u), u
     | FunExp (r, x, u1, e) ->
       let f, u2 = translate_exp (Environment.add x (tysc_of_ty u1) env) e in
       CC.FunExp (r, x, u1, f), TyFun (u1, u2)
@@ -331,6 +374,14 @@ module CC = struct
         ui
       else
         raise @@ Type_error "binop"
+    | IfExp (_, f1, f2, f3) ->
+      let u1 = type_of_exp env f1 in
+      let u2 = type_of_exp env f2 in
+      let u3 = type_of_exp env f3 in
+      if u1 = TyBool && u2 = u3 then
+        u2
+      else
+        raise @@ Type_error "if"
     | FunExp (_, x, u1, f) ->
       let u2 = type_of_exp (Environment.add x (tysc_of_ty u1) env) f in
       TyFun (u1, u2)
@@ -366,6 +417,7 @@ module CC = struct
     | IConst _
     | BConst _ as f -> f
     | BinOp (r, op, f1, f2) -> BinOp (r, op, subst_exp s f1, subst_exp s f2)
+    | IfExp (r, f1, f2, f3) -> IfExp (r, subst_exp s f1, subst_exp s f2, subst_exp s f3)
     | FunExp (r, x1, u1, f) -> FunExp (r, x1, subst_type s u1, subst_exp s f)
     | AppExp (r, f1, f2) -> AppExp (r, subst_exp s f1, subst_exp s f2)
     | CastExp (r, f, u1, u2) -> CastExp (r, subst_exp s f, subst_type s u1, subst_type s u2)

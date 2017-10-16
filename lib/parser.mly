@@ -4,9 +4,11 @@ open Syntax.GTLC
 open Utils.Error
 %}
 
-%token <Utils.Error.range> LPAREN RPAREN SEMISEMI COLON
-%token <Utils.Error.range> PLUS MINUS STAR DIV LT LTE GT GTE QUESTION
-%token <Utils.Error.range> LET IN FUN EQ RARROW TRUE FALSE INT BOOL
+%token <Utils.Error.range> LPAREN RPAREN SEMISEMI COLON EQ
+%token <Utils.Error.range> PLUS MINUS STAR DIV LT LTE GT GTE
+%token <Utils.Error.range> LET IN FUN IF THEN ELSE
+%token <Utils.Error.range> INT BOOL QUESTION RARROW
+%token <Utils.Error.range> TRUE FALSE
 
 %token <int Utils.Error.with_range> INTV
 %token <Syntax.id Utils.Error.with_range> ID
@@ -39,7 +41,7 @@ Expr :
       let r = join_range start (range_of_exp e) in
       List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e
     }
-  | BinOpExpr { $1 }
+  | IfExpr { $1 }
 
 LetParams :
   | /* empty */ { [] }
@@ -50,6 +52,13 @@ FunParams :
   | LPAREN x=ID COLON u=Type RPAREN { [x, u] }
   | x=ID rest=FunParams { (x, Typing.fresh_tyvar ()) :: rest }
   | LPAREN x=ID COLON u=Type RPAREN rest=FunParams { (x, u) :: rest }
+
+IfExpr :
+  | start=IF e1=IfExpr THEN e2=IfExpr ELSE e3=IfExpr {
+      let r = join_range start (range_of_exp e3) in
+      IfExp (r, e1, e2, e3)
+  }
+  | BinOpExpr { $1 }
 
 BinOpExpr :
   | e1=BinOpExpr PLUS e2=BinOpExpr {

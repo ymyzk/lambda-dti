@@ -5,6 +5,9 @@ let reservedWords = [
   ("let", fun r -> Parser.LET r);
   ("in", fun r -> Parser.IN r);
   ("fun", fun r -> Parser.FUN r);
+  ("if", fun r -> Parser.IF r);
+  ("then", fun r -> Parser.THEN r);
+  ("else", fun r -> Parser.ELSE r);
   ("true", fun r -> Parser.TRUE r);
   ("false", fun r -> Parser.FALSE r);
   ("int", fun r -> Parser.INT r);

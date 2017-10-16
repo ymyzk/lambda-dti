@@ -15,6 +15,8 @@ let rec subst_tv_context s = function
   | CAppR (r, e, c) -> CAppR (r, subst_exp s e, subst_tv_context s c)
   | CBinOpL (r, op, c, e) -> CBinOpL (r, op, subst_tv_context s c, subst_exp s e)
   | CBinOpR (r, op, e, c) -> CBinOpR (r, op, subst_exp s e, subst_tv_context s c)
+  | CIf (r, c, e2, e3) ->
+    CIf (r, subst_tv_context s c, subst_exp s e2, subst_exp s e3)
   | CCast (r, c, u1, u2) -> CCast (r, subst_tv_context s c, subst_type s u1, subst_type s u2)
 
 (* Substitution for variables *)
@@ -32,6 +34,7 @@ let rec subst_var (x: id) (xs: tyvar list) (v: exp) (f: exp): exp =
   | IConst _
   | BConst _ as f -> f
   | BinOp (r, op, f1, f2) -> BinOp (r, op, subst f1, subst f2)
+  | IfExp (r, f1, f2, f3) -> IfExp (r, subst f1, subst f2, subst f3)
   | FunExp (r, y, u, f') as f ->
     if x = y then f else FunExp (r, y, u, subst f')
   | AppExp (r, f1, f2) -> AppExp (r, subst f1, subst f2)
@@ -48,6 +51,9 @@ let reduce f =
   (* R_Beta *)
   | AppExp (_, FunExp (_, x, _, e), v) when is_value v ->
     subst_var x [] v e, None
+  (* R_If *)
+  | IfExp (_, BConst (_, b), e2, e3) ->
+    (if b then e2 else e3), None
   (* R_Op *)
   | BinOp (r, Plus, IConst (_, i1), IConst (_, i2)) ->
     IConst (r, i1 + i2), None
@@ -117,6 +123,7 @@ let rec fill_context = function
   | CAppR (r, e1, c), e2 -> fill_context (c, AppExp (r, e1, e2))
   | CBinOpL (r, op, c, e2), e1 -> fill_context (c, BinOp (r, op, e1, e2))
   | CBinOpR (r, op, e1, c), e2 -> fill_context (c, BinOp (r, op, e1, e2))
+  | CIf (r, c, e2, e3), e1 -> fill_context (c, IfExp (r, e1, e2, e3))
   | CCast (r, c, u1, u2), e -> fill_context (c, CastExp (r, e, u1, u2))
 
 exception Error of context * exp
@@ -133,6 +140,11 @@ let rec exp_with exp_in_hole ppf =
       exp f1
       Pp.pp_binop op
       exp f2
+  | IfExp (_, f1, f2, f3) ->
+    fprintf ppf "(if %a then %a else %a)"
+      exp f1
+      exp f2
+      exp f3
   | FunExp (_, x1, u1, f) ->
     fprintf ppf "fun (%s: %a) -> %a"
       x1
@@ -174,6 +186,10 @@ let rec decompose_down (c, e as ce) =
         try decompose_down (CBinOpR (r, op, e1, c), e2)
         with Value -> ce
       end
+    | IfExp (r, e1, e2, e3) -> begin
+        try decompose_down (CIf (r, c, e2, e3), e1)
+        with Value -> ce
+      end
     | FunExp _ -> raise Value
     | AppExp (r, e1, e2) -> begin
         try decompose_down (CAppL (r, c, e2), e1)
@@ -207,6 +223,7 @@ let rec decompose_up (c, v) =
         with Value -> c', BinOp (r, op, v, e)
       end
     | CBinOpR (r, op, v', c') -> c', BinOp (r, op, v', v)
+    | CIf (r, c', e2, e3) -> c', IfExp (r, v, e2, e3)
     | CCast (r, c', u1, u2) ->
       decompose_up (c', CastExp (r, v, u1, u2))
   else

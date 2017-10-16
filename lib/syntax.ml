@@ -49,6 +49,7 @@ module GTLC = struct
     | IConst of range * int
     | BConst of range * bool
     | BinOp of range * op * exp * exp
+    | IfExp of range * exp * exp * exp
     | FunExp of range * id * ty * exp
     | AppExp of range * exp * exp
     | LetExp of range * id * tyvar list ref * exp * exp
@@ -58,6 +59,7 @@ module GTLC = struct
     | IConst _ as e -> e
     | BConst _ as e -> e
     | BinOp (r, op, e1, e2) -> BinOp (r, op, f_exp e1, f_exp e2)
+    | IfExp (r, e1, e2, e3) -> IfExp (r, f_exp e1, f_exp e2, f_exp e3)
     | FunExp (r, x1, u1, e) -> FunExp (r, x1, f_ty u1, f_exp e)
     | AppExp (r, e1, e2) -> AppExp (r, f_exp e1, f_exp e2)
     | LetExp (r, x, xs, e1, e2) -> LetExp (r, x, xs, f_exp e1, f_exp e2)
@@ -67,6 +69,7 @@ module GTLC = struct
     | IConst (r, _)
     | BConst (r, _)
     | BinOp (r, _, _, _)
+    | IfExp (r, _, _, _)
     | FunExp (r, _, _, _)
     | AppExp (r, _, _)
     | LetExp (r, _, _, _, _) -> r
@@ -89,6 +92,7 @@ module CC = struct
     | IConst of range * int
     | BConst of range * bool
     | BinOp of range * op * exp * exp
+    | IfExp of range * exp * exp * exp
     | FunExp of range * id * ty * exp
     | AppExp of range * exp * exp
     | CastExp of range * exp * ty * ty
@@ -100,6 +104,7 @@ module CC = struct
     | IConst _
     | BConst _ as f -> f
     | BinOp (r, op, f1, f2) -> BinOp (r, op, f_exp f1, f_exp f2)
+    | IfExp (r, f1, f2, f3) -> IfExp (r, f_exp f1, f_exp f2, f_exp f3)
     | FunExp (r, x1, u1, f) -> FunExp (r, x1, f_ty u1, f_exp f)
     | AppExp (r, f1, f2) -> AppExp (r, f_exp f1, f_exp f2)
     | CastExp (r, f, u1, u2) -> CastExp (r, f_exp f, f_ty u1, f_ty u2)
@@ -111,6 +116,7 @@ module CC = struct
     | IConst (r, _)
     | BConst (r, _)
     | BinOp (r, _, _, _)
+    | IfExp (r, _, _, _)
     | FunExp (r, _, _, _)
     | AppExp (r, _, _)
     | CastExp (r, _, _, _)
@@ -135,6 +141,7 @@ module CC = struct
     | CAppR of range * value * context
     | CBinOpL of range * op * context * exp
     | CBinOpR of range * op * value * context
+    | CIf of range * context * exp * exp
     | CCast of range * context * ty * ty
   and value = exp
 end
