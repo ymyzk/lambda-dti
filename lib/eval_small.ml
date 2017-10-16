@@ -42,7 +42,9 @@ let rec subst_var (x: id) (xs: tyvar list) (v: exp) (f: exp): exp =
 
 (* Reduction *)
 
-let reduce = function
+let reduce f =
+  (* fprintf std_formatter "reduce <-- %a\n" Pp.CC.pp_exp f; *)
+  match f with
   (* R_Beta *)
   | AppExp (_, FunExp (_, x, _, e), v) when is_value v ->
     subst_var x [] v e, None
@@ -160,6 +162,7 @@ let pp_context_exp ppf (c, e) =
   exp_with e ppf @@ fill_context (c, Hole)
 
 let rec decompose_down (c, e as ce) =
+  (* fprintf std_formatter "decompose_down <-- %a\n" pp_context_exp ce; *)
   let ce =
     match e with
     | Var _ -> raise @@ Error (c, e)
@@ -187,6 +190,7 @@ let rec decompose_down (c, e as ce) =
     | LetExp _ -> raise Value
     | Hole -> raise Decomposition_not_found
   in
+  (* fprintf std_formatter "decompose_down --> %a\n" pp_context_exp ce; *)
   ce
 
 let rec decompose_up (c, v) =
