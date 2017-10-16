@@ -34,9 +34,14 @@ rule main = parse
 | "=" { Parser.EQ (range_of lexbuf) }
 | "->" { Parser.RARROW (range_of lexbuf) }
 | "+" { Parser.PLUS (range_of lexbuf) }
+| "-" { Parser.MINUS (range_of lexbuf) }
 | "*" { Parser.STAR (range_of lexbuf) }
+| "/" { Parser.DIV (range_of lexbuf) }
 | "?" { Parser.QUESTION (range_of lexbuf) }
 | "<" { Parser.LT (range_of lexbuf) }
+| "<=" { Parser.LTE (range_of lexbuf) }
+| ">" { Parser.GT (range_of lexbuf) }
+| ">=" { Parser.GTE (range_of lexbuf) }
 | ['a'-'z'] ['a'-'z' '0'-'9' '_' '\'']*
   {
     let id = Lexing.lexeme lexbuf in

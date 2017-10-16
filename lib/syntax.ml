@@ -9,7 +9,7 @@ module Environment = Map.Make (
   end
   )
 
-type op = Plus | Mult | Lt
+type op = Plus | Minus | Mult | Div | Lt | Lte | Gt | Gte
 
 type tyvar = int
 type ty =

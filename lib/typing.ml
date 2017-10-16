@@ -23,9 +23,8 @@ let cod = function
   | _ -> raise @@ Type_error "failed to match: cod"
 
 let type_of_binop = function
-  | Plus -> TyInt, TyInt, TyInt
-  | Mult -> TyInt, TyInt, TyInt
-  | Lt -> TyInt, TyInt, TyBool
+  | Plus | Minus | Mult | Div -> TyInt, TyInt, TyInt
+  | Lt | Lte | Gt | Gte -> TyInt, TyInt, TyBool
 
 let rec is_static_type = function
   | TyFun (u1, u2) -> (is_static_type u1) && (is_static_type u2)
@@ -327,12 +326,11 @@ module CC = struct
     | BinOp (_, op, f1, f2) ->
       let u1 = type_of_exp env f1 in
       let u2 = type_of_exp env f2 in
-      begin match op, u1, u2 with
-        | Plus, TyInt, TyInt -> TyInt
-        | Mult, TyInt, TyInt -> TyInt
-        | Lt, TyInt, TyInt -> TyBool
-        | _ -> raise @@ Type_error "binop"
-      end
+      let ui1, ui2, ui = type_of_binop op in
+      if (u1, u2) = (ui1, ui2) then
+        ui
+      else
+        raise @@ Type_error "binop"
     | FunExp (_, x, u1, f) ->
       let u2 = type_of_exp (Environment.add x (tysc_of_ty u1) env) f in
       TyFun (u1, u2)

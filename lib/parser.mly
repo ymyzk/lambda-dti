@@ -5,7 +5,7 @@ open Utils.Error
 %}
 
 %token <Utils.Error.range> LPAREN RPAREN SEMISEMI COLON
-%token <Utils.Error.range> PLUS STAR LT QUESTION
+%token <Utils.Error.range> PLUS MINUS STAR DIV LT LTE GT GTE QUESTION
 %token <Utils.Error.range> LET IN FUN EQ RARROW TRUE FALSE INT BOOL
 
 %token <int Utils.Error.with_range> INTV
@@ -15,9 +15,9 @@ open Utils.Error
 %type <Syntax.GTLC.program> toplevel
 
 (* Ref: https://caml.inria.fr/pub/docs/manual-ocaml/expr.html *)
-%left  LT
-%left  PLUS
-%left  STAR
+%left  LT LTE GT GTE
+%left  PLUS MINUS
+%left  STAR DIV
 
 %%
 
@@ -55,11 +55,26 @@ BinOpExpr :
   | e1=BinOpExpr PLUS e2=BinOpExpr {
       BinOp (join_range (range_of_exp e1) (range_of_exp e2), Plus, e1, e2)
     }
+  | e1=BinOpExpr MINUS e2=BinOpExpr {
+      BinOp (join_range (range_of_exp e1) (range_of_exp e2), Minus, e1, e2)
+    }
   | e1=BinOpExpr STAR e2=BinOpExpr {
       BinOp (join_range (range_of_exp e1) (range_of_exp e2), Mult, e1, e2)
     }
+  | e1=BinOpExpr DIV e2=BinOpExpr {
+      BinOp (join_range (range_of_exp e1) (range_of_exp e2), Div, e1, e2)
+    }
   | e1=BinOpExpr LT e2=BinOpExpr {
       BinOp (join_range (range_of_exp e1) (range_of_exp e2), Lt, e1, e2)
+    }
+  | e1=BinOpExpr LTE e2=BinOpExpr {
+      BinOp (join_range (range_of_exp e1) (range_of_exp e2), Lte, e1, e2)
+    }
+  | e1=BinOpExpr GT e2=BinOpExpr {
+      BinOp (join_range (range_of_exp e1) (range_of_exp e2), Gt, e1, e2)
+    }
+  | e1=BinOpExpr GTE e2=BinOpExpr {
+      BinOp (join_range (range_of_exp e1) (range_of_exp e2), Gte, e1, e2)
     }
   | AppExpr { $1 }
 

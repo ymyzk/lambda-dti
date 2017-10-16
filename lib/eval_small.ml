@@ -49,10 +49,20 @@ let reduce = function
   (* R_Op *)
   | BinOp (r, Plus, IConst (_, i1), IConst (_, i2)) ->
     IConst (r, i1 + i2), None
+  | BinOp (r, Minus, IConst (_, i1), IConst (_, i2)) ->
+    IConst (r, i1 - i2), None
   | BinOp (r, Mult, IConst (_, i1), IConst (_, i2)) ->
     IConst (r, i1 * i2), None
+  | BinOp (r, Div, IConst (_, i1), IConst (_, i2)) ->
+    IConst (r, i1 / i2), None
   | BinOp (r, Lt, IConst (_, i1), IConst (_, i2)) ->
     BConst (r, i1 < i2), None
+  | BinOp (r, Lte, IConst (_, i1), IConst (_, i2)) ->
+    BConst (r, i1 <= i2), None
+  | BinOp (r, Gt, IConst (_, i1), IConst (_, i2)) ->
+    BConst (r, i1 > i2), None
+  | BinOp (r, Gte, IConst (_, i1), IConst (_, i2)) ->
+    BConst (r, i1 >= i2), None
   (* R_IdBase *)
   | CastExp (_, v, TyBool, TyBool) when is_value v -> v, None
   | CastExp (_, v, TyInt, TyInt) when is_value v -> v, None

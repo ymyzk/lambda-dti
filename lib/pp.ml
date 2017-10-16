@@ -22,19 +22,27 @@ let rec pp_ty ppf = function
       pp_ty u2
 
 let gt_binop op1 op2 = match op1, op2 with
-  | (Plus | Mult), Lt
-  | Mult, Plus -> true
+  | (Plus | Minus | Mult | Div), (Lt | Lte | Gt | Gte)
+  | (Mult | Div), (Plus | Minus) -> true
   | _ -> false
 
-let gte_binop op1 op2 =
-  if op1 = op2 then true else gt_binop op1 op2
+let gte_binop op1 op2 = match op1, op2 with
+  | (Lt | Lte | Gt | Gte), (Lt | Lte | Gt | Gte)
+  | (Mult | Div), (Mult | Div)
+  | (Plus | Minus), (Plus | Minus) -> true
+  | _ -> gt_binop op1 op2
 
 let pp_binop ppf op =
   pp_print_string ppf begin
     match op with
     | Plus -> "+"
+    | Minus -> "-"
     | Mult -> "*"
+    | Div -> "/"
     | Lt -> "<"
+    | Lte -> "<="
+    | Gt -> ">"
+    | Gte -> ">="
   end
 
 let pp_print_var ppf (x, ys) =
