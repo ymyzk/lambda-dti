@@ -1,7 +1,24 @@
-# interpreter
+# lambda-rti
+**lambda-rti** is an interpreter of the implicitly typed gradual language (ITGL).
+This implementation consists of:
+
+- Garcia and Cimini's type inference algorithm;
+- Cast-inserting translator from the ITGL to the blame calculus; and
+- Evaluator of the blame calculus with runtime type inference.
+
+## Requirements
+- OCaml
+- Jbuiler
+- Menhir
+- OUnit (for running unit tests)
+
 ## Getting started
-- Run `$ jbuilder build`
-- Run `$ ./_build/default/bin/main.exe`
+```console
+$ jbuilder build
+$ ./_build/default/bin/main.exe
+```
+
+Run `$ ./_build/default/bin/main.exe --help` for command line options.
 
 ## Syntax
 ### Top-level
@@ -21,5 +38,6 @@
 - Base types: `bool` and `int`
 - Function type: `U -> U`
 
-## Command line options
-- Run `$ ./_build/default/bin/main.exe --help`
+## References
+- Yusuke Miyazaki and Atsushi Igarashi. Runtime Type Inference for Gradual Typing with ML-Style Polymorphism.
+- [Ronald Garcia and Matteo Cimini. Principal Type Schemes for Gradual Programs. In Proc. of ACM POPL, 2015.](https://dl.acm.org/citation.cfm?id=2676992)
