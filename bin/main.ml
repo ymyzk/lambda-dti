@@ -1,5 +1,5 @@
 open Format
-open Sgtp
+open Lambda_rti
 open Syntax
 
 let debug = ref false

@@ -2,8 +2,8 @@
 
 (executable
  ((name main)
-  (libraries (sgtp))))
+  (libraries (lambda_rti))))
 
 (install
  ((section bin)
-  (files ((main.exe as sgtp)))))
+  (files ((main.exe as lrti)))))

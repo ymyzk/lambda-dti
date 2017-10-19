@@ -2,7 +2,7 @@
 
 (executable
  ((name runtests)
-  (libraries (ounit sgtp))))
+  (libraries (ounit lambda_rti))))
 
 (alias
  ((name    runtest)

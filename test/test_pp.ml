@@ -2,7 +2,7 @@ open Format
 
 open OUnit2
 
-open Sgtp
+open Lambda_rti
 open Syntax
 open Pp
 

@@ -1,8 +1,8 @@
 (jbuild_version 1)
 
 (library
- ((name sgtp)
-  (public_name sgtp)))
+ ((name lambda_rti)
+  (public_name lambda-rti)))
 
 (ocamllex (lexer))
 (menhir
