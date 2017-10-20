@@ -219,11 +219,13 @@ module CC = struct
     | BConst _
     | IConst _ -> pp_exp ppf v
     | FunExp _ -> pp_print_string ppf "<fun>"
-    | CastExp (_, v, u1, u2) ->
+    | CastExp (_, v, u1, TyDyn) ->
       fprintf ppf "%a: %a => %a"
         pp_value v
         pp_ty u1
-        pp_ty u2
+        pp_ty TyDyn
+    (* TODO: Consider better format *)
+    | CastExp _ -> pp_print_string ppf "<wrapped_fun>"
     | _ -> raise Syntax_error
 
   let pp_program ppf = function
