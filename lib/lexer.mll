@@ -24,6 +24,7 @@ let range_of lexbuf =
 rule main = parse
   [' ' '\t']+ { main lexbuf }
 | [' ' '\t']* '\n'+ { Lexing.new_line lexbuf; main lexbuf }
+| "(*" { comment lexbuf }
 | "-"? ['0'-'9']+
   {
     let value = int_of_string (Lexing.lexeme lexbuf) in
@@ -55,3 +56,7 @@ rule main = parse
     _ -> Parser.ID { value=id; range=range }
   }
 | eof { exit 0 }
+and comment = parse
+  "*)" { main lexbuf }
+(*| eof { (* UNCLOSED COMMENT *) }*)
+| _ { comment lexbuf }
