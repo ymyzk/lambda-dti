@@ -17,7 +17,7 @@ let rec subst_tv_context s = function
   | CBinOpR (r, op, e, c) -> CBinOpR (r, op, subst_exp s e, subst_tv_context s c)
   | CIf (r, c, e2, e3) ->
     CIf (r, subst_tv_context s c, subst_exp s e2, subst_exp s e3)
-  | CCast (r, c, u1, u2) -> CCast (r, subst_tv_context s c, subst_type s u1, subst_type s u2)
+  | CCast (r, c, u1, u2, p) -> CCast (r, subst_tv_context s c, subst_type s u1, subst_type s u2, p)
 
 (* Substitution for variables *)
 
@@ -38,7 +38,7 @@ let rec subst_var (x: id) (xs: tyvar list) (v: exp) (f: exp): exp =
   | FunExp (r, y, u, f') as f ->
     if x = y then f else FunExp (r, y, u, subst f')
   | AppExp (r, f1, f2) -> AppExp (r, subst f1, subst f2)
-  | CastExp (r, f1, u1, u2) -> CastExp (r, subst f1, u1, u2)
+  | CastExp (r, f1, u1, u2, p) -> CastExp (r, subst f1, u1, u2, p)
   | LetExp (r, y, ys, f1, f2) ->
     LetExp (r, y, ys, subst f1, if x = y then f2 else subst f2)
   | Hole as f -> f
@@ -72,28 +72,28 @@ let reduce f =
   | BinOp (r, Gte, IConst (_, i1), IConst (_, i2)) ->
     BConst (r, i1 >= i2), None
   (* R_IdBase *)
-  | CastExp (_, v, TyBool, TyBool) when is_value v -> v, None
-  | CastExp (_, v, TyInt, TyInt) when is_value v -> v, None
+  | CastExp (_, v, TyBool, TyBool, _) when is_value v -> v, None
+  | CastExp (_, v, TyInt, TyInt, _) when is_value v -> v, None
   (* R_IdStar *)
-  | CastExp (_, v, TyDyn, TyDyn) when is_value v -> v, None
+  | CastExp (_, v, TyDyn, TyDyn, _) when is_value v -> v, None
   (* R_AppCast *)
-  | AppExp (_, CastExp (r, v1, TyFun (u11, u12), TyFun (u21, u22)), v2) when is_value v1 && is_value v2 ->
-    CastExp (r, AppExp (r, v1, CastExp (r, v2, u21, u11)), u12, u22), None
+  | AppExp (_, CastExp (r, v1, TyFun (u11, u12), TyFun (u21, u22), p), v2) when is_value v1 && is_value v2 ->
+    CastExp (r, AppExp (r, v1, CastExp (r, v2, u21, u11, neg p)), u12, u22, p), None
   (* R_Ground *)
-  | CastExp (r, v, u, TyDyn) when u <> TyDyn && Some u <> ground_of_ty u && None <> ground_of_ty u ->
+  | CastExp (r, v, u, TyDyn, p) when u <> TyDyn && Some u <> ground_of_ty u && None <> ground_of_ty u ->
     begin match ground_of_ty u with
     | Some g ->
-      CastExp (r, CastExp(r, v, u, g), g, TyDyn), None
+      CastExp (r, CastExp(r, v, u, g, p), g, TyDyn, p), None
     | None -> raise Reduce
     end
   (* R_Expand *)
-  | CastExp (r, v, TyDyn, u) when u <> TyDyn && Some u <> ground_of_ty u && None <> ground_of_ty u ->
+  | CastExp (r, v, TyDyn, u, p) when u <> TyDyn && Some u <> ground_of_ty u && None <> ground_of_ty u ->
     begin match ground_of_ty u with
     | Some g ->
-      CastExp (r, CastExp(r, v, TyDyn, g), g, u), None
+      CastExp (r, CastExp(r, v, TyDyn, g, p), g, u, p), None
     | None -> raise Reduce
     end
-  | CastExp (_, CastExp (r2, v, u1, u2), u2', u3) when is_value v && u2 = u2' ->
+  | CastExp (_, CastExp (r2, v, u1, u2, _), u2', u3, p2) when is_value v && u2 = u2' ->
     begin match (u1, u2, u3) with
       (* R_Succeed *)
       | g1, TyDyn, g2 when is_ground g1 && is_ground g2 && g1 = g2 -> v, None
@@ -103,10 +103,10 @@ let reduce f =
       (* R_InstArrow *)
       | TyFun (TyDyn, TyDyn), TyDyn, TyVar x ->
         let x1, x2 = Typing.fresh_tyvar (), Typing.fresh_tyvar () in
-        CastExp (r2, v, TyFun (TyDyn, TyDyn), TyFun (x1, x2)), Some (x, TyFun (x1, x2))
+        CastExp (r2, v, TyFun (TyDyn, TyDyn), TyFun (x1, x2), p2), Some (x, TyFun (x1, x2))
       (* R_Fail *)
       | g1, TyDyn, g2 when is_ground g1 && is_ground g2 && g1 <> g2 ->
-        raise @@ Blame (r2)
+        raise @@ Blame (r2, p2)
       | _ -> raise Reduce
     end
   (* R_LetP *)
@@ -124,7 +124,7 @@ let rec fill_context = function
   | CBinOpL (r, op, c, e2), e1 -> fill_context (c, BinOp (r, op, e1, e2))
   | CBinOpR (r, op, e1, c), e2 -> fill_context (c, BinOp (r, op, e1, e2))
   | CIf (r, c, e2, e3), e1 -> fill_context (c, IfExp (r, e1, e2, e3))
-  | CCast (r, c, u1, u2), e -> fill_context (c, CastExp (r, e, u1, u2))
+  | CCast (r, c, u1, u2, p), e -> fill_context (c, CastExp (r, e, u1, u2, p))
 
 exception Error of context * exp
 exception Value
@@ -154,7 +154,7 @@ let rec exp_with exp_in_hole ppf =
     fprintf ppf "((%a) (%a))"
       exp f1
       exp f2
-  | CastExp (_, f, u1, u2) ->
+  | CastExp (_, f, u1, u2, _) ->
     fprintf ppf "(%a: %a => %a)"
       exp f
       Pp.pp_ty u1
@@ -197,10 +197,10 @@ let rec decompose_down (c, e as ce) =
         try decompose_down (CAppR (r, e1, c), e2)
         with Value -> ce
       end
-    | CastExp (_, v, g, TyDyn) when is_value v && is_ground g -> raise Value
-    | CastExp (_, v, TyFun _, TyFun _) when is_value v -> raise Value
-    | CastExp (r, e1, u1, u2) -> begin
-        try decompose_down (CCast (r, c, u1, u2), e1)
+    | CastExp (_, v, g, TyDyn, _) when is_value v && is_ground g -> raise Value
+    | CastExp (_, v, TyFun _, TyFun _, _) when is_value v -> raise Value
+    | CastExp (r, e1, u1, u2, p) -> begin
+        try decompose_down (CCast (r, c, u1, u2, p), e1)
         with Value -> ce
       end
     | LetExp _ -> raise Value
@@ -224,8 +224,8 @@ let rec decompose_up (c, v) =
       end
     | CBinOpR (r, op, v', c') -> c', BinOp (r, op, v', v)
     | CIf (r, c', e2, e3) -> c', IfExp (r, v, e2, e3)
-    | CCast (r, c', u1, u2) ->
-      decompose_up (c', CastExp (r, v, u1, u2))
+    | CCast (r, c', u1, u2, p) ->
+      decompose_up (c', CastExp (r, v, u1, u2, p))
   else
     c, v
 

@@ -1,7 +1,7 @@
 open Format
 open Utils.Error
 
-exception Blame of range
+exception Blame of range * Syntax.CC.polarity
 
 let pp_sep ppf () = fprintf ppf ", "
 

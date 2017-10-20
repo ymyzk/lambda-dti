@@ -87,6 +87,10 @@ module GTLC = struct
 end
 
 module CC = struct
+  type polarity = Pos | Neg
+
+  let neg = function Pos -> Neg | Neg -> Pos
+
   type exp =
     | Var of range * id * ty list
     | IConst of range * int
@@ -95,7 +99,7 @@ module CC = struct
     | IfExp of range * exp * exp * exp
     | FunExp of range * id * ty * exp
     | AppExp of range * exp * exp
-    | CastExp of range * exp * ty * ty
+    | CastExp of range * exp * ty * ty * polarity
     | LetExp of range * id * tyvar list * exp * exp
     | Hole  (* Only used during evaluation *)
 
@@ -107,7 +111,7 @@ module CC = struct
     | IfExp (r, f1, f2, f3) -> IfExp (r, f_exp f1, f_exp f2, f_exp f3)
     | FunExp (r, x1, u1, f) -> FunExp (r, x1, f_ty u1, f_exp f)
     | AppExp (r, f1, f2) -> AppExp (r, f_exp f1, f_exp f2)
-    | CastExp (r, f, u1, u2) -> CastExp (r, f_exp f, f_ty u1, f_ty u2)
+    | CastExp (r, f, u1, u2, p) -> CastExp (r, f_exp f, f_ty u1, f_ty u2, p)
     | LetExp (r, x, xs, f1, f2) -> LetExp (r, x, xs, f_exp f1, f_exp f2)
     | Hole as f -> f
 
@@ -119,7 +123,7 @@ module CC = struct
     | IfExp (r, _, _, _)
     | FunExp (r, _, _, _)
     | AppExp (r, _, _)
-    | CastExp (r, _, _, _)
+    | CastExp (r, _, _, _, _)
     | LetExp (r, _, _, _, _) -> r
     | Hole -> raise Not_found
 
@@ -127,8 +131,8 @@ module CC = struct
     | IConst _
     | BConst _
     | FunExp _ -> true
-    | CastExp (_, v, TyFun _, TyFun _) when is_value v -> true
-    | CastExp (_, v, g, TyDyn) when is_value v && is_ground g -> true
+    | CastExp (_, v, TyFun _, TyFun _, _) when is_value v -> true
+    | CastExp (_, v, g, TyDyn, _) when is_value v && is_ground g -> true
     | _ -> false
 
   type program =
@@ -142,6 +146,6 @@ module CC = struct
     | CBinOpL of range * op * context * exp
     | CBinOpR of range * op * value * context
     | CIf of range * context * exp * exp
-    | CCast of range * context * ty * ty
+    | CCast of range * context * ty * ty * polarity
   and value = exp
 end

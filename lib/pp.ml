@@ -191,9 +191,9 @@ module CC = struct
       fprintf ppf "%a %a"
         (with_paren (gt_exp f f1) pp_exp) f1
         (with_paren (gte_exp f f2) pp_exp) f2
-    | CastExp (_, f1, u1, u2) as f ->
+    | CastExp (_, f1, u1, u2, _) as f ->
       begin match f1 with
-      | CastExp (_, _, _, u1') when u1 = u1' ->
+      | CastExp (_, _, _, u1', _) when u1 = u1' ->
         fprintf ppf "%a => %a"
           (with_paren (gt_exp f f1) pp_exp) f1
           pp_ty u2
@@ -219,7 +219,7 @@ module CC = struct
     | BConst _
     | IConst _ -> pp_exp ppf v
     | FunExp _ -> pp_print_string ppf "<fun>"
-    | CastExp (_, v, u1, TyDyn) ->
+    | CastExp (_, v, u1, TyDyn, _) ->
       fprintf ppf "%a: %a => %a"
         pp_value v
         pp_ty u1

@@ -299,7 +299,7 @@ module GTLC = struct
 
   let cast f u1 u2 =
     if u1 = u2 then f  (* Omit identity cast for better performance *)
-    else CC.CastExp (CC.range_of_exp f, f, u1, u2)
+    else CC.CastExp (CC.range_of_exp f, f, u1, u2, Pos)
 
   let rec translate_exp env = function
     | Var (r, x, ys) -> begin
@@ -393,7 +393,7 @@ module CC = struct
           u12
         | _ -> raise @@ Type_error "app"
       end
-    | CastExp (_, f, u1, u2) ->
+    | CastExp (_, f, u1, u2, _) ->
       let u = type_of_exp env f in
       if u = u1 then
         if is_consistent u1 u2 then
@@ -420,7 +420,7 @@ module CC = struct
     | IfExp (r, f1, f2, f3) -> IfExp (r, subst_exp s f1, subst_exp s f2, subst_exp s f3)
     | FunExp (r, x1, u1, f) -> FunExp (r, x1, subst_type s u1, subst_exp s f)
     | AppExp (r, f1, f2) -> AppExp (r, subst_exp s f1, subst_exp s f2)
-    | CastExp (r, f, u1, u2) -> CastExp (r, subst_exp s f, subst_type s u1, subst_type s u2)
+    | CastExp (r, f, u1, u2, p) -> CastExp (r, subst_exp s f, subst_type s u1, subst_type s u2, p)
     | LetExp (r, y, ys, f1, f2) ->
       (* Remove substitutions captured by let exp s *)
       let s = List.filter (fun (x, _) -> not @@ List.mem x ys) s in

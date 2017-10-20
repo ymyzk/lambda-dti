@@ -48,9 +48,11 @@ let rec read_eval_print lexbuf env tyenv =
       print "Parser.Error: unexpected token %s\n" token
     | Typing.Type_error message ->
       print "Type_error: %s\n" message
-    | Eval.Blame r ->
-      print "Blame: %a\n"
-        Utils.Error.pp_range r
+    | Eval.Blame (r, p) -> begin
+        match p with
+        | Pos -> print "Blame on the expression side:\n%a\n" Utils.Error.pp_range r
+        | Neg -> print "Blame on the environment side:\n%a\n" Utils.Error.pp_range r
+      end
   end;
   read_eval_print lexbuf env tyenv
 
