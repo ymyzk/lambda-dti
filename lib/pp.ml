@@ -21,6 +21,33 @@ let rec pp_ty ppf = function
       (with_paren (gt_ty u u1) pp_ty) u1
       pp_ty u2
 
+let pp_ty2 ppf u =
+  let tyvars = ref [] in
+  let pp_tyvar ppf x =
+    let rec index_of_tyvar pos = function
+      | [] -> tyvars := !tyvars @ [x]; pos
+      | y :: rest -> if x = y then pos else index_of_tyvar (pos + 1) rest
+    in
+    let pp_tyvar_of_index ppf i =
+      let j = i / 26 in
+      let k = i mod 26 in
+      let s = String.make 1 @@ char_of_int @@ (int_of_char 'a') + k in
+      let t = if j = 0 then "" else string_of_int j in
+      fprintf ppf "'%s%s" s t
+    in
+    pp_tyvar_of_index ppf @@ index_of_tyvar 0 !tyvars
+  in
+  let rec pp_ty ppf = function
+    | TyDyn -> pp_print_string ppf "?"
+    | TyVar x -> pp_tyvar ppf x
+    | TyInt -> pp_print_string ppf "int"
+    | TyBool -> pp_print_string ppf "bool"
+    | TyFun (u1, u2) as u ->
+      fprintf ppf "%a -> %a"
+        (with_paren (gt_ty u u1) pp_ty) u1
+        pp_ty u2
+  in pp_ty ppf u
+
 let gt_binop op1 op2 = match op1, op2 with
   | (Plus | Minus | Mult | Div), (Lt | Lte | Gt | Gte)
   | (Mult | Div), (Plus | Minus) -> true

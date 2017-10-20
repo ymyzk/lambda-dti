@@ -36,7 +36,7 @@ let rec read_eval_print lexbuf env tyenv =
       print_debug "Substitution: %a\n" Eval.pp_substitutions s;
       print "%a : %a = %a\n"
         pp_print_string x
-        Pp.pp_ty (Typing.subst_type s u)
+        Pp.pp_ty2 (Typing.subst_type s u)
         Pp.CC.pp_value v;
       read_eval_print lexbuf env tyenv
     with
