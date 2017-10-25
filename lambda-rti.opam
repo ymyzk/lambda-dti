@@ -5,6 +5,7 @@ authors: ["Yusuke Miyazaki <miyazaki@fos.kuis.kyoto-u.ac.jp>"]
 homepage: "https://github.com/ymyzk/lambda-rti"
 bug-reports: "https://github.com/ymyzk/lambda-rti/issues"
 dev-repo: "https://github.com/ymyzk/lambda-rti.git"
+license: "MIT"
 build: [
   ["jbuilder" "build" "-p" name "-j" jobs]
 ]
