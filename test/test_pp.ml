@@ -63,13 +63,13 @@ module CC = struct
       "x * y + z * x", BinOp (r, Plus, BinOp (r, Mult, x, y), BinOp (r, Mult, z, x));
       "(x + y) * (z + x)", BinOp (r, Mult, BinOp (r, Plus, x, y), BinOp (r, Plus, z, x));
       "(fun (x: ?) -> x): ? -> ? => ?",
-      CastExp (r, FunExp (r, "x", TyDyn, x), TyFun (TyDyn, TyDyn), TyDyn);
-      "x: int => ?", CastExp (r, x, TyInt, TyDyn);
-      "x: int => ? => bool", CastExp (r, CastExp (r, x, TyInt, TyDyn), TyDyn, TyBool);
+      CastExp (r, FunExp (r, "x", TyDyn, x), TyFun (TyDyn, TyDyn), TyDyn, Pos);
+      "x: int => ?", CastExp (r, x, TyInt, TyDyn, Pos);
+      "x: int => ? => bool", CastExp (r, CastExp (r, x, TyInt, TyDyn, Pos), TyDyn, TyBool, Pos);
       "(fun (x: ?) -> x) (fun (y: ?) -> y)",
       AppExp (r, FunExp (r, "x", TyDyn, x), FunExp (r, "y", TyDyn, y));
-      "x y: int => ?", CastExp (r, AppExp (r, x, y), TyInt, TyDyn);
-      "x (y: int => ?)", AppExp (r, x, CastExp (r, y, TyInt, TyDyn));
+      "x y: int => ?", CastExp (r, AppExp (r, x, y), TyInt, TyDyn, Pos);
+      "x (y: int => ?)", AppExp (r, x, CastExp (r, y, TyInt, TyDyn, Pos));
     ]
 
   let test_pp_value =
@@ -82,10 +82,10 @@ module CC = struct
       "true", b;
       "123", i;
       "<fun>", FunExp (r, "x", TyDyn, i);
-      "<fun>: int -> ? => ? -> ?",
-      CastExp (r, FunExp (r, "x", TyDyn, i), TyFun (TyInt, TyDyn), TyFun (TyDyn, TyDyn));
+      "<wrapped_fun>",
+      CastExp (r, FunExp (r, "x", TyDyn, i), TyFun (TyInt, TyDyn), TyFun (TyDyn, TyDyn), Pos);
       "<fun>: ? -> ? => ?",
-      CastExp (r, FunExp (r, "x", TyDyn, CastExp (r, i, TyInt, TyDyn)), TyFun (TyDyn, TyDyn), TyDyn);
+      CastExp (r, FunExp (r, "x", TyDyn, CastExp (r, i, TyInt, TyDyn, Pos)), TyFun (TyDyn, TyDyn), TyDyn, Pos);
     ]
 
   let suite = [
