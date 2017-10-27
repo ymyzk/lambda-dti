@@ -21,6 +21,22 @@ let test_pp_ty =
     "int -> bool -> ?", TyFun (TyInt, TyFun (TyBool, TyDyn));
     "(int -> bool) -> ?", TyFun (TyFun (TyInt, TyBool), TyDyn);
     "(int -> bool) -> ? -> int", TyFun (TyFun (TyInt, TyBool), TyFun (TyDyn, TyInt));
+    "'x1 -> 'x2", TyFun (TyVar 1, TyVar 2);
+  ]
+
+let test_pp_ty2 =
+  let test (expected, u) =
+    expected >:: fun ctxt ->
+      assert_equal ~ctxt:ctxt ~printer:id expected @@ asprintf "%a" pp_ty2 u
+  in
+  List.map test [
+    "int -> bool", TyFun (TyInt, TyBool);
+    "int -> bool -> ?", TyFun (TyInt, TyFun (TyBool, TyDyn));
+    "(int -> bool) -> ?", TyFun (TyFun (TyInt, TyBool), TyDyn);
+    "(int -> bool) -> ? -> int", TyFun (TyFun (TyInt, TyBool), TyFun (TyDyn, TyInt));
+    "'a -> 'b", TyFun (TyVar 1, TyVar 2);
+    "'a -> 'b", TyFun (TyVar 4, TyVar 2);
+    "('a -> 'b) -> 'a", TyFun (TyFun (TyVar 2, TyVar 4), TyVar 2);
   ]
 
 module GTLC = struct
@@ -96,6 +112,7 @@ end
 
 let suite = [
   "test_pp_ty">::: test_pp_ty;
+  "test_pp_ty2">::: test_pp_ty2;
   "test_GTLC">::: GTLC.suite;
   "test_CC">::: CC.suite;
 ]
