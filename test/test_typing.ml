@@ -31,7 +31,11 @@ module GTLC = struct
       "(fun (x:?) -> x 2) (fun y -> true)", "?";
       "(fun (x:?) -> x) (fun y -> y)", "?";
       "(fun (x:?) -> x 2) (fun y -> y)", "?";
+      "let id x = x", "'a -> 'a";
+      "let dynid (x:?) = x", "? -> ?";
       "let succ x = x + 1", "int -> int";
+      "let id x = x in let did (x:?) = x in let succ x = x + 1 in (fun (x:?) -> x 1) (id (did succ))", "?";
+      "let id x = x in let did (x:?) = x in let succ x = x + 1 in (fun (x:?) -> x true) (id (did succ))", "?";
     ]
 
   let suite = [
