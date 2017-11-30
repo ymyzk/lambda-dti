@@ -7,7 +7,7 @@ This implementation consists of:
 - Evaluator of the blame calculus with runtime type inference.
 
 ## Requirements
-- OCaml
+- OCaml 4.03.0+
 - Jbuiler
 - Menhir
 - OUnit (for running unit tests)
