@@ -1,3 +1,6 @@
+open Format
+
+open Pp
 open Syntax
 
 exception Type_error of string
@@ -92,7 +95,10 @@ module GTLC = struct
       x2, Constraints.singleton @@ CEqual ((TyVar x), (TyFun (x1, x2)))
     | TyFun (_, u2) -> u2, Constraints.empty
     | TyDyn -> TyDyn, Constraints.empty
-    | _ -> raise @@ Type_error "failed to generate constraints: cod()="
+    | _ as u ->
+      raise @@ Type_error (
+        asprintf "failed to generate constraints: cod(%a)" pp_ty u
+      )
 
   let generate_constr_dom_con u1 u2 = match u1 with
     | TyVar x ->
@@ -101,7 +107,9 @@ module GTLC = struct
       Constraints.add (CConsistent (x1, u2)) c
     | TyFun (u11, _) -> Constraints.singleton @@ CConsistent (u11, u2)
     | TyDyn -> Constraints.singleton @@ CConsistent (u1, u2)
-    | _ -> raise @@ Type_error "failed to generate constraints: dom()~"
+    | _ as u -> raise @@ Type_error (
+        asprintf "failed to generate constraints: dom(%a)" pp_ty u
+      )
 
   let rec generate_constr_meet u1 u2 = match u1, u2 with
     | TyBool, TyBool -> TyBool, Constraints.empty
@@ -116,7 +124,10 @@ module GTLC = struct
       let u1, c1 = generate_constr_meet u11 u21 in
       let u2, c2 = generate_constr_meet u12 u22 in
       TyFun (u1, u2), Constraints.union c1 c2
-    | _ -> raise @@ Type_error "failed to generate constraints: meet"
+    | u1, u2 -> raise @@ Type_error (
+        asprintf "failed to generate constraints: meet(%a, %a)"
+          pp_ty u1 pp_ty u2
+      )
 
   (* Set of type variables used for tau and let polymorphism *)
 
