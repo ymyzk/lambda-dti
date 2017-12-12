@@ -230,8 +230,7 @@ module GTLC = struct
           let s = Utils.zip xs !ys in
           (subst_type s u), []
         with Not_found ->
-          (* TODO: Use Format module *)
-          raise @@ Type_error (Printf.sprintf "variable '%s' not found in the environment" x)
+          raise @@ Type_error (asprintf "variable '%s' not found in the environment" x)
       end
     | IConst _ -> TyInt, []
     | BConst _ -> TyBool, []
