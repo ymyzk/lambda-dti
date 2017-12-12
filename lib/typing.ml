@@ -85,6 +85,7 @@ let subst_tyenv s tyenv =
   Environment.map (fun (TyScheme (xs, u)) -> TyScheme (xs, subst_type s u)) tyenv
 
 module GTLC = struct
+  open Pp.GTLC
   open Syntax.GTLC
 
   (* Constraint generation *)
@@ -213,7 +214,7 @@ module GTLC = struct
           let s = unify @@ subst_constraints x t c in
           (x, t) :: s
         | _ ->
-          raise @@ Type_error "cannot unify" (* TODO: better error message *)
+          raise @@ Type_error (asprintf "cannot solve a constraint: %a" pp_constr constr)
       end
 
   (* Type inference *)
