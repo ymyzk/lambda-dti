@@ -93,6 +93,12 @@ let pp_let_tyabses ppf tyvars =
 module GTLC = struct
   open Syntax.GTLC
 
+  let pp_constr ppf = function
+    | CEqual (u1, u2) ->
+      fprintf ppf "%a =.= %a" pp_ty u1 pp_ty u2
+    | CConsistent (u1, u2) ->
+      fprintf ppf "%a ~.~ %a" pp_ty u1 pp_ty u2
+
   let gt_exp e1 e2 = match e1, e2 with
     | (Var _ | IConst _ | BConst _ | AppExp _ | BinOp _ | IfExp _), (LetExp _ | FunExp _) -> true
     | (Var _ | IConst _ | BConst _ | AppExp _ | BinOp _), IfExp _ -> true
