@@ -1,14 +1,173 @@
 open Format
+open Syntax
+open Syntax.CC
 open Utils.Error
 
 exception Blame of range * Syntax.CC.polarity
 
-let pp_sep ppf () = fprintf ppf ", "
+exception Eval_bug of string
 
-let pp_substitution ppf (x, u) =
-  fprintf ppf "[%a :-> %a]"
-    Pp.pp_ty (TyVar x)
-    Pp.pp_ty u
+type tag = I | B | Ar
 
-let pp_substitutions ppf ss =
-  pp_print_list pp_substitution ppf ss ~pp_sep:pp_sep
+type value =
+  | IntV of int
+  | BoolV of bool
+  | FunV of ((tyvar list * ty list) -> value -> value)
+  | Tagged of tag * value
+
+let pp_tag ppf = function
+  | B -> pp_print_string ppf "bool"
+  | I -> pp_print_string ppf "int"
+  | Ar -> pp_print_string ppf "? -> ?"
+
+let rec pp_value ppf = function
+  | BoolV b -> pp_print_bool ppf b
+  | IntV i -> pp_print_int ppf i
+  | FunV _ -> pp_print_string ppf "<fun>"
+  | Tagged (t, v) ->
+    fprintf ppf "%a: %a => ?"
+      pp_value v
+      pp_tag t
+
+let subst_type = Typing.subst_type
+let rec subst_exp s = function
+  | Var (r, x, ys) -> Var (r, x, List.map (subst_type s) ys)
+  | IConst _
+  | BConst _ as f -> f
+  | BinOp (r, op, f1, f2) -> BinOp (r, op, subst_exp s f1, subst_exp s f2)
+  | IfExp (r, f1, f2, f3) -> IfExp (r, subst_exp s f1, subst_exp s f2, subst_exp s f3)
+  | FunExp (r, x1, u1, f) -> FunExp (r, x1, subst_type s u1, subst_exp s f)
+  | AppExp (r, f1, f2) -> AppExp (r, subst_exp s f1, subst_exp s f2)
+  | CastExp (r, f, u1, u2, p) -> CastExp (r, subst_exp s f, subst_type s u1, subst_type s u2, p)
+  | LetExp (r, y, ys, f1, f2) ->
+    (* Remove substitutions captured by let exp s *)
+    let s = List.filter (fun (x, _) -> not @@ List.memq x ys) s in
+    LetExp (r, y, ys, subst_exp s f1, subst_exp s f2)
+
+let rec eval (env: (tyvar list * value) Environment.t) f =
+  (* fprintf std_formatter "eval <-- %a\n" Pp.CC.pp_exp f; *)
+  match f with
+  | Var (_, x, us) ->
+    let xs, v = Environment.find x env in
+    begin match v with
+      | FunV proc -> FunV (fun _ -> proc (xs, us))
+      | _ -> v
+    end
+  | IConst (_, i) -> IntV i
+  | BConst (_, b) -> BoolV b
+  | BinOp (_, op, f1, f2) ->
+    let v1 = eval env f1 in
+    let v2 = eval env f2 in
+    begin match op, v1, v2 with
+      | Plus, IntV i1, IntV i2 -> IntV (i1 + i2)
+      | Mult, IntV i1, IntV i2 -> IntV (i1 * i2)
+      | Lt, IntV i1, IntV i2 -> BoolV (i1 < i2)
+      | _ -> raise @@ Eval_bug "binop: unexpected type of argument"
+    end
+  | FunExp (_, x, _, f') ->
+    FunV (
+      fun (xs, ys) -> fun v ->
+        eval (Environment.add x ([], v) env) @@ subst_exp (Utils.zip xs ys) f'
+    )
+  | AppExp (_, f1, f2) ->
+    let v1 = eval env f1 in
+    let v2 = eval env f2 in
+    begin match v1 with
+      | FunV proc -> proc ([], []) v2
+      | _ -> raise @@ Eval_bug "app: application of non procedure value"
+    end
+  | IfExp (_, f1, f2, f3) ->
+    let v1 = eval env f1 in
+    begin match v1 with
+      | BoolV true -> eval env f2
+      | BoolV false -> eval env f3
+      | _ -> raise @@ Eval_bug "if: non boolean value"
+    end
+  | LetExp (_, x, xs, f1, f2) ->
+    let v1 = eval env f1 in
+    eval (Environment.add x (xs, v1) env) f2
+  | CastExp (r, f, u1, u2, p) ->
+    let v = eval env f in
+    cast v u1 u2 r p
+and cast v u1 u2 r p =
+  (* fprintf std_formatter "cast <-- %a: %a => %a\n" pp_value v Pp.pp_ty u1 Pp.pp_ty u2; *)
+  match u1, u2 with
+  (* When type variables are instantiated *)
+  | TyVar ({ contents = Some u1 }), u2
+  | u1, TyVar ({ contents = Some u2 }) ->
+    cast v u1 u2 r p
+  (* IdBase *)
+  | TyBool, TyBool
+  | TyInt, TyInt -> v
+  (* IdStar *)
+  | TyDyn, TyDyn -> v
+  (* Succeed / Fail *)
+  | TyDyn, TyBool -> begin
+      match v with
+      | Tagged (B, v) -> v
+      | Tagged _ -> raise @@ Blame (r, p)
+      | _ -> raise @@ Eval_bug "untagged value"
+    end
+  | TyDyn, TyInt -> begin
+      match v with
+      | Tagged (I, v) -> v
+      | Tagged _ -> raise @@ Blame (r, p)
+      | _ -> raise @@ Eval_bug "untagged value"
+    end
+  | TyDyn, TyFun (TyDyn, TyDyn) -> begin
+      match v with
+      | Tagged (Ar, v) -> v
+      | Tagged _ -> raise @@ Blame (r, p)
+      | _ -> raise @@ Eval_bug "untagged value"
+    end
+  (* AppCast *)
+  | TyFun (u11, u12), TyFun (u21, u22) -> begin
+      match v with
+      | FunV proc ->
+        FunV (fun _ -> fun x ->
+            let arg = cast x u21 u11 r @@ neg p in
+            let res = proc ([], []) arg in
+            cast res u12 u22 r p
+          )
+      | _ -> raise @@ Eval_bug "non procedural value"
+    end
+  (* Tagged *)
+  | TyBool, TyDyn -> Tagged (B, v)
+  | TyInt, TyDyn -> Tagged (I, v)
+  | TyFun (TyDyn, TyDyn), TyDyn -> Tagged (Ar, v)
+  (* Ground *)
+  | TyFun (u11, u12), TyDyn ->
+    let dfun = TyFun (TyDyn, TyDyn) in
+    let v = cast v u1 dfun r p in
+    cast v dfun TyDyn r p
+  (* Expand *)
+  | TyDyn, TyFun (u21, u22) ->
+    let dfun = TyFun (TyDyn, TyDyn) in
+    let v = cast v TyDyn dfun r p in
+    cast v dfun u2 r p
+  (* InstBase / InstArrow *)
+  | TyDyn, TyVar ({ contents = None } as x) -> begin
+    match v with
+      | Tagged (B, v) ->
+        x := Some TyBool;
+        v
+      | Tagged (I, v) ->
+        x := Some TyInt;
+        v
+      | Tagged (Ar, v) ->
+        let u2 = TyFun (Typing.fresh_tyvar (), Typing.fresh_tyvar ()) in
+        x := Some u2;
+        cast v (TyFun (TyDyn, TyDyn)) u2 r p
+      | _ -> raise @@ Eval_bug "cannot instantiate"
+    end
+  | _ -> raise @@ Eval_bug "cannot cast value"
+
+let eval_program ?(debug=false) env p =
+  match p with
+  | Exp f ->
+    let v = eval env f (* ~debug:debug *) in
+    env, "-", v
+  | LetDecl (x, xs, f) ->
+    let v = eval env f (* ~debug:debug *) in
+    let env = Environment.add x (xs, v) env in
+    env, x, v

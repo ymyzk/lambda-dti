@@ -11,13 +11,13 @@ module Environment = Map.Make (
 
 type op = Plus | Minus | Mult | Div | Lt | Lte | Gt | Gte
 
-type tyvar = int
 type ty =
   | TyDyn
   | TyVar of tyvar
   | TyInt
   | TyBool
   | TyFun of ty * ty
+and tyvar = ty option ref
 
 type tysc = TyScheme of tyvar list * ty
 
@@ -101,7 +101,6 @@ module CC = struct
     | AppExp of range * exp * exp
     | CastExp of range * exp * ty * ty * polarity
     | LetExp of range * id * tyvar list * exp * exp
-    | Hole  (* Only used during evaluation *)
 
   let map_exp f_ty f_exp = function
     | Var _
@@ -113,7 +112,6 @@ module CC = struct
     | AppExp (r, f1, f2) -> AppExp (r, f_exp f1, f_exp f2)
     | CastExp (r, f, u1, u2, p) -> CastExp (r, f_exp f, f_ty u1, f_ty u2, p)
     | LetExp (r, x, xs, f1, f2) -> LetExp (r, x, xs, f_exp f1, f_exp f2)
-    | Hole as f -> f
 
   let range_of_exp = function
     | Var (r, _, _)
@@ -125,7 +123,6 @@ module CC = struct
     | AppExp (r, _, _)
     | CastExp (r, _, _, _, _)
     | LetExp (r, _, _, _, _) -> r
-    | Hole -> raise Not_found
 
   let rec is_value = function
     | IConst _
@@ -138,14 +135,4 @@ module CC = struct
   type program =
     | Exp of exp
     | LetDecl of id * tyvar list * exp
-
-  type context =
-    | CTop
-    | CAppL of range * context * exp
-    | CAppR of range * value * context
-    | CBinOpL of range * op * context * exp
-    | CBinOpR of range * op * value * context
-    | CIf of range * context * exp * exp
-    | CCast of range * context * ty * ty * polarity
-  and value = exp
 end

@@ -5,16 +5,11 @@ open Syntax
 
 exception Type_error of string
 
-let fresh_tyvar =
-  let counter = ref 0 in
-  let body () =
-    let v = !counter in
-    counter := v + 1;
-    TyVar (v + 1)
-  in body
+let fresh_tyvar () = TyVar (ref None)
 
 let tysc_of_ty u = TyScheme ([], u)
 
+(* TODO?: These functions only can be used for normalized types *)
 let dom = function
   | TyFun (u1, _) -> u1
   | TyDyn -> TyDyn
@@ -38,27 +33,40 @@ let type_of_binop = function
   | Plus | Minus | Mult | Div -> TyInt, TyInt, TyInt
   | Lt | Lte | Gt | Gte -> TyInt, TyInt, TyBool
 
+(*
 let rec is_static_type = function
   | TyFun (u1, u2) -> (is_static_type u1) && (is_static_type u2)
   | TyDyn -> false
   | _ -> true
 
 let is_static_types types = List.fold_left (&&) true @@ List.map is_static_type types
+*)
 
-(* TODO: rename *)
-let is_bvp_type = function
+let rec is_bv_type = function
   | TyBool
   | TyInt
-  | TyVar _ -> true
+  | TyVar ({ contents = None }) -> true
+  | TyVar ({ contents = Some u }) -> is_bv_type u
   | _ -> false
 
-let is_tyvar = function TyVar _ -> true | _ -> false
+let is_base_type = function
+  | TyBool
+  | TyInt -> true
+  | _ -> false
+
+let rec is_tyvar = function
+  | TyVar ({ contents = None }) -> true
+  | TyVar ({ contents = Some u }) -> is_tyvar u
+  | _ -> false
 
 let rec is_consistent u1 u2 = match u1, u2 with
   | TyDyn, TyDyn
   | TyBool, TyBool
   | TyInt, TyInt -> true
-  | TyVar x1, TyVar x2 when x1 = x2 -> true
+  | TyVar x1, TyVar x2 when x1 == x2 -> true
+  | TyVar ({ contents = Some u1 }), u2
+  | u1, TyVar ({ contents = Some u2 }) ->
+    is_consistent u1 u2
   | _, TyDyn
   | TyDyn, _ -> true
   | TyFun (u11, u12), TyFun (u21, u22) ->
@@ -72,17 +80,12 @@ type substitutions = substitution list
 
 (* S(t) *)
 let subst_type s u =
-  let rec subst (x, u as s) = function
-    | TyFun (u1, u2) -> TyFun (subst s u1, subst s u2)
-    | TyVar x' when x = x' -> u
+  let rec subst (x, u as s0) = function
+    | TyFun (u1, u2) -> TyFun (subst s0 u1, subst s0 u2)
+    | TyVar x' when x == x' -> u
     | _ as u -> u
   in
   List.fold_left (fun u s0 -> subst s0 u) u s
-
-(* S(Gamma) *)
-let subst_tyenv s tyenv =
-  (* TODO: Should avoid to substitute captured type variables? *)
-  Environment.map (fun (TyScheme (xs, u)) -> TyScheme (xs, subst_type s u)) tyenv
 
 module GTLC = struct
   open Pp.GTLC
@@ -90,10 +93,11 @@ module GTLC = struct
 
   (* Constraint generation *)
 
-  let generate_constr_cod_eq = function
-    | TyVar x ->
+  let rec generate_constr_cod_eq = function
+    | TyVar ({ contents = Some u }) -> generate_constr_cod_eq u
+    | TyVar ({ contents = None }) as u ->
       let x1, x2 = fresh_tyvar (), fresh_tyvar () in
-      x2, Constraints.singleton @@ CEqual ((TyVar x), (TyFun (x1, x2)))
+      x2, Constraints.singleton @@ CEqual (u, (TyFun (x1, x2)))
     | TyFun (_, u2) -> u2, Constraints.empty
     | TyDyn -> TyDyn, Constraints.empty
     | _ as u ->
@@ -101,10 +105,11 @@ module GTLC = struct
         asprintf "failed to generate constraints: cod(%a)" pp_ty u
       )
 
-  let generate_constr_dom_con u1 u2 = match u1 with
-    | TyVar x ->
+  let rec generate_constr_dom_con u1 u2 = match u1 with
+    | TyVar ({ contents = Some u1 }) -> generate_constr_dom_con u1 u2
+    | TyVar ({ contents = None }) as u ->
       let x1, x2 = fresh_tyvar (), fresh_tyvar () in
-      let c = Constraints.singleton @@ CEqual ((TyVar x), (TyFun (x1, x2))) in
+      let c = Constraints.singleton @@ CEqual (u, (TyFun (x1, x2))) in
       Constraints.add (CConsistent (x1, u2)) c
     | TyFun (u11, _) -> Constraints.singleton @@ CConsistent (u11, u2)
     | TyDyn -> Constraints.singleton @@ CConsistent (u1, u2)
@@ -113,6 +118,9 @@ module GTLC = struct
       )
 
   let rec generate_constr_meet u1 u2 = match u1, u2 with
+    | TyVar ({ contents = Some u1 }), u2
+    | u1, TyVar ({ contents = Some u2 }) ->
+      generate_constr_meet u1 u2
     | TyBool, TyBool -> TyBool, Constraints.empty
     | TyInt, TyInt -> TyInt, Constraints.empty
     | TyDyn, u
@@ -135,176 +143,165 @@ module GTLC = struct
   module V = Set.Make(
     struct
       type t = tyvar
-      let compare (x : tyvar) y = compare x y
+      (* TODO: Should be == *)
+      let compare (x : tyvar) y = compare ((Obj.magic x): int) (Obj.magic y)
     end
     )
 
   let rec tyvars_ty: ty -> V.t = function
-    | TyVar x -> V.singleton x
+    | TyVar ({ contents = None } as x) -> V.singleton x
+    | TyVar ({ contents = Some u }) -> tyvars_ty u
     | TyFun (u1, u2) -> V.union (tyvars_ty u1) (tyvars_ty u2)
     | _ -> V.empty
 
   let free_tyvars_tysc: tysc -> V.t = function
     | TyScheme (xs, u) ->
-      V.diff (tyvars_ty u) @@ V.of_list xs
+      V.diff (tyvars_ty u) (V.of_list xs)
 
   let free_tyvars_tyenv env =
     Environment.fold (fun _ us vars -> V.union vars (free_tyvars_tysc us)) env V.empty
 
-  let closure_tyvars env s u =
-    let free_tyvars_in_tyenv =
-      List.fold_left V.union V.empty @@
-      List.map (fun x -> tyvars_ty (subst_type s (TyVar x))) @@
-      V.elements @@
-      free_tyvars_tyenv env in
-    V.diff (tyvars_ty u) free_tyvars_in_tyenv
-
-  (* Substitutions for type variables *)
-
-  (* S(e) *)
-  let rec subst_exp s = function
-    | Var (r, x, ys) -> Var (r, x, ref @@ List.map (subst_type s) !ys)
-    | IConst _
-    | BConst _ as e -> e
-    | BinOp (r, op, e1, e2) -> BinOp (r, op, subst_exp s e1, subst_exp s e2)
-    | IfExp (r, e1, e2, e3) -> IfExp (r, subst_exp s e1, subst_exp s e2, subst_exp s e3)
-    | FunExp (r, x1, u1, e) -> FunExp (r, x1, subst_type s u1, subst_exp s e)
-    | AppExp (r, e1, e2) -> AppExp (r, subst_exp s e1, subst_exp s e2)
-    | LetExp (r, y, ys, e1, e2) ->
-      (* Remove substitutions captured by let exp s *)
-      let s = List.filter (fun (x, _) -> not @@ List.mem x !ys) s in
-      LetExp (r, y, ys, subst_exp s e1, subst_exp s e2)
-
-  (* [x:=t]C *)
-  let subst_constraints (x: tyvar) (t: ty) (c : constr list) =
-    (* [x:=t]c *)
-    let subst_constraint s = function
-      | CEqual (u1, u2) -> CEqual (subst_type s u1, subst_type s u2)
-      | CConsistent (u1, u2) -> CConsistent (subst_type s u1, subst_type s u2)
-    in
-    (* TODO: OK? *)
-    List.map (subst_constraint [x, t]) c
+  let closure_tyvars env u =
+    V.elements @@ V.diff (tyvars_ty u) (free_tyvars_tyenv env)
 
   (* Unification *)
 
   let rec unify = function
-    | [] -> []
-    | constr :: c -> begin match constr with
-        | CConsistent (u1, u2) when u1 = u2 && is_bvp_type u1 ->
-          unify c
-        | CConsistent (TyDyn, _)
-        | CConsistent (_, TyDyn) ->
-          unify c
-        | CConsistent (TyFun (u11, u12), TyFun (u21, u22)) ->
-          unify @@ CConsistent (u11, u21) :: CConsistent (u12, u22) :: c
-        | CConsistent (u, TyVar x) when not (is_tyvar u) ->
-          unify @@ CConsistent (TyVar x, u) :: c
-        | CConsistent (TyVar x, u) when is_bvp_type u ->
-          unify @@ CEqual (TyVar x, u) :: c
-        | CConsistent (TyVar x, TyFun (u1, u2)) when not @@ V.mem x (tyvars_ty (TyFun (u1, u2))) ->
-          let x1, x2 = fresh_tyvar (), fresh_tyvar () in
-          unify @@ CEqual (TyVar x, TyFun (x1, x2)) :: CConsistent (x1, u1) :: CConsistent (x2, u2) :: c
-        | CEqual (t1, t2) when t1 = t2 && is_static_type t1 && is_bvp_type t1 ->
-          unify c
-        | CEqual (TyFun (t11, t12), TyFun (t21, t22)) when is_static_types [t11; t12; t21; t22] ->
-          unify @@ CEqual (t11, t21) :: CEqual (t12, t22) :: c
-        | CEqual (t, TyVar x) when is_static_type t && not (is_tyvar t) ->
-          unify @@ CEqual (TyVar x, t) :: c
-        | CEqual (TyVar x, t) when not (V.mem x (tyvars_ty t)) ->
-          let s = unify @@ subst_constraints x t c in
-          (x, t) :: s
-        | _ ->
-          raise @@ Type_error (asprintf "cannot solve a constraint: %a" pp_constr constr)
-      end
+    (* iota ~ iota *)
+    | CConsistent (u1, u2) when u1 = u2 && is_base_type u1 -> ()
+    (* X ~ X *)
+    | CConsistent (TyVar x1, TyVar x2) when x1 == x2 -> ()
+    (* When tyvar is already instantiated *)
+    | CConsistent (TyVar ({ contents = Some u1 }), u2)
+    | CConsistent (u1, TyVar ({ contents = Some u2 })) ->
+      unify @@ CConsistent (u1, u2)
+    (* ? ~ U or U ~ ? *)
+    | CConsistent (TyDyn, _) | CConsistent (_, TyDyn) -> ()
+    (* U11->U12 ~ U21->U22 *)
+    | CConsistent (TyFun (u11, u12), TyFun (u21, u22)) ->
+      unify @@ CConsistent (u11, u21);
+      unify @@ CConsistent (u12, u22)
+    (* U ~ X *)
+    | CConsistent (u, TyVar x) when not (is_tyvar u) ->
+      unify @@ CConsistent (TyVar x, u)
+    (* X ~ U *)
+    | CConsistent (TyVar x, u) when is_bv_type u ->
+      unify @@ CEqual (TyVar x, u)
+    (* X ~ U1->U2 *)
+    | CConsistent (TyVar x, TyFun (u1, u2)) when not @@ V.mem x (tyvars_ty (TyFun (u1, u2))) -> (* TODO: equality *)
+      let x1, x2 = fresh_tyvar (), fresh_tyvar () in
+      unify @@ CEqual (TyVar x, TyFun (x1, x2));
+      unify @@ CConsistent (x1, u1);
+      unify @@ CConsistent (x2, u2)
+    (* iota = iota *)
+    | CEqual (t1, t2) when t1 = t2 && is_base_type t1 -> ()
+    (* X = X *)
+    | CEqual (TyVar x1, TyVar x2) when x1 == x2 -> ()
+    (* When tyvar is already instantiated *)
+    | CEqual (TyVar ({ contents = Some u1 }), u2)
+    | CEqual (u1, TyVar ({ contents = Some u2 })) ->
+      unify @@ CEqual (u1, u2)
+    (* T11->T12 = T21->T22 *)
+    | CEqual (TyFun (t11, t12), TyFun (t21, t22)) (* when is_static_types [t11; t12; t21; t22] *) ->
+      unify @@ CEqual (t11, t21);
+      unify @@ CEqual (t12, t22)
+    (* T = X *)
+    | CEqual (t, TyVar x) when (* is_static_type t && *) not (is_tyvar t) ->
+      unify @@ CEqual (TyVar x, t)
+    (* X = T *)
+    | CEqual (TyVar x, t) when not (V.mem x (tyvars_ty t)) -> (* TODO: equality *)
+      x := Some t
+    | _ as c ->
+      raise @@ Type_error (asprintf "cannot solve a constraint: %a" pp_constr c)
 
   (* Type inference *)
-
-  let constr_of_subst (s: substitutions) =
-    Constraints.of_list @@ List.map (fun (x, u) -> CEqual (TyVar x, u)) s
 
   let rec type_of_exp env = function
     | Var (_, x, ys) ->
       begin
         try
           let TyScheme (xs, u) = Environment.find x env in
+          (* Replace type variables with fresh ones *)
           ys := List.map (fun _ -> fresh_tyvar ()) xs;
           let s = Utils.zip xs !ys in
-          (subst_type s u), []
+          subst_type s u
         with Not_found ->
           raise @@ Type_error (asprintf "variable '%s' not found in the environment" x)
       end
-    | IConst _ -> TyInt, []
-    | BConst _ -> TyBool, []
+    | IConst _ -> TyInt
+    | BConst _ -> TyBool
     | BinOp (_, op, e1, e2) ->
       let ui1, ui2, ui = type_of_binop op in
-      let u1, s1 = type_of_exp env e1 in
-      let u2, s2 = type_of_exp env e2 in
-      let c1 = constr_of_subst s1 in
-      let c2 = constr_of_subst s2 in
-      let c3 = Constraints.of_list [CConsistent (u1, ui1); CConsistent (u2, ui2)] in
-      let c = Constraints.union c1 @@ Constraints.union c2 c3 in
-      let s = unify @@ Constraints.elements c in
-      (subst_type s ui), s
+      let u1 = type_of_exp env e1 in
+      let u2 = type_of_exp env e2 in
+      unify @@ CConsistent (u1, ui1);
+      unify @@ CConsistent (u2, ui2);
+      ui
     | IfExp (_, e1, e2, e3) ->
-      let u1, s1 = type_of_exp env e1 in
-      let u2, s2 = type_of_exp env e2 in
-      let u3, s3 = type_of_exp env e3 in
-      let c0 = Constraints.singleton @@ CConsistent (u1, TyBool) in
-      let c1 = constr_of_subst s1 in
-      let c2 = constr_of_subst s2 in
-      let c3 = constr_of_subst s3 in
+      let u1 = type_of_exp env e1 in
+      let u2 = type_of_exp env e2 in
+      let u3 = type_of_exp env e3 in
+      unify @@ CConsistent (u1, TyBool);
       let u4, c4 = generate_constr_meet u2 u3 in
-      let c = List.fold_left Constraints.union Constraints.empty [c0; c1; c2; c3; c4] in
-      let s = unify @@ Constraints.elements c in
-      (subst_type s u4), s
+      List.iter unify @@ Constraints.elements c4;
+      u4
     | FunExp (_, x, u1, e) ->
-      let u2, s2 = type_of_exp (Environment.add x (tysc_of_ty u1) env) e in
-      (subst_type s2 (TyFun (u1, u2))), s2
+      let u2 = type_of_exp (Environment.add x (tysc_of_ty u1) env) e in
+      TyFun (u1, u2)
     | AppExp (_, e1, e2) ->
-      let u1, s1 = type_of_exp env e1 in
-      let u2, s2 = type_of_exp env e2 in
-      let c1 = constr_of_subst s1 in
-      let c2 = constr_of_subst s2 in
+      let u1 = type_of_exp env e1 in
+      let u2 = type_of_exp env e2 in
       let u3, c3 = generate_constr_cod_eq u1 in
       let c4 = generate_constr_dom_con u1 u2 in
-      let c = Constraints.union c1
-        @@ Constraints.union c2
-        @@ Constraints.union c3 c4 in
-      let s = unify @@ Constraints.elements c in
-      (subst_type s u3), s
+      List.iter unify @@ Constraints.elements @@ Constraints.union c3 c4;
+      u3
     | LetExp (_, x, xs, e1, e2) when is_value e1 ->
-      let u1, s1 = type_of_exp env e1 in
-      let free_tyvars = V.elements @@ closure_tyvars env s1 u1 in
+      let u1 = type_of_exp env e1 in
+      let free_tyvars = closure_tyvars env u1 in
       xs := free_tyvars;
       let us1 = TyScheme (free_tyvars, u1) in
-      let u2, s2 = type_of_exp (Environment.add x us1 env) e2 in
-      let c = Constraints.union (constr_of_subst s1) (constr_of_subst s2) in
-      let s = unify @@ Constraints.elements c in
-      (subst_type s u2), s
+      type_of_exp (Environment.add x us1 env) e2
     | LetExp (r, x, _, e1, e2) ->
       type_of_exp env @@ AppExp (r, FunExp (r, x, fresh_tyvar (), e2), e1)
 
   let type_of_program tyenv = function
     | Exp e ->
-      let u, s = type_of_exp tyenv e in
-      let tyenv = subst_tyenv s tyenv in
-      (* TODO: merge subst_exp s e in type_of_exp *)
-      let e = subst_exp s e in
-      tyenv, Exp e, u
+      tyenv, Exp e, type_of_exp tyenv e
     | LetDecl (x, xs, e) ->
-      let u, s = type_of_exp tyenv e in
-      let tyenv = subst_tyenv s tyenv in
-      let e = subst_exp s e in
-      let free_tyvars =
-        if is_value e then
-          closure_tyvars tyenv s u
-        else
-          V.empty
-      in
-      xs := V.elements free_tyvars;
-      let us = TyScheme (!xs, u) in
-      let tyenv = Environment.add x us tyenv in
+      let u = type_of_exp tyenv e in
+      let free_tyvars = if is_value e then closure_tyvars tyenv u else [] in
+      xs := free_tyvars;
+      let tyenv = Environment.add x (TyScheme (free_tyvars, u)) tyenv in
       tyenv, LetDecl (x, xs, e), u
+
+  (* Normalize type variables *)
+
+  let rec normalize_type = function
+    | TyVar ({ contents = Some u }) -> normalize_type u
+    | TyFun (u1, u2) -> TyFun (normalize_type u1, normalize_type u2)
+    | _ as u -> u
+
+  let normalize_tyenv =
+    Environment.map @@ fun (TyScheme (xs, u)) -> TyScheme (xs, normalize_type u)
+
+  let rec normalize_exp = function
+    | Var (r, x, ys) -> Var (r, x, ref @@ List.map normalize_type !ys)
+    | IConst _
+    | BConst _ as e -> e
+    | BinOp (r, op, e1, e2) ->
+      BinOp (r, op, normalize_exp e1, normalize_exp e2)
+    | IfExp (r, e1, e2, e3) ->
+      IfExp (r, normalize_exp e1, normalize_exp e2, normalize_exp e3)
+    | FunExp (r, x1, u1, e) ->
+      FunExp (r, x1, normalize_type u1, normalize_exp e)
+    | AppExp (r, e1, e2) ->
+      AppExp (r, normalize_exp e1, normalize_exp e2)
+    | LetExp (r, y, ys, e1, e2) ->
+      LetExp (r, y, ys, normalize_exp e1, normalize_exp e2)
+
+  let normalize_program = function
+    | Exp e -> Exp (normalize_exp e)
+    | LetDecl (x, xs, e) -> LetDecl (x, xs, normalize_exp e)
 
   (* Cast insertion translation *)
 
@@ -404,6 +401,9 @@ module CC = struct
           u12
         | _ -> raise @@ Type_error "app"
       end
+    | CastExp (r, f, TyVar ({ contents = Some u1 }), u2, p)
+    | CastExp (r, f, u1, TyVar ({ contents = Some u2 }), p) ->
+      type_of_exp env @@ CastExp (r, f, u1, u2, p)
     | CastExp (_, f, u1, u2, _) ->
       let u = type_of_exp env f in
       if u = u1 then
@@ -420,23 +420,6 @@ module CC = struct
       u2
     | LetExp _ ->
       raise @@ Type_error "invalid translation for let expression"
-    | Hole ->
-      raise @@ Type_error "hole"
-
-  let rec subst_exp s = function
-    | Var (r, x, ys) -> Var (r, x, List.map (subst_type s) ys)
-    | IConst _
-    | BConst _ as f -> f
-    | BinOp (r, op, f1, f2) -> BinOp (r, op, subst_exp s f1, subst_exp s f2)
-    | IfExp (r, f1, f2, f3) -> IfExp (r, subst_exp s f1, subst_exp s f2, subst_exp s f3)
-    | FunExp (r, x1, u1, f) -> FunExp (r, x1, subst_type s u1, subst_exp s f)
-    | AppExp (r, f1, f2) -> AppExp (r, subst_exp s f1, subst_exp s f2)
-    | CastExp (r, f, u1, u2, p) -> CastExp (r, subst_exp s f, subst_type s u1, subst_type s u2, p)
-    | LetExp (r, y, ys, f1, f2) ->
-      (* Remove substitutions captured by let exp s *)
-      let s = List.filter (fun (x, _) -> not @@ List.mem x ys) s in
-      LetExp (r, y, ys, subst_exp s f1, subst_exp s f2)
-    | Hole as f -> f
 
   let type_of_program tyenv = function
     | Exp e -> type_of_exp tyenv e

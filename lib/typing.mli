@@ -15,6 +15,10 @@ module GTLC : sig
 
   val type_of_program : tysc Environment.t -> program -> (tysc Environment.t * program * ty)
 
+  val normalize_tyenv : tysc Environment.t -> tysc Environment.t
+  val normalize_program : program -> program
+  val normalize_type : ty -> ty
+
   val translate : tysc Environment.t -> program -> (CC.program * ty)
 end
 
@@ -22,6 +26,4 @@ module CC : sig
   open Syntax.CC
 
   val type_of_program : tysc Environment.t -> program -> ty
-
-  val subst_exp : substitutions -> exp -> exp
 end

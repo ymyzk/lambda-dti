@@ -21,7 +21,7 @@ let test_pp_ty =
     "int -> bool -> ?", TyFun (TyInt, TyFun (TyBool, TyDyn));
     "(int -> bool) -> ?", TyFun (TyFun (TyInt, TyBool), TyDyn);
     "(int -> bool) -> ? -> int", TyFun (TyFun (TyInt, TyBool), TyFun (TyDyn, TyInt));
-    "'x1 -> 'x2", TyFun (TyVar 1, TyVar 2);
+    (* "'x1 -> 'x2", TyFun (TyVar 1, TyVar 2); *)
   ]
 
 let test_pp_ty2 =
@@ -29,14 +29,15 @@ let test_pp_ty2 =
     expected >:: fun ctxt ->
       assert_equal ~ctxt:ctxt ~printer:id expected @@ asprintf "%a" pp_ty2 u
   in
+  let a, b, c = Typing.fresh_tyvar (), Typing.fresh_tyvar (), Typing.fresh_tyvar () in
   List.map test [
     "int -> bool", TyFun (TyInt, TyBool);
     "int -> bool -> ?", TyFun (TyInt, TyFun (TyBool, TyDyn));
     "(int -> bool) -> ?", TyFun (TyFun (TyInt, TyBool), TyDyn);
     "(int -> bool) -> ? -> int", TyFun (TyFun (TyInt, TyBool), TyFun (TyDyn, TyInt));
-    "'a -> 'b", TyFun (TyVar 1, TyVar 2);
-    "'a -> 'b", TyFun (TyVar 4, TyVar 2);
-    "('a -> 'b) -> 'a", TyFun (TyFun (TyVar 2, TyVar 4), TyVar 2);
+    "'a -> 'b", TyFun (a, b);
+    "'a -> 'b", TyFun (b, a);
+    "('a -> 'b) -> 'a", TyFun (TyFun (c, b), c);
   ]
 
 module GTLC = struct

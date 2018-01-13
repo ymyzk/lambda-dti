@@ -13,7 +13,8 @@ let gt_ty (_: ty) = function
 
 let rec pp_ty ppf = function
   | TyDyn -> pp_print_string ppf "?"
-  | TyVar x -> fprintf ppf "'x%d" x
+  | TyVar ({ contents = None } as r) -> fprintf ppf "'x%d" (2 * Obj.magic r) (* TODO: OK? *)
+  | TyVar ({ contents = Some u }) -> pp_ty ppf u
   | TyInt -> pp_print_string ppf "int"
   | TyBool -> pp_print_string ppf "bool"
   | TyFun (u1, u2) as u ->
@@ -26,7 +27,7 @@ let pp_ty2 ppf u =
   let pp_tyvar ppf x =
     let rec index_of_tyvar pos = function
       | [] -> tyvars := !tyvars @ [x]; pos
-      | y :: rest -> if x = y then pos else index_of_tyvar (pos + 1) rest
+      | y :: rest -> if x == y then pos else index_of_tyvar (pos + 1) rest
     in
     let pp_tyvar_of_index ppf i =
       let j = i / 26 in
@@ -39,6 +40,7 @@ let pp_ty2 ppf u =
   in
   let rec pp_ty ppf = function
     | TyDyn -> pp_print_string ppf "?"
+    | TyVar ({ contents = Some u }) -> pp_ty ppf u
     | TyVar x -> pp_tyvar ppf x
     | TyInt -> pp_print_string ppf "int"
     | TyBool -> pp_print_string ppf "bool"
@@ -217,8 +219,8 @@ module CC = struct
         pp_let_tyabses xs
         (with_paren (gt_exp f f1) pp_exp) f1
         (with_paren (gte_exp f f2) pp_exp) f2
-    | Hole -> raise Syntax_error
 
+  (* TODO: unused *)
   let rec pp_value ppf v =
     assert (is_value v);
     match v with

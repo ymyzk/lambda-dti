@@ -22,6 +22,11 @@ let rec read_eval_print lexbuf env tyenv =
       print_debug "GTLC e: %a\n" Pp.GTLC.pp_program e;
       print_debug "GTLC U: %a\n" Pp.pp_ty u;
 
+      (* TODO: Normalize *)
+      let tyenv = Typing.GTLC.normalize_tyenv tyenv in
+      let e = Typing.GTLC.normalize_program e in
+      let u = Typing.GTLC.normalize_type u in
+
       (* Translation *)
       let f, u' = Typing.GTLC.translate tyenv e in
       print_debug "CC e: %a\n" Pp.CC.pp_program f;
@@ -31,13 +36,12 @@ let rec read_eval_print lexbuf env tyenv =
       assert (u = u'');
 
       (* Evaluation *)
-      let env, x, v, s = Eval_small.eval_program env f ~debug:!debug in
-      print_debug "CC v: %a\n" Pp.CC.pp_exp v;
-      print_debug "Substitution: %a\n" Eval.pp_substitutions s;
+      let env, x, v = Eval.eval_program env f ~debug:!debug in
+      print_debug "CC v: %a\n" Eval.pp_value v;
       print "%a : %a = %a\n"
         pp_print_string x
-        Pp.pp_ty2 (Typing.subst_type s u)
-        Pp.CC.pp_value v;
+        Pp.pp_ty2 u
+        Eval.pp_value v;
       read_eval_print lexbuf env tyenv
     with
     | Failure message ->
