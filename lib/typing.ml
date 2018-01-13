@@ -3,7 +3,10 @@ open Format
 open Pp
 open Syntax
 
+(* Type error in the given program *)
 exception Type_error of string
+(* Bug in this implementation *)
+exception Type_bug of string
 
 let fresh_tyvar () = TyVar (ref None)
 
@@ -317,7 +320,7 @@ module GTLC = struct
           let u = subst_type s u in
           CC.Var (r, x, !ys), u
         with Not_found ->
-          raise @@ Type_error "variable not found (translate_exp)"
+          raise @@ Type_bug "variable not found during cast-inserting translation"
       end
     | IConst (r, i) -> CC.IConst (r, i), TyInt
     | BConst (r, b) -> CC.BConst (r, b), TyBool
@@ -368,9 +371,9 @@ module CC = struct
           if List.length xs = List.length ys then
             subst_type (Utils.zip xs ys) u
           else
-            raise @@ Type_error "invalid type application"
+            raise @@ Type_bug "invalid type application"
         with Not_found ->
-          raise @@ Type_error "variable not found (CC.type_of_exp)"
+          raise @@ Type_bug "variable not found"
       end
     | IConst _ -> TyInt
     | BConst _ -> TyBool
@@ -381,7 +384,7 @@ module CC = struct
       if (u1, u2) = (ui1, ui2) then
         ui
       else
-        raise @@ Type_error "binop"
+        raise @@ Type_bug "binop"
     | IfExp (_, f1, f2, f3) ->
       let u1 = type_of_exp env f1 in
       let u2 = type_of_exp env f2 in
@@ -389,7 +392,7 @@ module CC = struct
       if u1 = TyBool && u2 = u3 then
         u2
       else
-        raise @@ Type_error "if"
+        raise @@ Type_bug "if"
     | FunExp (_, x, u1, f) ->
       let u2 = type_of_exp (Environment.add x (tysc_of_ty u1) env) f in
       TyFun (u1, u2)
@@ -399,7 +402,7 @@ module CC = struct
       begin match u1, u2 with
         | TyFun (u11, u12), u2 when u11 = u2 ->
           u12
-        | _ -> raise @@ Type_error "app"
+        | _ -> raise @@ Type_bug "app"
       end
     | CastExp (r, f, TyVar ({ contents = Some u1 }), u2, p)
     | CastExp (r, f, u1, TyVar ({ contents = Some u2 }), p) ->
@@ -410,16 +413,16 @@ module CC = struct
         if is_consistent u1 u2 then
           u2
         else
-          raise @@ Type_error "not consistent"
+          raise @@ Type_bug "not consistent"
       else
-        raise @@ Type_error "invalid source type"
+        raise @@ Type_bug "invalid source type"
     | LetExp (_, x, xs, f1, f2) when is_value f1 ->
       let u1 = type_of_exp env f1 in
       let us1 = TyScheme (xs, u1) in
       let u2 = type_of_exp (Environment.add x us1 env) f2 in
       u2
     | LetExp _ ->
-      raise @@ Type_error "invalid translation for let expression"
+      raise @@ Type_bug "invalid translation for let expression"
 
   let type_of_program tyenv = function
     | Exp e -> type_of_exp tyenv e
