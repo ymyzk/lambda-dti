@@ -44,6 +44,19 @@ let rec subst_exp s = function
     let s = List.filter (fun (x, _) -> not @@ List.memq x ys) s in
     LetExp (r, y, ys, subst_exp s f1, subst_exp s f2)
 
+let rec eval_binop op v1 v2 =
+  begin match op, v1, v2 with
+    | Plus, IntV i1, IntV i2 -> IntV (i1 + i2)
+    | Minus, IntV i1, IntV i2 -> IntV (i1 - i2)
+    | Mult, IntV i1, IntV i2 -> IntV (i1 * i2)
+    | Div, IntV i1, IntV i2 -> IntV (i1 / i2)
+    | Lt, IntV i1, IntV i2 -> BoolV (i1 < i2)
+    | Lte, IntV i1, IntV i2 -> BoolV (i1 <= i2)
+    | Gt, IntV i1, IntV i2 -> BoolV (i1 > i2)
+    | Gte, IntV i1, IntV i2 -> BoolV (i1 >= i2)
+    | _ -> raise @@ Eval_bug "binop: unexpected type of argument"
+  end
+
 let rec eval (env: (tyvar list * value) Environment.t) f =
   (* fprintf std_formatter "eval <-- %a\n" Pp.CC.pp_exp f; *)
   match f with
@@ -58,12 +71,7 @@ let rec eval (env: (tyvar list * value) Environment.t) f =
   | BinOp (_, op, f1, f2) ->
     let v1 = eval env f1 in
     let v2 = eval env f2 in
-    begin match op, v1, v2 with
-      | Plus, IntV i1, IntV i2 -> IntV (i1 + i2)
-      | Mult, IntV i1, IntV i2 -> IntV (i1 * i2)
-      | Lt, IntV i1, IntV i2 -> BoolV (i1 < i2)
-      | _ -> raise @@ Eval_bug "binop: unexpected type of argument"
-    end
+    eval_binop op v1 v2
   | FunExp (_, x, _, f') ->
     FunV (
       fun (xs, ys) -> fun v ->
