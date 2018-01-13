@@ -17,7 +17,7 @@ open Utils.Error
 %type <Syntax.GTLC.program> toplevel
 
 (* Ref: https://caml.inria.fr/pub/docs/manual-ocaml/expr.html *)
-%left  LT LTE GT GTE
+%left  EQ LT LTE GT GTE
 %left  PLUS MINUS
 %left  STAR DIV
 
@@ -72,6 +72,9 @@ BinOpExpr :
     }
   | e1=BinOpExpr DIV e2=BinOpExpr {
       BinOp (join_range (range_of_exp e1) (range_of_exp e2), Div, e1, e2)
+    }
+  | e1=BinOpExpr EQ e2=BinOpExpr {
+      BinOp (join_range (range_of_exp e1) (range_of_exp e2), Eq, e1, e2)
     }
   | e1=BinOpExpr LT e2=BinOpExpr {
       BinOp (join_range (range_of_exp e1) (range_of_exp e2), Lt, e1, e2)

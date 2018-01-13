@@ -34,7 +34,7 @@ let rec meet u1 u2 = match u1, u2 with
 
 let type_of_binop = function
   | Plus | Minus | Mult | Div -> TyInt, TyInt, TyInt
-  | Lt | Lte | Gt | Gte -> TyInt, TyInt, TyBool
+  | Eq | Lt | Lte | Gt | Gte -> TyInt, TyInt, TyBool
 
 (*
 let rec is_static_type = function
