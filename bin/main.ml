@@ -61,10 +61,11 @@ let rec read_eval_print lexbuf env tyenv =
   read_eval_print lexbuf env tyenv
 
 let () =
+  let usage = "Interpreter of the ITGL with runtime type inference" in
   let options = Arg.align [
-      ("-d", Arg.Unit (fun () -> debug := true), " Enable debug mode");
+      ("-d", Arg.Set debug, " Enable debug mode");
     ] in
-  Arg.parse options (fun _ -> ()) "help";
+  Arg.parse options (fun _ -> ()) usage;
   let lexbuf = Lexing.from_channel stdin in
   let env = Environment.empty in
   let tyenv = Environment.empty in
