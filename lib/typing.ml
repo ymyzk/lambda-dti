@@ -16,12 +16,12 @@ let tysc_of_ty u = TyScheme ([], u)
 let dom = function
   | TyFun (u1, _) -> u1
   | TyDyn -> TyDyn
-  | _ -> raise @@ Type_error "failed to match: dom"
+  | _ as u -> raise @@ Type_error (asprintf "failed to match: dom(%a)" pp_ty u)
 
 let cod = function
   | TyFun (_, u2) -> u2
   | TyDyn -> TyDyn
-  | _ -> raise @@ Type_error "failed to match: cod"
+  | _ as u -> raise @@ Type_error (asprintf "failed to match: cod(%a)" pp_ty u)
 
 let rec meet u1 u2 = match u1, u2 with
   | TyBool, TyBool -> TyBool
@@ -83,63 +83,18 @@ type substitutions = substitution list
 
 (* S(t) *)
 let subst_type s u =
-  let rec subst (x, u as s0) = function
-    | TyFun (u1, u2) -> TyFun (subst s0 u1, subst s0 u2)
-    | TyVar x' when x == x' -> u
+  (* {X':->U'}(U) *)
+  let rec subst u (x', u' as s0) = match u with
+    | TyFun (u1, u2) -> TyFun (subst u1 s0, subst u2 s0)
+    | TyVar ({ contents = None } as x) when x == x' -> u'
+    | TyVar ({ contents = Some u }) -> subst u s0
     | _ as u -> u
   in
-  List.fold_left (fun u s0 -> subst s0 u) u s
+  List.fold_left subst u s
 
 module GTLC = struct
   open Pp.GTLC
   open Syntax.GTLC
-
-  (* Constraint generation *)
-
-  let rec generate_constr_cod_eq = function
-    | TyVar ({ contents = Some u }) -> generate_constr_cod_eq u
-    | TyVar ({ contents = None }) as u ->
-      let x1, x2 = fresh_tyvar (), fresh_tyvar () in
-      x2, Constraints.singleton @@ CEqual (u, (TyFun (x1, x2)))
-    | TyFun (_, u2) -> u2, Constraints.empty
-    | TyDyn -> TyDyn, Constraints.empty
-    | _ as u ->
-      raise @@ Type_error (
-        asprintf "failed to generate constraints: cod(%a)" pp_ty u
-      )
-
-  let rec generate_constr_dom_con u1 u2 = match u1 with
-    | TyVar ({ contents = Some u1 }) -> generate_constr_dom_con u1 u2
-    | TyVar ({ contents = None }) as u ->
-      let x1, x2 = fresh_tyvar (), fresh_tyvar () in
-      let c = Constraints.singleton @@ CEqual (u, (TyFun (x1, x2))) in
-      Constraints.add (CConsistent (x1, u2)) c
-    | TyFun (u11, _) -> Constraints.singleton @@ CConsistent (u11, u2)
-    | TyDyn -> Constraints.singleton @@ CConsistent (u1, u2)
-    | _ as u -> raise @@ Type_error (
-        asprintf "failed to generate constraints: dom(%a)" pp_ty u
-      )
-
-  let rec generate_constr_meet u1 u2 = match u1, u2 with
-    | TyVar ({ contents = Some u1 }), u2
-    | u1, TyVar ({ contents = Some u2 }) ->
-      generate_constr_meet u1 u2
-    | TyBool, TyBool -> TyBool, Constraints.empty
-    | TyInt, TyInt -> TyInt, Constraints.empty
-    | TyDyn, u
-    | u, TyDyn ->
-      u, Constraints.singleton @@ CConsistent (u, TyDyn)
-    | TyVar x, u
-    | u, TyVar x ->
-      TyVar x, Constraints.singleton @@ CConsistent (u, TyVar x)
-    | TyFun (u11, u12), TyFun (u21, u22) ->
-      let u1, c1 = generate_constr_meet u11 u21 in
-      let u2, c2 = generate_constr_meet u12 u22 in
-      TyFun (u1, u2), Constraints.union c1 c2
-    | u1, u2 -> raise @@ Type_error (
-        asprintf "failed to generate constraints: meet(%a, %a)"
-          pp_ty u1 pp_ty u2
-      )
 
   (* Set of type variables used for tau and let polymorphism *)
 
@@ -172,12 +127,12 @@ module GTLC = struct
   let rec unify = function
     (* iota ~ iota *)
     | CConsistent (u1, u2) when u1 = u2 && is_base_type u1 -> ()
-    (* X ~ X *)
-    | CConsistent (TyVar x1, TyVar x2) when x1 == x2 -> ()
     (* When tyvar is already instantiated *)
     | CConsistent (TyVar ({ contents = Some u1 }), u2)
     | CConsistent (u1, TyVar ({ contents = Some u2 })) ->
       unify @@ CConsistent (u1, u2)
+    (* X ~ X *)
+    | CConsistent (TyVar x1, TyVar x2) when x1 == x2 -> ()
     (* ? ~ U or U ~ ? *)
     | CConsistent (TyDyn, _) | CConsistent (_, TyDyn) -> ()
     (* U11->U12 ~ U21->U22 *)
@@ -198,12 +153,13 @@ module GTLC = struct
       unify @@ CConsistent (x2, u2)
     (* iota = iota *)
     | CEqual (t1, t2) when t1 = t2 && is_base_type t1 -> ()
-    (* X = X *)
-    | CEqual (TyVar x1, TyVar x2) when x1 == x2 -> ()
     (* When tyvar is already instantiated *)
     | CEqual (TyVar ({ contents = Some u1 }), u2)
     | CEqual (u1, TyVar ({ contents = Some u2 })) ->
       unify @@ CEqual (u1, u2)
+    (* X = X *)
+    | CEqual (TyVar x1, TyVar x2) when x1 == x2 ->
+      ()
     (* T11->T12 = T21->T22 *)
     | CEqual (TyFun (t11, t12), TyFun (t21, t22)) (* when is_static_types [t11; t12; t21; t22] *) ->
       unify @@ CEqual (t11, t21);
@@ -216,6 +172,61 @@ module GTLC = struct
       x := Some t
     | _ as c ->
       raise @@ Type_error (asprintf "cannot solve a constraint: %a" pp_constr c)
+
+  (* Utility for type inference *)
+
+  let rec type_of_cod_eq = function
+    | TyVar ({ contents = Some u }) -> type_of_cod_eq u
+    | TyVar ({ contents = None }) as u ->
+      let x1, x2 = fresh_tyvar (), fresh_tyvar () in
+      unify @@ CEqual (u, (TyFun (x1, x2)));
+      x2
+    | TyFun (_, u2) -> u2
+    | TyDyn -> TyDyn
+    | _ as u ->
+      raise @@ Type_error (
+        asprintf "failed to generate constraints: cod(%a)" pp_ty u
+      )
+
+  let rec type_of_dom_con u1 u2 = match u1, u2 with
+    | TyVar ({ contents = Some u1 }), u2
+    | u1, TyVar ({ contents = Some u2 }) ->
+      type_of_dom_con u1 u2
+    | TyVar ({ contents = None }) as u, u2 ->
+      let x1, x2 = fresh_tyvar (), fresh_tyvar () in
+      unify @@ CEqual (u, (TyFun (x1, x2)));
+      unify @@ CConsistent (x1, u2)
+    | TyFun (u11, _), u2 ->
+      unify @@ CConsistent (u11, u2)
+    | TyDyn, u2 ->
+      unify @@ CConsistent (u1, u2)
+    | u1, u2 ->
+      raise @@ Type_error (
+        asprintf "failed to generate constraints: dom(%a) ~ %a" pp_ty u1 pp_ty u2
+      )
+
+  let rec type_of_meet u1 u2 = match u1, u2 with
+    | TyVar ({ contents = Some u1 }), u2
+    | u1, TyVar ({ contents = Some u2 }) ->
+      type_of_meet u1 u2
+    | TyBool, TyBool -> TyBool
+    | TyInt, TyInt -> TyInt
+    | TyDyn, u
+    | u, TyDyn ->
+      unify @@ CConsistent (u, TyDyn);
+      u
+    | TyVar x, u
+    | u, TyVar x ->
+      unify @@ CConsistent (u, TyVar x);
+      TyVar x
+    | TyFun (u11, u12), TyFun (u21, u22) ->
+      let u1 = type_of_meet u11 u21 in
+      let u2 = type_of_meet u12 u22 in
+      TyFun (u1, u2)
+    | u1, u2 -> raise @@ Type_error (
+        asprintf "failed to generate constraints: meet(%a, %a)"
+          pp_ty u1 pp_ty u2
+      )
 
   (* Type inference *)
 
@@ -245,18 +256,15 @@ module GTLC = struct
       let u2 = type_of_exp env e2 in
       let u3 = type_of_exp env e3 in
       unify @@ CConsistent (u1, TyBool);
-      let u4, c4 = generate_constr_meet u2 u3 in
-      List.iter unify @@ Constraints.elements c4;
-      u4
+      type_of_meet u2 u3
     | FunExp (_, x, u1, e) ->
       let u2 = type_of_exp (Environment.add x (tysc_of_ty u1) env) e in
       TyFun (u1, u2)
     | AppExp (_, e1, e2) ->
       let u1 = type_of_exp env e1 in
       let u2 = type_of_exp env e2 in
-      let u3, c3 = generate_constr_cod_eq u1 in
-      let c4 = generate_constr_dom_con u1 u2 in
-      List.iter unify @@ Constraints.elements @@ Constraints.union c3 c4;
+      let u3 = type_of_cod_eq u1 in
+      type_of_dom_con u1 u2;
       u3
     | LetExp (_, x, xs, e1, e2) when is_value e1 ->
       let u1 = type_of_exp env e1 in

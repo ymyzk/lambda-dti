@@ -37,13 +37,6 @@ module GTLC = struct
     | CEqual of ty * ty
     | CConsistent of ty * ty
 
-  module Constraints = Set.Make (
-    struct
-      type t = constr
-      let compare (x : constr) y = compare x y
-    end
-    )
-
   type exp =
     | Var of range * id * ty list ref
     | IConst of range * int
