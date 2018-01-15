@@ -49,7 +49,8 @@ let rec read_eval_print lexbuf env tyenv =
       Lexing.flush_input lexbuf
     | Parser.Error -> (* Menhir *)
       let token = Lexing.lexeme lexbuf in
-      print "Parser.Error: unexpected token %s\n" token
+      print "Parser.Error: unexpected token %s\n" token;
+      Lexing.flush_input lexbuf
     | Typing.Type_error message ->
       print "Type_error: %s\n" message
     | Eval.Blame (r, p) -> begin
