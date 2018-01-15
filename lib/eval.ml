@@ -58,8 +58,9 @@ let rec eval_binop op v1 v2 =
     | _ -> raise @@ Eval_bug "binop: unexpected type of argument"
   end
 
-let rec eval (env: (tyvar list * value) Environment.t) f =
-  (* fprintf std_formatter "eval <-- %a\n" Pp.CC.pp_exp f; *)
+let rec eval ?(debug=false) (env: (tyvar list * value) Environment.t) f =
+  if debug then fprintf err_formatter "eval <-- %a\n" Pp.CC.pp_exp f;
+  let eval = eval ~debug:debug in
   match f with
   | Var (_, x, us) ->
     let xs, v = Environment.find x env in
@@ -97,8 +98,10 @@ let rec eval (env: (tyvar list * value) Environment.t) f =
     eval (Environment.add x (xs, v1) env) f2
   | CastExp (r, f, u1, u2, p) ->
     let v = eval env f in
-    cast v u1 u2 r p
-and cast v u1 u2 r p =
+    cast ~debug:debug v u1 u2 r p
+and cast ?(debug=false) v u1 u2 r p =
+  if debug then fprintf err_formatter "cast <-- %a => %a\n" Pp.pp_ty u1 Pp.pp_ty u2;
+  let cast = cast ~debug:debug in
   (* fprintf std_formatter "cast <-- %a: %a => %a\n" pp_value v Pp.pp_ty u1 Pp.pp_ty u2; *)
   match u1, u2 with
   (* When type variables are instantiated *)
@@ -174,9 +177,9 @@ and cast v u1 u2 r p =
 let eval_program ?(debug=false) env p =
   match p with
   | Exp f ->
-    let v = eval env f (* ~debug:debug *) in
+    let v = eval env f ~debug:debug in
     env, "-", v
   | LetDecl (x, xs, f) ->
-    let v = eval env f (* ~debug:debug *) in
+    let v = eval env f ~debug:debug in
     let env = Environment.add x (xs, v) env in
     env, x, v
