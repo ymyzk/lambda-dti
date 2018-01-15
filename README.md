@@ -27,7 +27,7 @@ Run `$ ./_build/default/bin/main.exe --help` for command line options.
 
 ### Expressions `e`
 - Constants: integers, `true`, and `false`
-- Binary operators: `+`, `-`, `*`, `/`, `<`, `<=`, `>`, and `>=`
+- Binary operators: `+`, `-`, `*`, `/`, `=`, `<`, `<=`, `>`, and `>=`
 - Abstraction: `fun x -> e` and `fun (x: U) -> e`
 - Application: `e1 e2`
 - Let expression: `let x y ... = e1 in e2` and `let x (y: U1) ... = e2`
