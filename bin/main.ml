@@ -10,9 +10,15 @@ let rec read_eval_print lexbuf env tyenv =
   (* Used in all modes *)
   let print f = fprintf std_formatter f in
   (* Used in debug mode *)
-  let print_debug f = (if !debug then print else fprintf empty_formatter) f in
-  print "# @?";
+  let print_debug f =
+    if !debug then
+      fprintf err_formatter f
+    else
+      fprintf empty_formatter f
+  in
+  flush stderr;
   flush stdout;
+  print "# @?";
   begin try
       (* Parsing *)
       let e = Parser.toplevel Lexer.main lexbuf in
