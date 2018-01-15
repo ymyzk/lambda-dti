@@ -114,22 +114,12 @@ and cast ?(debug=false) v u1 u2 r p =
   (* IdStar *)
   | TyDyn, TyDyn -> v
   (* Succeed / Fail *)
-  | TyDyn, TyBool -> begin
-      match v with
-      | Tagged (B, v) -> v
-      | Tagged _ -> raise @@ Blame (r, p)
-      | _ -> raise @@ Eval_bug "untagged value"
-    end
-  | TyDyn, TyInt -> begin
-      match v with
-      | Tagged (I, v) -> v
-      | Tagged _ -> raise @@ Blame (r, p)
-      | _ -> raise @@ Eval_bug "untagged value"
-    end
-  | TyDyn, TyFun (TyDyn, TyDyn) -> begin
-      match v with
-      | Tagged (Ar, v) -> v
-      | Tagged _ -> raise @@ Blame (r, p)
+  | TyDyn, (TyBool | TyInt | TyFun (TyDyn, TyDyn) as u2) -> begin
+      match v, u2 with
+      | Tagged (B, v), TyBool -> v
+      | Tagged (I, v), TyInt -> v
+      | Tagged (Ar, v), TyFun (TyDyn, TyDyn) -> v
+      | Tagged _, _ -> raise @@ Blame (r, p)
       | _ -> raise @@ Eval_bug "untagged value"
     end
   (* AppCast *)
