@@ -7,8 +7,10 @@ exception Syntax_error
 let with_paren flag ppf_e ppf e =
   fprintf ppf (if flag then "(%a)" else "%a") ppf_e e
 
-let gt_ty (_: ty) = function
-  | TyFun _ -> true
+let rec gt_ty (u1: ty) u2 = match u1, u2 with
+  | TyVar ({ contents = Some u1 }), u2
+  | u1, TyVar ({ contents = Some u2 }) -> gt_ty u1 u2
+  | _, TyFun _ -> true
   | _ -> false
 
 let rec pp_ty ppf = function
