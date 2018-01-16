@@ -37,6 +37,8 @@ let rec subst_exp s = function
   | BinOp (r, op, f1, f2) -> BinOp (r, op, subst_exp s f1, subst_exp s f2)
   | IfExp (r, f1, f2, f3) -> IfExp (r, subst_exp s f1, subst_exp s f2, subst_exp s f3)
   | FunExp (r, x1, u1, f) -> FunExp (r, x1, subst_type s u1, subst_exp s f)
+  | FixExp (r, x, y, u1, u2, f) ->
+    FixExp (r, x, y, subst_type s u1, subst_type s u2, subst_exp s f)
   | AppExp (r, f1, f2) -> AppExp (r, subst_exp s f1, subst_exp s f2)
   | CastExp (r, f, u1, u2, p) -> CastExp (r, subst_exp s f, subst_type s u1, subst_type s u2, p)
   | LetExp (r, y, ys, f1, f2) ->
@@ -79,6 +81,15 @@ let rec eval ?(debug=false) (env: (tyvar list * value) Environment.t) f =
       fun (xs, ys) -> fun v ->
         eval (Environment.add x ([], v) env) @@ subst_exp (Utils.zip xs ys) f'
     )
+  | FixExp (_, x, y, _, _, f') ->
+    let f (xs, ys) v =
+      let f' = subst_exp (Utils.zip xs ys) f' in
+      let rec f _ v =
+        let env = Environment.add x (xs, FunV f) env in
+        let env = Environment.add y ([], v) env in
+        eval env f'
+      in f ([], []) v
+    in FunV f
   | AppExp (_, f1, f2) ->
     let v1 = eval env f1 in
     let v2 = eval env f2 in

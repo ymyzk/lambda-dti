@@ -45,6 +45,7 @@ module GTLC = struct
     | AscExp of range * exp * ty
     | IfExp of range * exp * exp * exp
     | FunExp of range * id * ty * exp
+    | FixExp of range * id * id * ty * ty * exp
     | AppExp of range * exp * exp
     | LetExp of range * id * tyvar list ref * exp * exp
 
@@ -56,6 +57,7 @@ module GTLC = struct
     | BinOp (r, _, _, _)
     | IfExp (r, _, _, _)
     | FunExp (r, _, _, _)
+    | FixExp (r, _, _, _, _, _)
     | AppExp (r, _, _)
     | LetExp (r, _, _, _, _) -> r
 
@@ -63,7 +65,8 @@ module GTLC = struct
   let is_value = function
     | IConst _
     | BConst _
-    | FunExp _ -> true
+    | FunExp _
+    | FixExp _ -> true
     | _ -> false
 
   type program =
@@ -83,6 +86,7 @@ module CC = struct
     | BinOp of range * op * exp * exp
     | IfExp of range * exp * exp * exp
     | FunExp of range * id * ty * exp
+    | FixExp of range * id * id * ty * ty * exp
     | AppExp of range * exp * exp
     | CastExp of range * exp * ty * ty * polarity
     | LetExp of range * id * tyvar list * exp * exp
@@ -94,6 +98,7 @@ module CC = struct
     | BinOp (r, _, _, _)
     | IfExp (r, _, _, _)
     | FunExp (r, _, _, _)
+    | FixExp (r, _, _, _, _, _)
     | AppExp (r, _, _)
     | CastExp (r, _, _, _, _)
     | LetExp (r, _, _, _, _) -> r
@@ -101,7 +106,8 @@ module CC = struct
   let rec is_value = function
     | IConst _
     | BConst _
-    | FunExp _ -> true
+    | FunExp _
+    | FixExp _-> true
     | CastExp (_, v, TyFun _, TyFun _, _) when is_value v -> true
     | CastExp (_, v, g, TyDyn, _) when is_value v && is_ground g -> true
     | _ -> false

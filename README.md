@@ -26,6 +26,7 @@ Run `$ ./_build/default/bin/main.exe --help` for command line options.
 ## Syntax
 ### Top-level
 - Let declaration: `let x y ... = e;;`
+- Recursion declaration: `let rec x y ... = e;;`
 - Expression: `e;;`
 
 ### Expressions `e`
@@ -34,6 +35,7 @@ Run `$ ./_build/default/bin/main.exe --help` for command line options.
 - Abstraction: `fun x -> e` and `fun (x: U) -> e`
 - Application: `e1 e2`
 - Let expression: `let x y ... = e1 in e2` and `let x (y: U1) ... = e2`
+- Recursion: `let rec x y ... = e1 in e2` and `let x (y: U1) ... = e2`
 - If-then-else Expression: `if e1 then e2 else e3`
 - Type ascription: `(e : U)`
 

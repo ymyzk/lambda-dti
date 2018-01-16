@@ -3,6 +3,7 @@ open Utils.Error
 
 let reservedWords = [
   ("let", fun r -> Parser.LET r);
+  ("rec", fun r -> Parser.REC r);
   ("in", fun r -> Parser.IN r);
   ("fun", fun r -> Parser.FUN r);
   ("if", fun r -> Parser.IF r);

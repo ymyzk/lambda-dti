@@ -105,7 +105,7 @@ module GTLC = struct
       fprintf ppf "%a ~.~ %a" pp_ty u1 pp_ty u2
 
   let gt_exp e1 e2 = match e1, e2 with
-    | (Var _ | IConst _ | BConst _ | AscExp _ | AppExp _ | BinOp _ | IfExp _), (LetExp _ | FunExp _) -> true
+    | (Var _ | IConst _ | BConst _ | AscExp _ | AppExp _ | BinOp _ | IfExp _), (LetExp _ | FunExp _ | FixExp _) -> true
     | (Var _ | IConst _ | BConst _ | AscExp _ | AppExp _ | BinOp _), IfExp _ -> true
     | BinOp (_, op1, _, _), BinOp (_, op2, _, _) -> gt_binop op1 op2
     | (Var _ | IConst _ | BConst _ | AscExp _ | AppExp _), BinOp _ -> true
@@ -115,6 +115,7 @@ module GTLC = struct
   let gte_exp e1 e2 = match e1, e2 with
     | LetExp _, LetExp _ -> true
     | FunExp _, FunExp _ -> true
+    | FixExp _, FixExp _ -> true
     | IfExp _, IfExp _ -> true
     | BinOp (_, op1, _, _), BinOp (_, op2, _, _) when op1 = op2 -> true
     | AppExp _, AppExp _ -> true
@@ -143,6 +144,13 @@ module GTLC = struct
         x1
         pp_ty u1
         pp_exp e
+    | FixExp (r, x, y, u1, u2, e) ->
+      fprintf ppf "fix %s (%s: %a): %a = %a"
+        x
+        y
+        pp_ty u1
+        pp_ty u2
+        pp_exp e
     | AppExp (_, e1, e2) as e ->
       fprintf ppf "%a %a"
         (with_paren (gt_exp e e1) pp_exp) e1
@@ -167,7 +175,7 @@ module CC = struct
   open Syntax.CC
 
   let gt_exp f1 f2 = match f1, f2 with
-    | (Var _ | IConst _ | BConst _ | AppExp _ | BinOp _ | IfExp _ | CastExp _), (LetExp _ | FunExp _) -> true
+    | (Var _ | IConst _ | BConst _ | AppExp _ | BinOp _ | IfExp _ | CastExp _), (LetExp _ | FunExp _ | FixExp _) -> true
     | (Var _ | IConst _ | BConst _ | AppExp _ | BinOp _ | IfExp _), CastExp _ -> true
     | (Var _ | IConst _ | BConst _ | AppExp _ | BinOp _), IfExp _ -> true
     | BinOp (_, op1, _, _), BinOp (_, op2, _, _) -> gt_binop op1 op2
@@ -176,7 +184,7 @@ module CC = struct
     | _ -> false
 
   let gte_exp f1 f2 = match f1, f2 with
-    | (LetExp _ | FunExp _), (LetExp _ | FunExp _) -> true
+    | (LetExp _ | FunExp _ | FixExp _), (LetExp _ | FunExp _ | FixExp _) -> true
     | IfExp _, IfExp _ -> true
     | BinOp (_, op1, _, _), BinOp (_, op2, _, _) when op1 = op2 -> true
     | AppExp _, AppExp _ -> true
@@ -201,6 +209,13 @@ module CC = struct
       fprintf ppf "fun (%s: %a) -> %a"
         x1
         pp_ty u1
+        pp_exp f
+    | FixExp (r, x, y, u1, u2, f) ->
+      fprintf ppf "fix %s (%s: %a): %a = %a"
+        x
+        y
+        pp_ty u1
+        pp_ty u2
         pp_exp f
     | AppExp (_, f1, f2) as f ->
       fprintf ppf "%a %a"

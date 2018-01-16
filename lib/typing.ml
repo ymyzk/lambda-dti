@@ -36,12 +36,13 @@ let type_of_binop = function
   | Plus | Minus | Mult | Div -> TyInt, TyInt, TyInt
   | Eq | Lt | Lte | Gt | Gte -> TyInt, TyInt, TyBool
 
-(*
 let rec is_static_type = function
+  | TyVar ({ contents = Some u }) -> is_static_type u
   | TyFun (u1, u2) -> (is_static_type u1) && (is_static_type u2)
   | TyDyn -> false
   | _ -> true
 
+(*
 let is_static_types types = List.fold_left (&&) true @@ List.map is_static_type types
 *)
 
@@ -157,6 +158,8 @@ module GTLC = struct
     | CEqual (TyVar ({ contents = Some u1 }), u2)
     | CEqual (u1, TyVar ({ contents = Some u2 })) ->
       unify @@ CEqual (u1, u2)
+    | CEqual (u1, u2) as c when not (is_static_type u1 && is_static_type u2) ->
+      raise @@ Type_bug (asprintf "invalid constraint: %a" pp_constr c)
     (* X = X *)
     | CEqual (TyVar x1, TyVar x2) when x1 == x2 ->
       ()
@@ -264,6 +267,12 @@ module GTLC = struct
     | FunExp (_, x, u1, e) ->
       let u2 = type_of_exp (Environment.add x (tysc_of_ty u1) env) e in
       TyFun (u1, u2)
+    | FixExp (_, x, y, u1, u2, e) ->
+      let env = Environment.add x (tysc_of_ty (TyFun (u1, u2))) env in
+      let env = Environment.add y (tysc_of_ty u1) env in
+      let u2' = type_of_exp env e in
+      unify @@ CConsistent (u2, u2');
+      TyFun (u1, u2)
     | AppExp (_, e1, e2) ->
       let u1 = type_of_exp env e1 in
       let u2 = type_of_exp env e2 in
@@ -312,6 +321,8 @@ module GTLC = struct
       IfExp (r, normalize_exp e1, normalize_exp e2, normalize_exp e3)
     | FunExp (r, x1, u1, e) ->
       FunExp (r, x1, normalize_type u1, normalize_exp e)
+    | FixExp (r, x, y, u1, u2, e) ->
+      FixExp (r, x, y, normalize_type u1, normalize_type u2, normalize_exp e)
     | AppExp (r, e1, e2) ->
       AppExp (r, normalize_exp e1, normalize_exp e2)
     | LetExp (r, y, ys, e1, e2) ->
@@ -359,6 +370,13 @@ module GTLC = struct
     | FunExp (r, x, u1, e) ->
       let f, u2 = translate_exp (Environment.add x (tysc_of_ty u1) env) e in
       CC.FunExp (r, x, u1, f), TyFun (u1, u2)
+    | FixExp (r, x, y, u1, u2, e) ->
+      (* NOTE: Disallow to use x polymorphically in e *)
+      let env = Environment.add x (tysc_of_ty (TyFun (u1, u2))) env in
+      let env = Environment.add y (tysc_of_ty u1) env in
+      let f, u2' = translate_exp env e in
+      let u, u' = TyFun (u1, u2), TyFun (u1, u2') in
+      CC.FixExp (r, x, y, u1, u2, cast f u2' u2), u
     | AppExp (r, e1, e2) ->
       let f1, u1 = translate_exp env e1 in
       let f2, u2 = translate_exp env e2 in
@@ -416,6 +434,9 @@ module CC = struct
         raise @@ Type_bug "if"
     | FunExp (_, x, u1, f) ->
       let u2 = type_of_exp (Environment.add x (tysc_of_ty u1) env) f in
+      TyFun (u1, u2)
+    | FixExp (r, x, y, u1, u, f) ->
+      let u2 = type_of_exp (Environment.add y (tysc_of_ty u1) (Environment.add x (tysc_of_ty (TyFun (u1, u))) env)) f in
       TyFun (u1, u2)
     | AppExp (_, f1, f2) ->
       let u1 = type_of_exp env f1 in

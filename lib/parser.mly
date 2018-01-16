@@ -6,7 +6,7 @@ open Utils.Error
 
 %token <Utils.Error.range> LPAREN RPAREN SEMISEMI COLON EQ
 %token <Utils.Error.range> PLUS MINUS STAR DIV LT LTE GT GTE
-%token <Utils.Error.range> LET IN FUN IF THEN ELSE
+%token <Utils.Error.range> LET REC IN FUN IF THEN ELSE
 %token <Utils.Error.range> INT BOOL QUESTION RARROW
 %token <Utils.Error.range> TRUE FALSE
 
@@ -30,12 +30,30 @@ toplevel :
       let e = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e in
       LetDecl (x.value, ref [], e)
     }
+  | start=LET REC x=ID params=LetParams EQ e=Expr SEMISEMI {
+      let r = join_range start (range_of_exp e) in
+      match params with
+      | [] -> LetDecl (x.value, ref [], e)
+      | (y, u1) :: params ->
+        let u2 = Typing.fresh_tyvar () in
+        let e = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e in
+        LetDecl (x.value, ref [], FixExp (r, x.value, y.value, u1, u2, e))
+    }
 
 Expr :
   | start=LET x=ID params=LetParams EQ e1=Expr IN e2=Expr {
       let r = join_range start (range_of_exp e2) in
       let e1 = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e1 in
       LetExp (r, x.value, ref [], e1, e2)
+    }
+  | start=LET REC x=ID params=LetParams EQ e1=Expr IN e2=Expr {
+      let r = join_range start (range_of_exp e2) in
+      match params with
+      | [] -> LetExp (r, x.value, ref [], e1, e2)
+      | (y, u1) :: params ->
+        let u2 = Typing.fresh_tyvar () in
+        let e1 = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e1 in
+        LetExp (r, x.value, ref [], FixExp (r, x.value, y.value, u1, u2, e1), e2)
     }
   | start=FUN params=FunParams RARROW e=Expr {
       let r = join_range start (range_of_exp e) in

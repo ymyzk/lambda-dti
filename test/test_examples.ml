@@ -65,22 +65,17 @@ let test_examples =
     "let k = fun x y -> x in k", "'a -> 'b -> 'a", "<fun>";
     "let s = fun x y z -> x z (y z) in let k = fun x y -> x in s k k", "'a -> 'a", "<fun>";
     "let s = fun x y z -> x z (y z) in let k = fun x y -> x in s k k 1", "int", "1";
+    "let s = fun (x:?) (y:?) (z:?) -> x z (y z) in let k = fun x y -> x in s k k 1", "?", "1: int => ?";
     "let succ x = x + 1 in let twice f x = f (f x) in twice succ 1", "int", "3";
-(*
-    "let s = fun x y z -> x z (y z) in s", "('a -> 'b -> 'c) -> ('a -> 'b) -> 'a -> 'c", "<fun>";
- *
-    "fun (x:?) -> x + 2", "? -> int";
-    "(fun (x:?) -> x + 2) 3", "int";
-    "(fun (x:?) -> x + 2) true", "int";
-    "(fun (x:?) -> x 2) (fun y -> true)", "?";
-    "(fun (x:?) -> x) (fun y -> y)", "?";
-    "(fun (x:?) -> x 2) (fun y -> y)", "?";
-    "let id x = x", "'a -> 'a";
-    "let dynid (x:?) = x", "? -> ?";
-    "let succ x = x + 1", "int -> int";
-    "let id x = x in let did (x:?) = x in let succ x = x + 1 in (fun (x:?) -> x 1) (id (did succ))", "?";
-    "let id x = x in let did (x:?) = x in let succ x = x + 1 in (fun (x:?) -> x true) (id (did succ))", "?";
-*)
+    "let id x = x in let did (x:?) = x in let succ x = x + 1 in (fun (x:?) -> x 1) (id (did succ))", "?", "2: int => ?";
+    (* let-poly & recursion *)
+    "let rec fact n = if n <= 1 then 1 else n * fact (n - 1) in fact 5", "int", "120";
+    "let rec fact (n:?) = if n <= 1 then 1 else n * fact (n - 1) in fact 5", "int", "120";
+    "let rec f (x:?) = x in f 2", "int", "2";
+    "let rec f n x = if n < 0 then x else f (n - 1) x in f 100 true", "bool", "true";
+    "let rec f (n:?) (x:?) = if n < 0 then x else f (n - 1) x in f 100 true", "bool", "true";
+    "let rec f n (x:?) = if n <= 0 then x else f 0 x in f 0 true", "bool", "true";
+    "let rec f n (x:?) = if n <= 0 then x else f 0 x in f 10 true", "bool", "true";
   ]
 
 let suite = [
