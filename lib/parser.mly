@@ -101,6 +101,9 @@ SimpleExpr :
   | r=TRUE { BConst (r, true) }
   | r=FALSE { BConst (r, false) }
   | x=ID { Var (x.range, x.value, ref []) }
+  | start=LPAREN e=Expr COLON u=Type last=RPAREN {
+      AscExp (join_range start last, e, u)
+    }
   | LPAREN f=Expr RPAREN { f }
 
 Type :

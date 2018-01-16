@@ -27,6 +27,8 @@ module GTLC = struct
       "1", "int";
       "true", "bool";
       "1 + 2 + 3", "int";
+      "(true : ?)", "?";
+      "((true : ?) : int)", "int";
       "fun x -> x + 1", "int -> int";
       "fun x -> x", "'a -> 'a";
       "fun (x:?) -> x + 2", "? -> int";

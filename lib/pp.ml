@@ -103,11 +103,11 @@ module GTLC = struct
       fprintf ppf "%a ~.~ %a" pp_ty u1 pp_ty u2
 
   let gt_exp e1 e2 = match e1, e2 with
-    | (Var _ | IConst _ | BConst _ | AppExp _ | BinOp _ | IfExp _), (LetExp _ | FunExp _) -> true
-    | (Var _ | IConst _ | BConst _ | AppExp _ | BinOp _), IfExp _ -> true
+    | (Var _ | IConst _ | BConst _ | AscExp _ | AppExp _ | BinOp _ | IfExp _), (LetExp _ | FunExp _) -> true
+    | (Var _ | IConst _ | BConst _ | AscExp _ | AppExp _ | BinOp _), IfExp _ -> true
     | BinOp (_, op1, _, _), BinOp (_, op2, _, _) -> gt_binop op1 op2
-    | (Var _ | IConst _ | BConst _ | AppExp _), BinOp _ -> true
-    | (Var _ | IConst _ | BConst _), AppExp _ -> true
+    | (Var _ | IConst _ | BConst _ | AscExp _ | AppExp _), BinOp _ -> true
+    | (Var _ | IConst _ | BConst _ | AscExp _), AppExp _ -> true
     | _ -> false
 
   let gte_exp e1 e2 = match e1, e2 with
@@ -127,6 +127,10 @@ module GTLC = struct
         (with_paren (gt_exp e e1) pp_exp) e1
         pp_binop op
         (with_paren (gt_exp e e2) pp_exp) e2
+    | AscExp (_, e, u) ->
+      fprintf ppf "(%a : %a)"
+        pp_exp e
+        pp_ty u
     | IfExp (_, e1, e2, e3) as e ->
       fprintf ppf "if %a then %a else %a"
         (with_paren (gt_exp e e1) pp_exp) e1

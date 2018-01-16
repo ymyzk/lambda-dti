@@ -251,6 +251,10 @@ module GTLC = struct
       unify @@ CConsistent (u1, ui1);
       unify @@ CConsistent (u2, ui2);
       ui
+    | AscExp (_, e, u1) ->
+      let u = type_of_exp env e in
+      unify @@ CConsistent (u, u1);
+      u1
     | IfExp (_, e1, e2, e3) ->
       let u1 = type_of_exp env e1 in
       let u2 = type_of_exp env e2 in
@@ -301,6 +305,8 @@ module GTLC = struct
     | BConst _ as e -> e
     | BinOp (r, op, e1, e2) ->
       BinOp (r, op, normalize_exp e1, normalize_exp e2)
+    | AscExp (r, e, u) ->
+      AscExp (r, normalize_exp e, normalize_type u)
     | IfExp (r, e1, e2, e3) ->
       IfExp (r, normalize_exp e1, normalize_exp e2, normalize_exp e3)
     | FunExp (r, x1, u1, e) ->
@@ -337,6 +343,12 @@ module GTLC = struct
       let f1, u1 = translate_exp env e1 in
       let f2, u2 = translate_exp env e2 in
       CC.BinOp (r, op, cast f1 u1 ui1, cast f2 u2 ui2), ui
+    | AscExp (r, e, u1) ->
+      let f, u = translate_exp env e in
+      if is_consistent u u1 then
+        cast f u u1, u1
+      else
+        raise @@ Type_bug "type ascription"
     | IfExp (r, e1, e2, e3) ->
       let f1, u1 = translate_exp env e1 in
       let f2, u2 = translate_exp env e2 in

@@ -55,6 +55,7 @@ module GTLC = struct
       "1 * 2 + 3 * 4";
       "(1 + 2) * (3 + 4)";
       "(fun (x: ?) -> x) (fun (y: ?) -> y)";
+      "1 + (2 : ?)";
     ]
 
   let suite = [

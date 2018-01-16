@@ -42,6 +42,7 @@ module GTLC = struct
     | IConst of range * int
     | BConst of range * bool
     | BinOp of range * op * exp * exp
+    | AscExp of range * exp * ty
     | IfExp of range * exp * exp * exp
     | FunExp of range * id * ty * exp
     | AppExp of range * exp * exp
@@ -61,6 +62,7 @@ module GTLC = struct
     | Var (r, _, _)
     | IConst (r, _)
     | BConst (r, _)
+    | AscExp (r, _, _)
     | BinOp (r, _, _, _)
     | IfExp (r, _, _, _)
     | FunExp (r, _, _, _)

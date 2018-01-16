@@ -37,6 +37,9 @@ let test_examples =
     "3 * 2 + 3", "int", "9";
     "3 * (2 + 3)", "int", "15";
     "3 = 3", "bool", "true";
+    (* Type ascription *)
+    "(2 : ?)", "?", "2: int => ?";
+    "((2: ?): int)", "int", "2";
     (* if-then-else *)
     "if 2 < 3 then 4 else 5", "int", "4";
     "if 3 < 3 then 4 else 5", "int", "5";
