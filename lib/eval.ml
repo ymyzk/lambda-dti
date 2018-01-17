@@ -126,11 +126,13 @@ and cast ?(debug=false) v u1 u2 r p =
   | TyFun (u11, u12), TyFun (u21, u22) -> begin
       match v with
       | FunV proc ->
-        FunV (fun _ -> fun x ->
-            let arg = cast x u21 u11 r @@ neg p in
-            let res = proc ([], []) arg in
-            cast res u12 u22 r p
-          )
+        FunV (
+          fun (xs, ys) x ->
+            let subst = subst_type @@ Utils.zip xs ys in
+            let arg = cast x (subst u21) (subst u11) r @@ neg p in
+            let res = proc (xs, ys) arg in
+            cast res (subst u12) (subst u22) r p
+        )
       | _ -> raise @@ Eval_bug "non procedural value"
     end
   (* Tagged *)
