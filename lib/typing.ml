@@ -277,7 +277,8 @@ module GTLC = struct
       let us1 = TyScheme (free_tyvars, u1) in
       type_of_exp (Environment.add x us1 env) e2
     | LetExp (r, x, _, e1, e2) ->
-      type_of_exp env @@ AppExp (r, FunExp (r, x, fresh_tyvar (), e2), e1)
+      let u1 = type_of_exp env e1 in
+      type_of_exp env @@ AppExp (r, FunExp (r, x, u1, e2), e1)
 
   let type_of_program tyenv = function
     | Exp e ->
