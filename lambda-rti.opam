@@ -10,7 +10,7 @@ build: [
   ["jbuilder" "build" "-p" name "-j" jobs]
 ]
 depends: [
-  "jbuilder" {build & >="1.0+beta14"}
+  "jbuilder" {build & >="1.0+beta16"}
   "menhir"
   "ounit" {test}
 ]
