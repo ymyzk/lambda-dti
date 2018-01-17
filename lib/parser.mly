@@ -30,13 +30,23 @@ toplevel :
       let e = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e in
       LetDecl (x.value, ref [], e)
     }
+  /* TODO: Refactor the following two rules */
   | start=LET REC x=ID params=LetParams EQ e=Expr SEMISEMI {
       let r = join_range start (range_of_exp e) in
       match params with
       | [] -> LetDecl (x.value, ref [], e)
       | (y, u1) :: params ->
-        let u2 = Typing.fresh_tyvar () in
         let e = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e in
+        let u2 = List.fold_right (fun (_, u1) u -> TyFun (u1, u)) params (Typing.fresh_tyvar ()) in
+        LetDecl (x.value, ref [], FixExp (r, x.value, y.value, u1, u2, e))
+    }
+  | start=LET REC x=ID params=LetParams COLON u2=Type EQ e=Expr SEMISEMI {
+      let r = join_range start (range_of_exp e) in
+      match params with
+      | [] -> LetDecl (x.value, ref [], AscExp (r, e, u2))
+      | (y, u1) :: params ->
+        let e = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e in
+        let u2 = List.fold_right (fun (_, u1) u -> TyFun (u1, u)) params u2 in
         LetDecl (x.value, ref [], FixExp (r, x.value, y.value, u1, u2, e))
     }
 
@@ -46,13 +56,23 @@ Expr :
       let e1 = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e1 in
       LetExp (r, x.value, ref [], e1, e2)
     }
+  /* TODO: Refactor the following two rules */
   | start=LET REC x=ID params=LetParams EQ e1=Expr IN e2=Expr {
       let r = join_range start (range_of_exp e2) in
       match params with
       | [] -> LetExp (r, x.value, ref [], e1, e2)
       | (y, u1) :: params ->
-        let u2 = Typing.fresh_tyvar () in
         let e1 = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e1 in
+        let u2 = List.fold_right (fun (_, u1) u -> TyFun (u1, u)) params (Typing.fresh_tyvar ()) in
+        LetExp (r, x.value, ref [], FixExp (r, x.value, y.value, u1, u2, e1), e2)
+    }
+  | start=LET REC x=ID params=LetParams COLON u2=Type EQ e1=Expr IN e2=Expr {
+      let r = join_range start (range_of_exp e2) in
+      match params with
+      | [] -> LetExp (r, x.value, ref [], AscExp (r, e1, u2), e2)
+      | (y, u1) :: params ->
+        let e1 = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e1 in
+        let u2 = List.fold_right (fun (_, u1) u -> TyFun (u1, u)) params u2 in
         LetExp (r, x.value, ref [], FixExp (r, x.value, y.value, u1, u2, e1), e2)
     }
   | start=FUN params=FunParams RARROW e=Expr {

@@ -46,6 +46,7 @@ module GTLC = struct
       "let succ x = x + 1", "int -> int";
       "let id x = x in let did (x:?) = x in let succ x = x + 1 in (fun (x:?) -> x 1) (id (did succ))", "?";
       "let id x = x in let did (x:?) = x in let succ x = x + 1 in (fun (x:?) -> x true) (id (did succ))", "?";
+      "let rec f x (y:bool) z: int = 1 in f", "'a -> bool -> 'b -> int";
     ]
 
   let test_type_of_program_errors =
