@@ -124,6 +124,12 @@ module CC = struct
 
   type tag = I | B | U | Ar
 
+  let tag_to_ty = function
+    | I -> TyInt
+    | B -> TyBool
+    | U -> TyUnit
+    | Ar -> TyFun (TyDyn, TyDyn)
+
   type value =
     | IntV of int
     | BoolV of bool

@@ -146,14 +146,8 @@ and cast ?(debug=false) v u1 u2 r p =
   (* InstBase / InstArrow *)
   | TyDyn, TyVar ({ contents = None } as x) -> begin
     match v with
-      | Tagged (B, v) ->
-        x := Some TyBool;
-        v
-      | Tagged (I, v) ->
-        x := Some TyInt;
-        v
-      | Tagged (U, v) ->
-        x := Some TyUnit;
+      | Tagged (B | I | U as t, v) ->
+        x := Some (tag_to_ty t);
         v
       | Tagged (Ar, v) ->
         let u2 = TyFun (Typing.fresh_tyvar (), Typing.fresh_tyvar ()) in

@@ -254,11 +254,7 @@ module CC = struct
         pp_let_tyabses xs
         pp_exp f
 
-  let pp_tag ppf = function
-    | B -> pp_print_string ppf "bool"
-    | I -> pp_print_string ppf "int"
-    | U -> pp_print_string ppf "unit"
-    | Ar -> pp_print_string ppf "? -> ?"
+  let pp_tag ppf t = pp_ty ppf @@ tag_to_ty t
 
   let rec pp_value ppf = function
     | BoolV b -> pp_print_bool ppf b
