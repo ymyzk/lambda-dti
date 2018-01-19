@@ -16,6 +16,16 @@ This implementation consists of:
 - OUnit (for running unit tests)
 
 ## Getting started
+### Installation
+```console
+$ jbuilder build
+$ jbuilder install
+$ lrti
+```
+
+Run `$ lrti --help` for command line options.
+
+### Local installation
 ```console
 $ jbuilder build
 $ ./_build/default/bin/main.exe
