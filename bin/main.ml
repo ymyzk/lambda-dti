@@ -74,6 +74,5 @@ let () =
     ] in
   Arg.parse options (fun _ -> ()) usage;
   let lexbuf = Lexing.from_channel stdin in
-  let env = Environment.empty in
-  let tyenv = Environment.empty in
+  let env, tyenv = Stdlib.pervasives in
   read_eval_print lexbuf env tyenv
