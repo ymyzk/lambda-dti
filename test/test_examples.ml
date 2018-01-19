@@ -65,6 +65,8 @@ let test_examples =
     (* runtime type inference *)
     "(fun (x:?) -> x 2) (fun y -> y)", "?", "2: int => ?";
     "(fun (f:?) -> f 2) ((fun x -> x) ((fun (y:?) -> y) (fun z -> z + 1)))", "?", "3: int => ?";
+    "(fun (x:?) -> (fun y -> y) x) (fun (z:?) -> z + 1) 3", "int", "4";
+    "(fun x -> x) ((fun (y:?) -> y) (fun x -> x + 1)) 1", "int", "2";
     (* let-poly *)
     "let s = fun x y z -> x z (y z) in s", "('a -> 'b -> 'c) -> ('a -> 'b) -> 'a -> 'c", "<fun>";
     "let k = fun x y -> x in k", "'a -> 'b -> 'a", "<fun>";
