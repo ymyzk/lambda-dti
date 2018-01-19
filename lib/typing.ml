@@ -26,6 +26,7 @@ let cod = function
 let rec meet u1 u2 = match u1, u2 with
   | TyBool, TyBool -> TyBool
   | TyInt, TyInt -> TyInt
+  | TyUnit, TyUnit -> TyUnit
   | TyVar x1, TyVar x2 when x1 = x2 -> TyVar x1
   | TyDyn, u | u, TyDyn -> u
   | TyFun (u11, u12), TyFun (u21, u22) ->
@@ -49,13 +50,13 @@ let is_static_types types = List.fold_left (&&) true @@ List.map is_static_type 
 let rec is_bv_type = function
   | TyBool
   | TyInt
+  | TyUnit
   | TyVar ({ contents = None }) -> true
   | TyVar ({ contents = Some u }) -> is_bv_type u
   | _ -> false
 
 let is_base_type = function
-  | TyBool
-  | TyInt -> true
+  | TyBool | TyInt | TyUnit -> true
   | _ -> false
 
 let rec is_tyvar = function
@@ -66,7 +67,8 @@ let rec is_tyvar = function
 let rec is_consistent u1 u2 = match u1, u2 with
   | TyDyn, TyDyn
   | TyBool, TyBool
-  | TyInt, TyInt -> true
+  | TyInt, TyInt
+  | TyUnit, TyUnit -> true
   | TyVar x1, TyVar x2 when x1 == x2 -> true
   | TyVar ({ contents = Some u1 }), u2
   | u1, TyVar ({ contents = Some u2 }) ->
@@ -214,6 +216,7 @@ module GTLC = struct
       type_of_meet u1 u2
     | TyBool, TyBool -> TyBool
     | TyInt, TyInt -> TyInt
+    | TyUnit, TyUnit -> TyUnit
     | TyDyn, u
     | u, TyDyn ->
       unify @@ CConsistent (u, TyDyn);
@@ -247,6 +250,7 @@ module GTLC = struct
       end
     | IConst _ -> TyInt
     | BConst _ -> TyBool
+    | UConst _ -> TyUnit
     | BinOp (_, op, e1, e2) ->
       let ui1, ui2, ui = type_of_binop op in
       let u1 = type_of_exp env e1 in
@@ -312,7 +316,8 @@ module GTLC = struct
   let rec normalize_exp = function
     | Var (r, x, ys) -> Var (r, x, ref @@ List.map normalize_type !ys)
     | IConst _
-    | BConst _ as e -> e
+    | BConst _
+    | UConst _ as e -> e
     | BinOp (r, op, e1, e2) ->
       BinOp (r, op, normalize_exp e1, normalize_exp e2)
     | AscExp (r, e, u) ->
@@ -350,6 +355,7 @@ module GTLC = struct
       end
     | IConst (r, i) -> CC.IConst (r, i), TyInt
     | BConst (r, b) -> CC.BConst (r, b), TyBool
+    | UConst r -> CC.UConst r, TyUnit
     | BinOp (r, op, e1, e2) ->
       let ui1, ui2, ui = type_of_binop op in
       let f1, u1 = translate_exp env e1 in
@@ -416,6 +422,7 @@ module CC = struct
       end
     | IConst _ -> TyInt
     | BConst _ -> TyBool
+    | UConst _ -> TyUnit
     | BinOp (_, op, f1, f2) ->
       let u1 = type_of_exp env f1 in
       let u2 = type_of_exp env f2 in

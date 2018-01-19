@@ -19,6 +19,7 @@ let rec pp_ty ppf = function
   | TyVar ({ contents = Some u }) -> pp_ty ppf u
   | TyInt -> pp_print_string ppf "int"
   | TyBool -> pp_print_string ppf "bool"
+  | TyUnit -> pp_print_string ppf "unit"
   | TyFun (u1, u2) as u ->
     fprintf ppf "%a -> %a"
       (with_paren (gt_ty u u1) pp_ty) u1
@@ -46,6 +47,7 @@ let pp_ty2 ppf u =
     | TyVar x -> pp_tyvar ppf x
     | TyInt -> pp_print_string ppf "int"
     | TyBool -> pp_print_string ppf "bool"
+    | TyUnit -> pp_print_string ppf "unit"
     | TyFun (u1, u2) as u ->
       fprintf ppf "%a -> %a"
         (with_paren (gt_ty u u1) pp_ty) u1
@@ -105,11 +107,11 @@ module GTLC = struct
       fprintf ppf "%a ~.~ %a" pp_ty u1 pp_ty u2
 
   let gt_exp e1 e2 = match e1, e2 with
-    | (Var _ | IConst _ | BConst _ | AscExp _ | AppExp _ | BinOp _ | IfExp _), (LetExp _ | FunExp _ | FixExp _) -> true
-    | (Var _ | IConst _ | BConst _ | AscExp _ | AppExp _ | BinOp _), IfExp _ -> true
+    | (Var _ | IConst _ | BConst _ | UConst _ | AscExp _ | AppExp _ | BinOp _ | IfExp _), (LetExp _ | FunExp _ | FixExp _) -> true
+    | (Var _ | IConst _ | BConst _ | UConst _ | AscExp _ | AppExp _ | BinOp _), IfExp _ -> true
     | BinOp (_, op1, _, _), BinOp (_, op2, _, _) -> gt_binop op1 op2
-    | (Var _ | IConst _ | BConst _ | AscExp _ | AppExp _), BinOp _ -> true
-    | (Var _ | IConst _ | BConst _ | AscExp _), AppExp _ -> true
+    | (Var _ | IConst _ | BConst _ | UConst _ | AscExp _ | AppExp _), BinOp _ -> true
+    | (Var _ | IConst _ | BConst _ | UConst _ | AscExp _), AppExp _ -> true
     | _ -> false
 
   let gte_exp e1 e2 = match e1, e2 with
@@ -125,6 +127,7 @@ module GTLC = struct
     | Var (_, x, ys) -> pp_print_var ppf (x, !ys)
     | BConst (_, b) -> pp_print_bool ppf b
     | IConst (_, i) -> pp_print_int ppf i
+    | UConst _ -> pp_print_string ppf "()"
     | BinOp (_, op, e1, e2) as e ->
       fprintf ppf "%a %a %a"
         (with_paren (gt_exp e e1) pp_exp) e1
@@ -175,12 +178,12 @@ module CC = struct
   open Syntax.CC
 
   let gt_exp f1 f2 = match f1, f2 with
-    | (Var _ | IConst _ | BConst _ | AppExp _ | BinOp _ | IfExp _ | CastExp _), (LetExp _ | FunExp _ | FixExp _) -> true
-    | (Var _ | IConst _ | BConst _ | AppExp _ | BinOp _ | IfExp _), CastExp _ -> true
-    | (Var _ | IConst _ | BConst _ | AppExp _ | BinOp _), IfExp _ -> true
+    | (Var _ | IConst _ | BConst _ | UConst _ | AppExp _ | BinOp _ | IfExp _ | CastExp _), (LetExp _ | FunExp _ | FixExp _) -> true
+    | (Var _ | IConst _ | BConst _ | UConst _ | AppExp _ | BinOp _ | IfExp _), CastExp _ -> true
+    | (Var _ | IConst _ | BConst _ | UConst _ | AppExp _ | BinOp _), IfExp _ -> true
     | BinOp (_, op1, _, _), BinOp (_, op2, _, _) -> gt_binop op1 op2
-    | (Var _ | IConst _ | BConst _ | AppExp _), BinOp _ -> true
-    | (Var _ | IConst _ | BConst _), AppExp _ -> true
+    | (Var _ | IConst _ | BConst _ | UConst _ | AppExp _), BinOp _ -> true
+    | (Var _ | IConst _ | BConst _ | UConst _), AppExp _ -> true
     | _ -> false
 
   let gte_exp f1 f2 = match f1, f2 with
@@ -195,6 +198,7 @@ module CC = struct
     | Var (_, x, ys) -> pp_print_var ppf (x, ys)
     | BConst (_, b) -> pp_print_bool ppf b
     | IConst (_, i) -> pp_print_int ppf i
+    | UConst _ -> pp_print_string ppf "()"
     | BinOp (_, op, f1, f2) as f ->
       fprintf ppf "%a %a %a"
         (with_paren (gt_exp f f1) pp_exp) f1
@@ -247,7 +251,8 @@ module CC = struct
     assert (is_value v);
     match v with
     | BConst _
-    | IConst _ -> pp_exp ppf v
+    | IConst _
+    | UConst _ -> pp_exp ppf v
     | FunExp _ -> pp_print_string ppf "<fun>"
     | CastExp (_, v, u1, TyDyn, _) ->
       fprintf ppf "%a: %a => %a"

@@ -7,22 +7,25 @@ exception Blame of range * Syntax.CC.polarity
 
 exception Eval_bug of string
 
-type tag = I | B | Ar
+type tag = I | B | U | Ar
 
 type value =
   | IntV of int
   | BoolV of bool
+  | UnitV
   | FunV of ((tyvar list * ty list) -> value -> value)
   | Tagged of tag * value
 
 let pp_tag ppf = function
   | B -> pp_print_string ppf "bool"
   | I -> pp_print_string ppf "int"
+  | U -> pp_print_string ppf "()"
   | Ar -> pp_print_string ppf "? -> ?"
 
 let rec pp_value ppf = function
   | BoolV b -> pp_print_bool ppf b
   | IntV i -> pp_print_int ppf i
+  | UnitV -> pp_print_string ppf "()"
   | FunV _ -> pp_print_string ppf "<fun>"
   | Tagged (t, v) ->
     fprintf ppf "%a: %a => ?"
@@ -33,7 +36,8 @@ let subst_type = Typing.subst_type
 let rec subst_exp s = function
   | Var (r, x, ys) -> Var (r, x, List.map (subst_type s) ys)
   | IConst _
-  | BConst _ as f -> f
+  | BConst _
+  | UConst _ as f -> f
   | BinOp (r, op, f1, f2) -> BinOp (r, op, subst_exp s f1, subst_exp s f2)
   | IfExp (r, f1, f2, f3) -> IfExp (r, subst_exp s f1, subst_exp s f2, subst_exp s f3)
   | FunExp (r, x1, u1, f) -> FunExp (r, x1, subst_type s u1, subst_exp s f)
@@ -72,6 +76,7 @@ let rec eval ?(debug=false) (env: (tyvar list * value) Environment.t) f =
     end
   | IConst (_, i) -> IntV i
   | BConst (_, b) -> BoolV b
+  | UConst _ -> UnitV
   | BinOp (_, op, f1, f2) ->
     let v1 = eval env f1 in
     let v2 = eval env f2 in
@@ -121,14 +126,16 @@ and cast ?(debug=false) v u1 u2 r p =
     cast v u1 u2 r p
   (* IdBase *)
   | TyBool, TyBool
-  | TyInt, TyInt -> v
+  | TyInt, TyInt
+  | TyUnit, TyUnit -> v
   (* IdStar *)
   | TyDyn, TyDyn -> v
   (* Succeed / Fail *)
-  | TyDyn, (TyBool | TyInt | TyFun (TyDyn, TyDyn) as u2) -> begin
+  | TyDyn, (TyBool | TyInt | TyUnit | TyFun (TyDyn, TyDyn) as u2) -> begin
       match v, u2 with
       | Tagged (B, v), TyBool -> v
       | Tagged (I, v), TyInt -> v
+      | Tagged (U, v), TyUnit -> v
       | Tagged (Ar, v), TyFun (TyDyn, TyDyn) -> v
       | Tagged _, _ -> raise @@ Blame (r, p)
       | _ -> raise @@ Eval_bug "untagged value"
@@ -149,6 +156,7 @@ and cast ?(debug=false) v u1 u2 r p =
   (* Tagged *)
   | TyBool, TyDyn -> Tagged (B, v)
   | TyInt, TyDyn -> Tagged (I, v)
+  | TyUnit, TyDyn -> Tagged (U, v)
   | TyFun (TyDyn, TyDyn), TyDyn -> Tagged (Ar, v)
   (* Ground *)
   | TyFun (u11, u12), TyDyn ->
@@ -168,6 +176,9 @@ and cast ?(debug=false) v u1 u2 r p =
         v
       | Tagged (I, v) ->
         x := Some TyInt;
+        v
+      | Tagged (U, v) ->
+        x := Some TyUnit;
         v
       | Tagged (Ar, v) ->
         let u2 = TyFun (Typing.fresh_tyvar (), Typing.fresh_tyvar ()) in

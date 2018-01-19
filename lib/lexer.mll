@@ -35,6 +35,7 @@ rule main = parse
 | "(" { Parser.LPAREN (range_of lexbuf) }
 | ")" { Parser.RPAREN (range_of lexbuf) }
 | ":" { Parser.COLON (range_of lexbuf) }
+| ";" { Parser.SEMI (range_of lexbuf) }
 | ";;" { Parser.SEMISEMI (range_of lexbuf) }
 | "=" { Parser.EQ (range_of lexbuf) }
 | "->" { Parser.RARROW (range_of lexbuf) }

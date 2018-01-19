@@ -32,6 +32,7 @@ let test_examples =
     (* Constants *)
     "1", "int", "1";
     "true", "bool", "true";
+    "()", "unit", "()";
     (* Binary operators *)
     "1 + 2 + 3", "int", "6";
     "3 * 2 + 3", "int", "9";
@@ -57,6 +58,9 @@ let test_examples =
     "(fun x y -> x + y) 3 4", "int", "7";
     "(fun (x:?) -> x 2) (fun y -> true)", "?", "true: bool => ?";
     "(fun (x:?) -> x) (fun y -> true)", "?", "<fun>: ? -> ? => ?";
+    (* sequence *)
+    "(); 1 + 2", "int", "3";
+    "(():?); 1 + 2", "int", "3";
     (* runtime type inference *)
     "(fun (x:?) -> x 2) (fun y -> y)", "?", "2: int => ?";
     "(fun (f:?) -> f 2) ((fun x -> x) ((fun (y:?) -> y) (fun z -> z + 1)))", "?", "3: int => ?";

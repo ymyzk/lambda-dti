@@ -4,7 +4,7 @@ open Syntax.GTLC
 open Utils.Error
 %}
 
-%token <Utils.Error.range> LPAREN RPAREN SEMISEMI COLON EQ
+%token <Utils.Error.range> LPAREN RPAREN SEMI SEMISEMI COLON EQ
 %token <Utils.Error.range> PLUS MINUS STAR DIV LT LTE GT GTE
 %token <Utils.Error.range> LET REC IN FUN IF THEN ELSE
 %token <Utils.Error.range> INT BOOL QUESTION RARROW
@@ -17,6 +17,7 @@ open Utils.Error
 %type <Syntax.GTLC.program> toplevel
 
 (* Ref: https://caml.inria.fr/pub/docs/manual-ocaml/expr.html *)
+%right SEMI
 %left  EQ LT LTE GT GTE
 %left  PLUS MINUS
 %left  STAR DIV
@@ -79,7 +80,7 @@ Expr :
       let r = join_range start (range_of_exp e) in
       List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e
     }
-  | IfExpr { $1 }
+  | SeqExpr { $1 }
 
 LetParams :
   | /* empty */ { [] }
@@ -90,6 +91,13 @@ FunParams :
   | LPAREN x=ID COLON u=Type RPAREN { [x, u] }
   | x=ID rest=FunParams { (x, Typing.fresh_tyvar ()) :: rest }
   | LPAREN x=ID COLON u=Type RPAREN rest=FunParams { (x, u) :: rest }
+
+SeqExpr :
+  | e1=SeqExpr SEMI e2=SeqExpr {
+      let r = join_range (range_of_exp e1) (range_of_exp e2) in
+      LetExp (r, "_", ref [], AscExp (range_of_exp e1, e1, TyUnit), e2)
+    }
+  | IfExpr { $1 }
 
 IfExpr :
   | start=IF e1=IfExpr THEN e2=IfExpr ELSE e3=IfExpr {
@@ -138,6 +146,9 @@ SimpleExpr :
   | i=INTV { IConst (i.range, i.value) }
   | r=TRUE { BConst (r, true) }
   | r=FALSE { BConst (r, false) }
+  | start=LPAREN last=RPAREN {
+      UConst (join_range start last)
+    }
   | x=ID { Var (x.range, x.value, ref []) }
   | start=LPAREN e=Expr COLON u=Type last=RPAREN {
       AscExp (join_range start last, e, u)

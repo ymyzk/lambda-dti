@@ -16,19 +16,19 @@ type ty =
   | TyVar of tyvar
   | TyInt
   | TyBool
+  | TyUnit
   | TyFun of ty * ty
 and tyvar = ty option ref
 
 type tysc = TyScheme of tyvar list * ty
 
 let is_ground = function
-  | TyInt | TyBool -> true
+  | TyInt | TyBool | TyUnit -> true
   | TyFun (u1, u2) when u1 = TyDyn && u2 = TyDyn -> true
   | _ -> false
 
 let ground_of_ty = function
-  | TyInt -> Some TyInt
-  | TyBool -> Some TyBool
+  | TyInt | TyBool | TyUnit as u -> Some u
   | TyFun _ -> Some (TyFun (TyDyn, TyDyn))
   | _ -> None
 
@@ -41,6 +41,7 @@ module GTLC = struct
     | Var of range * id * ty list ref
     | IConst of range * int
     | BConst of range * bool
+    | UConst of range
     | BinOp of range * op * exp * exp
     | AscExp of range * exp * ty
     | IfExp of range * exp * exp * exp
@@ -53,6 +54,7 @@ module GTLC = struct
     | Var (r, _, _)
     | IConst (r, _)
     | BConst (r, _)
+    | UConst r
     | AscExp (r, _, _)
     | BinOp (r, _, _, _)
     | IfExp (r, _, _, _)
@@ -65,6 +67,7 @@ module GTLC = struct
   let is_value = function
     | IConst _
     | BConst _
+    | UConst _
     | FunExp _
     | FixExp _ -> true
     | _ -> false
@@ -83,6 +86,7 @@ module CC = struct
     | Var of range * id * ty list
     | IConst of range * int
     | BConst of range * bool
+    | UConst of range
     | BinOp of range * op * exp * exp
     | IfExp of range * exp * exp * exp
     | FunExp of range * id * ty * exp
@@ -95,6 +99,7 @@ module CC = struct
     | Var (r, _, _)
     | IConst (r, _)
     | BConst (r, _)
+    | UConst r
     | BinOp (r, _, _, _)
     | IfExp (r, _, _, _)
     | FunExp (r, _, _, _)
@@ -106,6 +111,7 @@ module CC = struct
   let rec is_value = function
     | IConst _
     | BConst _
+    | UConst _
     | FunExp _
     | FixExp _-> true
     | CastExp (_, v, TyFun _, TyFun _, _) when is_value v -> true
