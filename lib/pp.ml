@@ -246,23 +246,6 @@ module CC = struct
         (with_paren (gt_exp f f1) pp_exp) f1
         (with_paren (gte_exp f f2) pp_exp) f2
 
-  (* TODO: unused *)
-  let rec pp_value ppf v =
-    assert (is_value v);
-    match v with
-    | BConst _
-    | IConst _
-    | UConst _ -> pp_exp ppf v
-    | FunExp _ -> pp_print_string ppf "<fun>"
-    | CastExp (_, v, u1, TyDyn, _) ->
-      fprintf ppf "%a: %a => %a"
-        pp_value v
-        pp_ty u1
-        pp_ty TyDyn
-    (* TODO: Consider better format *)
-    | CastExp _ -> pp_print_string ppf "<wrapped_fun>"
-    | _ -> raise Syntax_error
-
   let pp_program ppf = function
     | Exp e -> pp_exp ppf e
     | LetDecl (x, xs, f) ->
