@@ -43,11 +43,11 @@ let rec read_eval_print lexbuf env tyenv =
 
       (* Evaluation *)
       let env, x, v = Eval.eval_program env f ~debug:!debug in
-      print_debug "CC v: %a\n" Eval.pp_value v;
+      print_debug "CC v: %a\n" Pp.CC.pp_value v;
       print "%a : %a = %a\n"
         pp_print_string x
         Pp.pp_ty2 u
-        Eval.pp_value v;
+        Pp.CC.pp_value v;
       read_eval_print lexbuf env tyenv
     with
     | Failure message ->

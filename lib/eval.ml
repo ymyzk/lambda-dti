@@ -7,31 +7,6 @@ exception Blame of range * Syntax.CC.polarity
 
 exception Eval_bug of string
 
-type tag = I | B | U | Ar
-
-type value =
-  | IntV of int
-  | BoolV of bool
-  | UnitV
-  | FunV of ((tyvar list * ty list) -> value -> value)
-  | Tagged of tag * value
-
-let pp_tag ppf = function
-  | B -> pp_print_string ppf "bool"
-  | I -> pp_print_string ppf "int"
-  | U -> pp_print_string ppf "()"
-  | Ar -> pp_print_string ppf "? -> ?"
-
-let rec pp_value ppf = function
-  | BoolV b -> pp_print_bool ppf b
-  | IntV i -> pp_print_int ppf i
-  | UnitV -> pp_print_string ppf "()"
-  | FunV _ -> pp_print_string ppf "<fun>"
-  | Tagged (t, v) ->
-    fprintf ppf "%a: %a => ?"
-      pp_value v
-      pp_tag t
-
 let subst_type = Typing.subst_type
 let rec subst_exp s = function
   | Var (r, x, ys) -> Var (r, x, List.map (subst_type s) ys)

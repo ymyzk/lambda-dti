@@ -121,4 +121,13 @@ module CC = struct
   type program =
     | Exp of exp
     | LetDecl of id * tyvar list * exp
+
+  type tag = I | B | U | Ar
+
+  type value =
+    | IntV of int
+    | BoolV of bool
+    | UnitV
+    | FunV of ((tyvar list * ty list) -> value -> value)
+    | Tagged of tag * value
 end
