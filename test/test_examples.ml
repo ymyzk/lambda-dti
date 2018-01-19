@@ -26,7 +26,8 @@ let test_examples =
       assert (u = u'');
       let env, x, v = Eval.eval_program env f in
       assert_equal ~ctxt:ctxt ~printer:id expected_ty @@ asprintf "%a" Pp.pp_ty2 u;
-      assert_equal ~ctxt:ctxt ~printer:id expected_value @@ asprintf "%a" Eval.pp_value v
+      assert_equal ~ctxt:ctxt ~printer:id expected_value @@ asprintf "%a" Pp.CC.pp_value v
+
   in
   List.map test [
     (* Constants *)

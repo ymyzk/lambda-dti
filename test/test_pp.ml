@@ -90,25 +90,8 @@ module CC = struct
       "x (y: int => ?)", AppExp (r, x, CastExp (r, y, TyInt, TyDyn, Pos));
     ]
 
-  let test_pp_value =
-    let test (expected, v) =
-      expected >:: fun ctxt ->
-        assert_equal ~ctxt:ctxt ~printer:id expected @@ asprintf "%a" pp_value v
-    in
-    let b, i = BConst (r, true), IConst (r, 123) in
-    List.map test [
-      "true", b;
-      "123", i;
-      "<fun>", FunExp (r, "x", TyDyn, i);
-      "<wrapped_fun>",
-      CastExp (r, FunExp (r, "x", TyDyn, i), TyFun (TyInt, TyDyn), TyFun (TyDyn, TyDyn), Pos);
-      "<fun>: ? -> ? => ?",
-      CastExp (r, FunExp (r, "x", TyDyn, CastExp (r, i, TyInt, TyDyn, Pos)), TyFun (TyDyn, TyDyn), TyDyn, Pos);
-    ]
-
   let suite = [
     "test_pp_exp">::: test_pp_exp;
-    "test_pp_value">::: test_pp_value;
   ]
 end
 
