@@ -10,8 +10,6 @@ exception Type_bug of string
 
 let fresh_tyvar () = TyVar (ref None)
 
-let tysc_of_ty u = TyScheme ([], u)
-
 (* TODO?: These functions only can be used for normalized types *)
 let dom = function
   | TyFun (u1, _) -> u1

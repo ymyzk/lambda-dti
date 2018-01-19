@@ -22,6 +22,8 @@ and tyvar = ty option ref
 
 type tysc = TyScheme of tyvar list * ty
 
+let tysc_of_ty u = TyScheme ([], u)
+
 let is_ground = function
   | TyInt | TyBool | TyUnit -> true
   | TyFun (u1, u2) when u1 = TyDyn && u2 = TyDyn -> true
