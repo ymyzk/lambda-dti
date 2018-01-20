@@ -147,7 +147,7 @@ module GTLC = struct
     | CConsistent (TyVar x, u) when is_bv_type u ->
       unify @@ CEqual (TyVar x, u)
     (* X ~ U1->U2 *)
-    | CConsistent (TyVar x, TyFun (u1, u2)) when not @@ V.mem x (tyvars_ty (TyFun (u1, u2))) -> (* TODO: equality *)
+    | CConsistent (TyVar x, TyFun (u1, u2)) when not @@ V.mem x (tyvars_ty (TyFun (u1, u2))) ->
       let x1, x2 = fresh_tyvar (), fresh_tyvar () in
       unify @@ CEqual (TyVar x, TyFun (x1, x2));
       unify @@ CConsistent (x1, u1);
@@ -171,7 +171,7 @@ module GTLC = struct
     | CEqual (t, TyVar x) when (* is_static_type t && *) not (is_tyvar t) ->
       unify @@ CEqual (TyVar x, t)
     (* X = T *)
-    | CEqual (TyVar x, t) when not (V.mem x (tyvars_ty t)) -> (* TODO: equality *)
+    | CEqual (TyVar x, t) when not (V.mem x (tyvars_ty t)) ->
       x := Some t
     | _ as c ->
       raise @@ Type_error (asprintf "cannot solve a constraint: %a" pp_constr c)
