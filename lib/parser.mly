@@ -26,12 +26,18 @@ open Utils.Error
 
 toplevel :
   | Expr SEMISEMI { Exp $1 }
+  /* TODO: Refactor the following four rules */
   | start=LET x=ID params=LetParams EQ e=Expr SEMISEMI {
       let r = join_range start (range_of_exp e) in
       let e = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e in
       LetDecl (x.value, ref [], e)
     }
-  /* TODO: Refactor the following two rules */
+  | start=LET x=ID params=LetParams COLON u=Type EQ e=Expr SEMISEMI {
+      let r = join_range start (range_of_exp e) in
+      let e = AscExp (range_of_exp e, e, u) in
+      let e = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e in
+      LetDecl (x.value, ref [], e)
+    }
   | start=LET REC x=ID params=LetParams EQ e=Expr SEMISEMI {
       let r = join_range start (range_of_exp e) in
       match params with
@@ -52,12 +58,18 @@ toplevel :
     }
 
 Expr :
+  /* TODO: Refactor the following four rules */
   | start=LET x=ID params=LetParams EQ e1=Expr IN e2=Expr {
       let r = join_range start (range_of_exp e2) in
       let e1 = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e1 in
       LetExp (r, x.value, ref [], e1, e2)
     }
-  /* TODO: Refactor the following two rules */
+  | start=LET x=ID params=LetParams COLON u1=Type EQ e1=Expr IN e2=Expr {
+      let r = join_range start (range_of_exp e2) in
+      let e1 = AscExp (range_of_exp e1, e1, u1) in
+      let e1 = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e1 in
+      LetExp (r, x.value, ref [], e1, e2)
+    }
   | start=LET REC x=ID params=LetParams EQ e1=Expr IN e2=Expr {
       let r = join_range start (range_of_exp e2) in
       match params with
