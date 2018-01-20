@@ -21,12 +21,15 @@ let rec read_eval_print lexbuf env tyenv =
   print "# @?";
   begin try
       (* Parsing *)
+      print_debug "***** Parser *****\n";
       let e = Parser.toplevel Lexer.main lexbuf in
+      print_debug "e: %a\n" Pp.GTLC.pp_program e;
 
       (* Type inference *)
+      print_debug "***** Typing *****\n";
       let tyenv, e, u = Typing.GTLC.type_of_program tyenv e in
-      print_debug "GTLC e: %a\n" Pp.GTLC.pp_program e;
-      print_debug "GTLC U: %a\n" Pp.pp_ty u;
+      print_debug "e: %a\n" Pp.GTLC.pp_program e;
+      print_debug "U: %a\n" Pp.pp_ty u;
 
       (* TODO: Normalize *)
       let tyenv = Typing.GTLC.normalize_tyenv tyenv in
@@ -34,16 +37,18 @@ let rec read_eval_print lexbuf env tyenv =
       let u = Typing.GTLC.normalize_type u in
 
       (* Translation *)
+      print_debug "***** Cast-insertion *****\n";
       let f, u' = Typing.GTLC.translate tyenv e in
-      print_debug "CC e: %a\n" Pp.CC.pp_program f;
-      print_debug "CC U: %a\n" Pp.pp_ty u';
+      print_debug "f: %a\n" Pp.CC.pp_program f;
+      print_debug "U: %a\n" Pp.pp_ty u';
+      (* TODO: Fix assertions *)
       assert (u = u');
       let u'' = Typing.CC.type_of_program tyenv f in
       assert (u = u'');
 
       (* Evaluation *)
+      print_debug "***** Eval *****\n";
       let env, x, v = Eval.eval_program env f ~debug:!debug in
-      print_debug "CC v: %a\n" Pp.CC.pp_value v;
       print "%a : %a = %a\n"
         pp_print_string x
         Pp.pp_ty2 u
