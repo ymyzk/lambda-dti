@@ -6,4 +6,5 @@
 
 (ocamllex (lexer))
 (menhir
- ((modules (parser))))
+ ((flags (--explain))
+  (modules (parser))))
