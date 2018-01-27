@@ -124,7 +124,7 @@ SimpleExpr :
   | start=LPAREN e=Expr COLON u=Type last=RPAREN {
       AscExp (join_range start last, e, u)
     }
-  | LPAREN f=Expr RPAREN { f }
+  | LPAREN e=Expr RPAREN { e }
 
 Type :
   | u1=AType RARROW u2=Type { TyFun (u1, u2) }
