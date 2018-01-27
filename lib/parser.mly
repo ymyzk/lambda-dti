@@ -122,34 +122,21 @@ IfExpr :
   | BinOpExpr { $1 }
 
 BinOpExpr :
-  | e1=BinOpExpr PLUS e2=BinOpExpr {
-      BinOp (join_range (range_of_exp e1) (range_of_exp e2), Plus, e1, e2)
-    }
-  | e1=BinOpExpr MINUS e2=BinOpExpr {
-      BinOp (join_range (range_of_exp e1) (range_of_exp e2), Minus, e1, e2)
-    }
-  | e1=BinOpExpr STAR e2=BinOpExpr {
-      BinOp (join_range (range_of_exp e1) (range_of_exp e2), Mult, e1, e2)
-    }
-  | e1=BinOpExpr DIV e2=BinOpExpr {
-      BinOp (join_range (range_of_exp e1) (range_of_exp e2), Div, e1, e2)
-    }
-  | e1=BinOpExpr EQ e2=BinOpExpr {
-      BinOp (join_range (range_of_exp e1) (range_of_exp e2), Eq, e1, e2)
-    }
-  | e1=BinOpExpr LT e2=BinOpExpr {
-      BinOp (join_range (range_of_exp e1) (range_of_exp e2), Lt, e1, e2)
-    }
-  | e1=BinOpExpr LTE e2=BinOpExpr {
-      BinOp (join_range (range_of_exp e1) (range_of_exp e2), Lte, e1, e2)
-    }
-  | e1=BinOpExpr GT e2=BinOpExpr {
-      BinOp (join_range (range_of_exp e1) (range_of_exp e2), Gt, e1, e2)
-    }
-  | e1=BinOpExpr GTE e2=BinOpExpr {
-      BinOp (join_range (range_of_exp e1) (range_of_exp e2), Gte, e1, e2)
+  | e1=BinOpExpr op=Op e2=BinOpExpr {
+      BinOp (join_range (range_of_exp e1) (range_of_exp e2), op, e1, e2)
     }
   | AppExpr { $1 }
+
+%inline Op :
+  | PLUS { Plus }
+  | MINUS { Minus }
+  | STAR { Mult }
+  | DIV { Div }
+  | EQ { Eq }
+  | LT { Lt }
+  | LTE { Lte }
+  | GT { Gt }
+  | GTE { Gte }
 
 AppExpr :
   | e1=AppExpr e2=SimpleExpr {

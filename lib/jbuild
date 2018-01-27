@@ -5,6 +5,9 @@
   (public_name lambda-rti)))
 
 (ocamllex (lexer))
+; Though we want to use --infer option in Menhir,
+; it is not supported by dune now:
+; https://github.com/ocaml/dune/issues/305
 (menhir
  ((flags (--explain))
   (modules (parser))))
