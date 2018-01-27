@@ -127,11 +127,11 @@ SimpleExpr :
   | LPAREN f=Expr RPAREN { f }
 
 Type :
-  | u1=AType RARROW u2=AType { TyFun (u1, u2) }
+  | u1=AType RARROW u2=Type { TyFun (u1, u2) }
   | AType { $1 }
 
 AType :
-  | LPAREN Type RPAREN { $2 }
+  | LPAREN u=Type RPAREN { u }
   | INT { TyInt }
   | BOOL { TyBool }
   | QUESTION { TyDyn }
