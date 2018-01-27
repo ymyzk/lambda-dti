@@ -18,6 +18,7 @@ open Utils.Error
 
 (* Ref: https://caml.inria.fr/pub/docs/manual-ocaml/expr.html *)
 %right SEMI
+%right prec_if
 %left  EQ LT LTE GT GTE
 %left  PLUS MINUS
 %left  STAR DIV
@@ -81,17 +82,11 @@ SeqExpr :
       let r = join_range (range_of_exp e1) (range_of_exp e2) in
       LetExp (r, "_", ref [], AscExp (range_of_exp e1, e1, TyUnit), e2)
     }
-  | IfExpr { $1 }
-
-IfExpr :
-  | start=IF e1=IfExpr THEN e2=IfExpr ELSE e3=IfExpr {
+  | start=IF e1=SeqExpr THEN e2=SeqExpr ELSE e3=SeqExpr %prec prec_if {
       let r = join_range start (range_of_exp e3) in
       IfExp (r, e1, e2, e3)
   }
-  | BinOpExpr { $1 }
-
-BinOpExpr :
-  | e1=BinOpExpr op=Op e2=BinOpExpr {
+  | e1=SeqExpr op=Op e2=SeqExpr {
       BinOp (join_range (range_of_exp e1) (range_of_exp e2), op, e1, e2)
     }
   | AppExpr { $1 }
