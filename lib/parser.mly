@@ -38,7 +38,7 @@ toplevel :
       let e = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e in
       LetDecl (x.value, ref [], e)
     }
-  | start=LET REC x=ID params=LetParams EQ e=Expr SEMISEMI {
+  | start=LET REC x=ID params=LetRecParams EQ e=Expr SEMISEMI {
       let r = join_range start (range_of_exp e) in
       match params with
       | [] -> LetDecl (x.value, ref [], e)
@@ -47,7 +47,7 @@ toplevel :
         let u2 = List.fold_right (fun (_, u1) u -> TyFun (u1, u)) params (Typing.fresh_tyvar ()) in
         LetDecl (x.value, ref [], FixExp (r, x.value, y.value, u1, u2, e))
     }
-  | start=LET REC x=ID params=LetParams COLON u2=Type EQ e=Expr SEMISEMI {
+  | start=LET REC x=ID params=LetRecParams COLON u2=Type EQ e=Expr SEMISEMI {
       let r = join_range start (range_of_exp e) in
       match params with
       | [] -> LetDecl (x.value, ref [], AscExp (r, e, u2))
@@ -70,7 +70,7 @@ Expr :
       let e1 = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e1 in
       LetExp (r, x.value, ref [], e1, e2)
     }
-  | start=LET REC x=ID params=LetParams EQ e1=Expr IN e2=Expr {
+  | start=LET REC x=ID params=LetRecParams EQ e1=Expr IN e2=Expr {
       let r = join_range start (range_of_exp e2) in
       match params with
       | [] -> LetExp (r, x.value, ref [], e1, e2)
@@ -79,7 +79,7 @@ Expr :
         let u2 = List.fold_right (fun (_, u1) u -> TyFun (u1, u)) params (Typing.fresh_tyvar ()) in
         LetExp (r, x.value, ref [], FixExp (r, x.value, y.value, u1, u2, e1), e2)
     }
-  | start=LET REC x=ID params=LetParams COLON u2=Type EQ e1=Expr IN e2=Expr {
+  | start=LET REC x=ID params=LetRecParams COLON u2=Type EQ e1=Expr IN e2=Expr {
       let r = join_range start (range_of_exp e2) in
       match params with
       | [] -> LetExp (r, x.value, ref [], AscExp (r, e1, u2), e2)
@@ -93,6 +93,10 @@ Expr :
       List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e
     }
   | SeqExpr { $1 }
+
+LetRecParams :
+  | x=ID params=LetParams { (x, Typing.fresh_tyvar ()) :: params }
+  | LPAREN x=ID COLON u=Type RPAREN params=LetParams { (x, u) :: params }
 
 LetParams :
   | /* empty */ { [] }
