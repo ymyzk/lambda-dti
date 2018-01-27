@@ -26,15 +26,9 @@ open Utils.Error
 
 toplevel :
   | Expr SEMISEMI { Exp $1 }
-  /* TODO: Refactor the following two rules */
-  | start=LET x=ID params=LetParams EQ e=Expr SEMISEMI {
+  | start=LET x=ID params=LetParams u=LetTypeAnnot EQ e=Expr SEMISEMI {
       let r = join_range start (range_of_exp e) in
-      let e = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e in
-      LetDecl (x.value, ref [], e)
-    }
-  | start=LET x=ID params=LetParams COLON u=Type EQ e=Expr SEMISEMI {
-      let r = join_range start (range_of_exp e) in
-      let e = AscExp (range_of_exp e, e, u) in
+      let e = match u with None -> e | Some u -> AscExp (range_of_exp e, e, u) in
       let e = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e in
       LetDecl (x.value, ref [], e)
     }
@@ -49,15 +43,9 @@ toplevel :
     }
 
 Expr :
-  /* TODO: Refactor the following two rules */
-  | start=LET x=ID params=LetParams EQ e1=Expr IN e2=Expr {
+  | start=LET x=ID params=LetParams u1=LetTypeAnnot EQ e1=Expr IN e2=Expr {
       let r = join_range start (range_of_exp e2) in
-      let e1 = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e1 in
-      LetExp (r, x.value, ref [], e1, e2)
-    }
-  | start=LET x=ID params=LetParams COLON u1=Type EQ e1=Expr IN e2=Expr {
-      let r = join_range start (range_of_exp e2) in
-      let e1 = AscExp (range_of_exp e1, e1, u1) in
+      let e1 = match u1 with None -> e1 | Some u1 -> AscExp (range_of_exp e1, e1, u1) in
       let e1 = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e1 in
       LetExp (r, x.value, ref [], e1, e2)
     }
@@ -88,6 +76,10 @@ FunParams :
 Param :
   | x=ID { (x, Typing.fresh_tyvar ()) }
   | LPAREN x=ID COLON u=Type RPAREN { (x, u) }
+
+%inline LetTypeAnnot :
+  | /* empty */ { None }
+  | COLON u=Type { Some u }
 
 %inline LetRecTypeAnnot :
   | /* empty */ { Typing.fresh_tyvar () }
