@@ -26,13 +26,13 @@ open Utils.Error
 
 toplevel :
   | Expr SEMISEMI { Exp $1 }
-  | start=LET x=ID params=LetParams u=LetTypeAnnot EQ e=Expr SEMISEMI {
+  | start=LET x=ID params=list(Param) u=LetTypeAnnot EQ e=Expr SEMISEMI {
       let r = join_range start (range_of_exp e) in
       let e = match u with None -> e | Some u -> AscExp (range_of_exp e, e, u) in
       let e = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e in
       LetDecl (x.value, ref [], e)
     }
-  | start=LET REC x=ID params=LetRecParams u2=LetRecTypeAnnot EQ e=Expr SEMISEMI {
+  | start=LET REC x=ID params=nonempty_list(Param) u2=LetRecTypeAnnot EQ e=Expr SEMISEMI {
       let r = join_range start (range_of_exp e) in
       match params with
       | [] -> LetDecl (x.value, ref [], AscExp (r, e, u2))
@@ -43,13 +43,13 @@ toplevel :
     }
 
 Expr :
-  | start=LET x=ID params=LetParams u1=LetTypeAnnot EQ e1=Expr IN e2=Expr {
+  | start=LET x=ID params=list(Param) u1=LetTypeAnnot EQ e1=Expr IN e2=Expr {
       let r = join_range start (range_of_exp e2) in
       let e1 = match u1 with None -> e1 | Some u1 -> AscExp (range_of_exp e1, e1, u1) in
       let e1 = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e1 in
       LetExp (r, x.value, ref [], e1, e2)
     }
-  | start=LET REC x=ID params=LetRecParams u2=LetRecTypeAnnot EQ e1=Expr IN e2=Expr {
+  | start=LET REC x=ID params=nonempty_list(Param) u2=LetRecTypeAnnot EQ e1=Expr IN e2=Expr {
       let r = join_range start (range_of_exp e2) in
       match params with
       | [] -> LetExp (r, x.value, ref [], AscExp (r, e1, u2), e2)
@@ -58,20 +58,11 @@ Expr :
         let u2 = List.fold_right (fun (_, u1) u -> TyFun (u1, u)) params u2 in
         LetExp (r, x.value, ref [], FixExp (r, x.value, y.value, u1, u2, e1), e2)
     }
-  | start=FUN params=FunParams RARROW e=Expr {
+  | start=FUN params=nonempty_list(Param) RARROW e=Expr {
       let r = join_range start (range_of_exp e) in
       List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e
     }
   | SeqExpr { $1 }
-
-LetRecParams :
-  | params=nonempty_list(Param) { params }
-
-LetParams :
-  | params=list(Param) { params }
-
-FunParams :
-  | params=nonempty_list(Param) { params }
 
 Param :
   | x=ID { (x, Typing.fresh_tyvar ()) }
