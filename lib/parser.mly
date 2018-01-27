@@ -95,18 +95,17 @@ Expr :
   | SeqExpr { $1 }
 
 LetRecParams :
-  | x=ID params=LetParams { (x, Typing.fresh_tyvar ()) :: params }
-  | LPAREN x=ID COLON u=Type RPAREN params=LetParams { (x, u) :: params }
+  | params=nonempty_list(Param) { params }
 
 LetParams :
-  | /* empty */ { [] }
-  | params=FunParams { params }
+  | params=list(Param) { params }
 
 FunParams :
-  | x=ID { [x, Typing.fresh_tyvar ()] }
-  | LPAREN x=ID COLON u=Type RPAREN { [x, u] }
-  | x=ID rest=FunParams { (x, Typing.fresh_tyvar ()) :: rest }
-  | LPAREN x=ID COLON u=Type RPAREN rest=FunParams { (x, u) :: rest }
+  | params=nonempty_list(Param) { params }
+
+Param :
+  | x=ID { (x, Typing.fresh_tyvar ()) }
+  | LPAREN x=ID COLON u=Type RPAREN { (x, u) }
 
 SeqExpr :
   | e1=SeqExpr SEMI e2=SeqExpr {
