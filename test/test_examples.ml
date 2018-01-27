@@ -53,6 +53,7 @@ let test_examples =
     "fun x -> x + 1", "int -> int", "<fun>";
     "fun (x:?) -> x + 1", "? -> int", "<fun>";
     "fun x -> x", "'a -> 'a", "<fun>";
+    "fun (x: unit) -> ()", "unit -> unit", "<fun>";
     "fun (x: int -> bool) -> ()", "(int -> bool) -> unit", "<fun>";
     "fun (x: int -> bool -> int) -> ()", "(int -> bool -> int) -> unit", "<fun>";
     "fun (x: (int -> bool) -> int) -> ()", "((int -> bool) -> int) -> unit", "<fun>";

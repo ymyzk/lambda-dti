@@ -7,7 +7,7 @@ open Utils.Error
 %token <Utils.Error.range> LPAREN RPAREN SEMI SEMISEMI COLON EQ
 %token <Utils.Error.range> PLUS MINUS STAR DIV LT LTE GT GTE
 %token <Utils.Error.range> LET REC IN FUN IF THEN ELSE
-%token <Utils.Error.range> INT BOOL QUESTION RARROW
+%token <Utils.Error.range> INT BOOL UNIT QUESTION RARROW
 %token <Utils.Error.range> TRUE FALSE
 
 %token <int Utils.Error.with_range> INTV
@@ -134,4 +134,5 @@ AType :
   | LPAREN u=Type RPAREN { u }
   | INT { TyInt }
   | BOOL { TyBool }
+  | UNIT { TyUnit }
   | QUESTION { TyDyn }
