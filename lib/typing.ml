@@ -10,26 +10,37 @@ exception Type_bug of string
 
 let fresh_tyvar () = TyVar (ref None)
 
-(* TODO?: These functions only can be used for normalized types *)
+(*  These functions only can be used for normalized types *)
 let dom = function
   | TyFun (u1, _) -> u1
   | TyDyn -> TyDyn
-  | _ as u -> raise @@ Type_error (asprintf "failed to match: dom(%a)" pp_ty u)
+  | TyVar ({ contents = Some _ }) ->
+    raise @@ Type_bug "dom: instantiated tyvar is given"
+  | _ as u ->
+    raise @@ Type_error (asprintf "failed to match: dom(%a)" pp_ty u)
 
 let cod = function
   | TyFun (_, u2) -> u2
   | TyDyn -> TyDyn
-  | _ as u -> raise @@ Type_error (asprintf "failed to match: cod(%a)" pp_ty u)
+  | TyVar ({ contents = Some _ }) ->
+    raise @@ Type_bug "cod: instantiated tyvar is given"
+  | _ as u ->
+    raise @@ Type_error (asprintf "failed to match: cod(%a)" pp_ty u)
 
 let rec meet u1 u2 = match u1, u2 with
   | TyBool, TyBool -> TyBool
   | TyInt, TyInt -> TyInt
   | TyUnit, TyUnit -> TyUnit
-  | TyVar x1, TyVar x2 when x1 = x2 -> TyVar x1
+  | TyVar ({ contents = None } as x1), TyVar ({ contents = None } as x2) when x1 == x2 ->
+    TyVar x1
   | TyDyn, u | u, TyDyn -> u
   | TyFun (u11, u12), TyFun (u21, u22) ->
     TyFun (meet u11 u21, meet u12 u22)
-  | _ -> raise @@ Type_error "failed to meet"
+  | TyVar ({ contents = Some _ }), _
+  | _, TyVar ({ contents = Some _ }) ->
+    raise @@ Type_bug "meet: instantiated tyvar is given"
+  | _ ->
+    raise @@ Type_error (asprintf "failed to match: meet(%a, %a)" pp_ty u1 pp_ty u2)
 
 let type_of_binop = function
   | Plus | Minus | Mult | Div -> TyInt, TyInt, TyInt
