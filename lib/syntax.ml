@@ -9,7 +9,7 @@ module Environment = Map.Make (
   end
   )
 
-type op = Plus | Minus | Mult | Div | Eq | Lt | Lte | Gt | Gte
+type binop = Plus | Minus | Mult | Div | Eq | Lt | Lte | Gt | Gte
 
 type ty =
   | TyDyn
@@ -44,7 +44,7 @@ module GTLC = struct
     | IConst of range * int
     | BConst of range * bool
     | UConst of range
-    | BinOp of range * op * exp * exp
+    | BinOp of range * binop * exp * exp
     | AscExp of range * exp * ty
     | IfExp of range * exp * exp * exp
     | FunExp of range * id * ty * exp
@@ -89,7 +89,7 @@ module CC = struct
     | IConst of range * int
     | BConst of range * bool
     | UConst of range
-    | BinOp of range * op * exp * exp
+    | BinOp of range * binop * exp * exp
     | IfExp of range * exp * exp * exp
     | FunExp of range * id * ty * exp
     | FixExp of range * id * id * ty * ty * exp
