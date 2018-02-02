@@ -50,6 +50,8 @@ rule main = parse
 | "<=" { Parser.LTE (range_of lexbuf) }
 | ">" { Parser.GT (range_of lexbuf) }
 | ">=" { Parser.GTE (range_of lexbuf) }
+| "&&" { Parser.LAND (range_of lexbuf) }
+| "||" { Parser.LOR (range_of lexbuf) }
 | ['a'-'z'] ['a'-'z' '0'-'9' '_' '\'']*
   {
     let id = Lexing.lexeme lexbuf in

@@ -5,7 +5,7 @@ open Utils.Error
 %}
 
 %token <Utils.Error.range> LPAREN RPAREN SEMI SEMISEMI COLON EQ
-%token <Utils.Error.range> PLUS MINUS STAR DIV LT LTE GT GTE NEQ
+%token <Utils.Error.range> PLUS MINUS STAR DIV LT LTE GT GTE NEQ LAND LOR
 %token <Utils.Error.range> LET REC IN FUN IF THEN ELSE
 %token <Utils.Error.range> INT BOOL UNIT QUESTION RARROW
 %token <Utils.Error.range> TRUE FALSE
@@ -19,6 +19,8 @@ open Utils.Error
 (* Ref: https://caml.inria.fr/pub/docs/manual-ocaml/expr.html *)
 %right SEMI
 %right prec_if
+%right LOR
+%right LAND
 %left  EQ NEQ LT LTE GT GTE
 %left  PLUS MINUS
 %left  STAR DIV
@@ -86,6 +88,16 @@ SeqExpr :
       let r = join_range start (range_of_exp e3) in
       IfExp (r, e1, e2, e3)
   }
+  | e1=SeqExpr op=LOR e2=SeqExpr {
+      let r = join_range (range_of_exp e1) (range_of_exp e2) in
+      let t, f = BConst (r, true), BConst (r, false) in
+      IfExp (r, e1, t, IfExp (r, e2, t, f))
+    }
+  | e1=SeqExpr op=LAND e2=SeqExpr {
+      let r = join_range (range_of_exp e1) (range_of_exp e2) in
+      let t, f = BConst (r, true), BConst (r, false) in
+      IfExp (r, e1, IfExp (r, e2, t, f), f)
+    }
   | e1=SeqExpr op=Op e2=SeqExpr {
       BinOp (join_range (range_of_exp e1) (range_of_exp e2), op, e1, e2)
     }
