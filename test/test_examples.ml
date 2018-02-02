@@ -34,6 +34,10 @@ let test_examples =
     "1", "int", "1";
     "true", "bool", "true";
     "()", "unit", "()";
+    (* Unary operators *)
+    "-1", "int", "-1";
+    "--2", "int", "2";
+    "let x = 1 in x-1", "int", "0";
     (* Binary operators *)
     "1 + 2 + 3", "int", "6";
     "3 * 2 + 3", "int", "9";
