@@ -89,7 +89,7 @@ SeqExpr :
   | e1=SeqExpr op=Op e2=SeqExpr {
       BinOp (join_range (range_of_exp e1) (range_of_exp e2), op, e1, e2)
     }
-  | AppExpr { $1 }
+  | UnaryExpr { $1 }
 
 %inline Op :
   | PLUS { Plus }
@@ -101,6 +101,14 @@ SeqExpr :
   | LTE { Lte }
   | GT { Gt }
   | GTE { Gte }
+
+UnaryExpr :
+  | start_r=MINUS e=UnaryExpr {
+      let r = join_range start_r (range_of_exp e) in
+      let zero = IConst (dummy_range, 0) in
+      BinOp (r, Minus, zero, e)
+    }
+  | AppExpr { $1 }
 
 AppExpr :
   | e1=AppExpr e2=SimpleExpr {
