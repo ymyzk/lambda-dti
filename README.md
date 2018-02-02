@@ -16,7 +16,7 @@ This implementation consists of:
 - OUnit (for running unit tests)
 
 ## Getting started
-### Installation
+### Global installation
 ```console
 $ jbuilder build
 $ jbuilder install
@@ -32,6 +32,11 @@ $ ./_build/default/bin/main.exe
 ```
 
 Run `$ ./_build/default/bin/main.exe --help` for command line options.
+
+## Running unit tests
+```console
+$ jbuilder runtest
+```
 
 ## Syntax
 ### Top-level
@@ -68,7 +73,7 @@ Run `$ ./_build/default/bin/main.exe --help` for command line options.
 - Simple: `(* comments *)`
 - Nested comments: `(* leave comments here (* nested comments are also supported *) *)`
 
-## Standard Library
+## Standard library
 Some useful functions are available:
 ```
 # is_bool;;
@@ -86,6 +91,7 @@ Some useful functions are available:
 # print_newline;;
 - : unit -> unit = <fun>
 ```
+
 ## Examples
 ```
 # (fun (x:?) -> x + 2) 3;;
