@@ -5,7 +5,7 @@ open Utils.Error
 %}
 
 %token <Utils.Error.range> LPAREN RPAREN SEMI SEMISEMI COLON EQ
-%token <Utils.Error.range> PLUS MINUS STAR DIV LT LTE GT GTE
+%token <Utils.Error.range> PLUS MINUS STAR DIV LT LTE GT GTE NEQ
 %token <Utils.Error.range> LET REC IN FUN IF THEN ELSE
 %token <Utils.Error.range> INT BOOL UNIT QUESTION RARROW
 %token <Utils.Error.range> TRUE FALSE
@@ -19,7 +19,7 @@ open Utils.Error
 (* Ref: https://caml.inria.fr/pub/docs/manual-ocaml/expr.html *)
 %right SEMI
 %right prec_if
-%left  EQ LT LTE GT GTE
+%left  EQ NEQ LT LTE GT GTE
 %left  PLUS MINUS
 %left  STAR DIV
 
@@ -97,6 +97,7 @@ SeqExpr :
   | STAR { Mult }
   | DIV { Div }
   | EQ { Eq }
+  | NEQ { Neq }
   | LT { Lt }
   | LTE { Lte }
   | GT { Gt }

@@ -55,12 +55,12 @@ let pp_ty2 ppf u =
   in pp_ty ppf u
 
 let gt_binop op1 op2 = match op1, op2 with
-  | (Plus | Minus | Mult | Div), (Eq | Lt | Lte | Gt | Gte)
+  | (Plus | Minus | Mult | Div), (Eq | Neq | Lt | Lte | Gt | Gte)
   | (Mult | Div), (Plus | Minus) -> true
   | _ -> false
 
 let gte_binop op1 op2 = match op1, op2 with
-  | (Eq | Lt | Lte | Gt | Gte), (Eq | Lt | Lte | Gt | Gte)
+  | (Eq | Neq | Lt | Lte | Gt | Gte), (Eq | Neq | Lt | Lte | Gt | Gte)
   | (Mult | Div), (Mult | Div)
   | (Plus | Minus), (Plus | Minus) -> true
   | _ -> gt_binop op1 op2
@@ -73,6 +73,7 @@ let pp_binop ppf op =
     | Mult -> "*"
     | Div -> "/"
     | Eq -> "="
+    | Neq -> "<>"
     | Lt -> "<"
     | Lte -> "<="
     | Gt -> ">"

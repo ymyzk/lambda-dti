@@ -39,6 +39,7 @@ rule main = parse
 | ";" { Parser.SEMI (range_of lexbuf) }
 | ";;" { Parser.SEMISEMI (range_of lexbuf) }
 | "=" { Parser.EQ (range_of lexbuf) }
+| "<>" { Parser.NEQ (range_of lexbuf) }
 | "->" { Parser.RARROW (range_of lexbuf) }
 | "+" { Parser.PLUS (range_of lexbuf) }
 | "-" { Parser.MINUS (range_of lexbuf) }
