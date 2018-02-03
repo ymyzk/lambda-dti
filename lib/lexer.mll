@@ -14,6 +14,7 @@ let reservedWords = [
   ("int", fun r -> Parser.INT r);
   ("bool", fun r -> Parser.BOOL r);
   ("unit", fun r -> Parser.UNIT r);
+  ("mod", fun r -> Parser.MOD r);
 ]
 
 let range_of lexbuf =

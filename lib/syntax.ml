@@ -9,7 +9,7 @@ module Environment = Map.Make (
   end
   )
 
-type binop = Plus | Minus | Mult | Div | Eq | Neq | Lt | Lte | Gt | Gte
+type binop = Plus | Minus | Mult | Div | Mod | Eq | Neq | Lt | Lte | Gt | Gte
 
 type ty =
   | TyDyn

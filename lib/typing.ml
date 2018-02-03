@@ -43,7 +43,7 @@ let rec meet u1 u2 = match u1, u2 with
     raise @@ Type_error (asprintf "failed to match: meet(%a, %a)" pp_ty u1 pp_ty u2)
 
 let type_of_binop = function
-  | Plus | Minus | Mult | Div -> TyInt, TyInt, TyInt
+  | Plus | Minus | Mult | Div | Mod -> TyInt, TyInt, TyInt
   | Eq | Neq | Lt | Lte | Gt | Gte -> TyInt, TyInt, TyBool
 
 let rec is_static_type = function

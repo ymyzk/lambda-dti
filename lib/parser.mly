@@ -5,7 +5,7 @@ open Utils.Error
 %}
 
 %token <Utils.Error.range> LPAREN RPAREN SEMI SEMISEMI COLON EQ
-%token <Utils.Error.range> PLUS MINUS STAR DIV LT LTE GT GTE NEQ LAND LOR
+%token <Utils.Error.range> PLUS MINUS STAR DIV MOD LT LTE GT GTE NEQ LAND LOR
 %token <Utils.Error.range> LET REC IN FUN IF THEN ELSE
 %token <Utils.Error.range> INT BOOL UNIT QUESTION RARROW
 %token <Utils.Error.range> TRUE FALSE
@@ -23,7 +23,7 @@ open Utils.Error
 %right LAND
 %left  EQ NEQ LT LTE GT GTE
 %left  PLUS MINUS
-%left  STAR DIV
+%left  STAR DIV MOD
 
 %%
 
@@ -108,6 +108,7 @@ SeqExpr :
   | MINUS { Minus }
   | STAR { Mult }
   | DIV { Div }
+  | MOD { Mod }
   | EQ { Eq }
   | NEQ { Neq }
   | LT { Lt }
@@ -116,6 +117,7 @@ SeqExpr :
   | GTE { Gte }
 
 UnaryExpr :
+  | PLUS e=UnaryExpr { e }
   | start_r=MINUS e=UnaryExpr {
       let r = join_range start_r (range_of_exp e) in
       let zero = IConst (dummy_range, 0) in

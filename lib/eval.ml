@@ -31,6 +31,7 @@ let rec eval_binop op v1 v2 =
     | Minus, IntV i1, IntV i2 -> IntV (i1 - i2)
     | Mult, IntV i1, IntV i2 -> IntV (i1 * i2)
     | Div, IntV i1, IntV i2 -> IntV (i1 / i2)
+    | Mod, IntV i1, IntV i2 -> IntV (i1 mod i2)
     | Eq, IntV i1, IntV i2 -> BoolV (i1 = i2)
     | Neq, IntV i1, IntV i2 -> BoolV (i1 <> i2)
     | Lt, IntV i1, IntV i2 -> BoolV (i1 < i2)

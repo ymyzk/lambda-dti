@@ -46,8 +46,8 @@ $ jbuilder runtest
 
 ### Expressions `e`
 - Constants: integers, `true`, `false`, and `()`
-- Unary operator: `-`
-- Binary operators: `+`, `-`, `*`, `/`, `=`, `<>`, `<`, `<=`, `>`, `>=`, `&&`, and `||`
+- Unary operators: `+` and `-`
+- Binary operators: `+`, `-`, `*`, `/`, `mod`, `=`, `<>`, `<`, `<=`, `>`, `>=`, `&&`, and `||`
 - Abstraction:
   - Simple: `fun x -> e`
   - Multiple parameters: `fun x y z ... -> e`
