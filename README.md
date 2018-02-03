@@ -33,7 +33,7 @@ $ ./_build/default/bin/main.exe
 
 Run `$ ./_build/default/bin/main.exe --help` for command line options.
 
-## Running unit tests
+## Running tests
 ```console
 $ jbuilder runtest
 ```
