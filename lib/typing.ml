@@ -125,7 +125,7 @@ module GTLC = struct
   module V = Set.Make(
     struct
       type t = tyvar
-      (* TODO: Should be == *)
+      (* NOTE: We want to compare with == *)
       let compare (x : tyvar) y = compare ((Obj.magic x): int) (Obj.magic y)
     end
     )
