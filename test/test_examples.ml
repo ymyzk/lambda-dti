@@ -19,9 +19,9 @@ let test_examples =
       let tyenv, e, u = Typing.GTLC.type_of_program tyenv e in
       let tyenv, e, u = Typing.GTLC.normalize tyenv e u in
       let f, u' = Typing.GTLC.translate tyenv e in
-      assert (u = u');
+      assert (Typing.is_equal u u');
       let u'' = Typing.CC.type_of_program tyenv f in
-      assert (u = u'');
+      assert (Typing.is_equal u u'');
       let env, x, v = Eval.eval_program env f in
       assert_equal ~ctxt:ctxt ~printer:id expected_ty @@ asprintf "%a" Pp.pp_ty2 u;
       assert_equal ~ctxt:ctxt ~printer:id expected_value @@ asprintf "%a" Pp.CC.pp_value v

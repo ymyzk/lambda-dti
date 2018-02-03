@@ -40,10 +40,9 @@ let rec read_eval_print lexbuf env tyenv =
       let f, u' = Typing.GTLC.translate tyenv e in
       print_debug "f: %a\n" Pp.CC.pp_program f;
       print_debug "U: %a\n" Pp.pp_ty u';
-      (* TODO: Fix assertions *)
-      assert (u = u');
+      assert (Typing.is_equal u u');
       let u'' = Typing.CC.type_of_program tyenv f in
-      assert (u = u'');
+      assert (Typing.is_equal u u'');
 
       (* Evaluation *)
       print_debug "***** Eval *****\n";

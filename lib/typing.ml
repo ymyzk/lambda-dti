@@ -73,6 +73,18 @@ let rec is_tyvar = function
   | TyVar ({ contents = Some u }) -> is_tyvar u
   | _ -> false
 
+let rec is_equal u1 u2 = match u1, u2 with
+  | TyDyn, TyDyn
+  | TyBool, TyBool
+  | TyInt, TyInt
+  | TyUnit, TyUnit -> true
+  | TyVar x1, TyVar x2 when x1 == x2 -> true
+  | TyVar ({ contents = Some u1 }), u2
+  | u1, TyVar ({ contents = Some u2 }) -> is_equal u1 u2
+  | TyFun (u11, u12), TyFun (u21, u22) ->
+    (is_equal u11 u21) && (is_equal u12 u22)
+  | _ -> false
+
 let rec is_consistent u1 u2 = match u1, u2 with
   | TyDyn, TyDyn
   | TyBool, TyBool
