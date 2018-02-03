@@ -85,12 +85,37 @@ Some useful functions are available:
 - : ? -> bool = <fun>
 # is_fun;;
 - : ? -> bool = <fun>
+
+# succ;;
+- : int -> int = <fun>
+# pred;;
+- : int -> int = <fun>
+# max;;
+- : int -> int -> int = <fun>
+# min;;
+- : int -> int -> int = <fun>
+# abs;;
+- : int -> int = <fun>
+# max_int;;
+- : int = 4611686018427387903
+# min_int;;
+- : int = -4611686018427387904
+
+# not;;
+- : bool -> bool = <fun>
+
 # print_bool;;
 - : bool -> unit = <fun>
 # print_int;;
 - : int -> unit = <fun>
 # print_newline;;
 - : unit -> unit = <fun>
+
+# ignore;;
+- : 'a -> unit = <fun>
+
+# exit;;
+- : int -> unit = <fun>
 ```
 
 ## Examples

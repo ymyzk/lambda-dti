@@ -12,6 +12,11 @@ let is_some u = FunV (fun _ -> function
     | _ -> raise @@ Stdlib_bug "untagged value"
   )
 
+let lib_exit = FunV (fun _ -> function
+    | IntV i -> exit i
+    | _ -> raise @@ Stdlib_bug "exit: unexpected value"
+)
+
 let lib_print_bool = FunV (fun _ -> function
     | BoolV b -> print_string @@ string_of_bool b; UnitV
     | _ -> raise @@ Stdlib_bug "print_bool: unexpected value"
@@ -28,10 +33,13 @@ let lib_print_newline = FunV (fun _ -> function
 )
 
 let implementations = [
+  "exit", [], lib_exit, tysc_of_ty @@ TyFun (TyInt, TyUnit);
   "is_bool", [], is_some TyBool, is_some_type;
   "is_int", [], is_some TyInt, is_some_type;
   "is_unit", [], is_some TyUnit, is_some_type;
   "is_fun", [], is_some (TyFun (TyDyn, TyDyn)), is_some_type;
+  "max_int", [], IntV max_int, tysc_of_ty TyInt;
+  "min_int", [], IntV min_int, tysc_of_ty TyInt;
   "print_bool", [], lib_print_bool, tysc_of_ty @@ TyFun (TyBool, TyUnit);
   "print_int", [], lib_print_int, tysc_of_ty @@ TyFun (TyInt, TyUnit);
   "print_newline", [], lib_print_newline, tysc_of_ty @@ TyFun (TyUnit, TyUnit);
@@ -45,7 +53,13 @@ let env, tyenv =
     implementations
 
 let implementations = [
-  "let ignore x = ();;"
+  "let not b = if b then false else true;;";
+  "let succ x = x + 1;;";
+  "let prec x = x - 1;;";
+  "let min x y = if x < y then x else y;;";
+  "let max x y = if x > y then x else y;;";
+  "let abs x = if x < 0 then -x else x;;";
+  "let ignore x = ();;";
 ]
 
 let env, tyenv =
