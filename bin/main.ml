@@ -31,10 +31,9 @@ let rec read_eval_print lexbuf env tyenv =
       print_debug "e: %a\n" Pp.GTLC.pp_program e;
       print_debug "U: %a\n" Pp.pp_ty u;
 
-      (* TODO: Normalize *)
-      let tyenv = Typing.GTLC.normalize_tyenv tyenv in
-      let e = Typing.GTLC.normalize_program e in
-      let u = Typing.GTLC.normalize_type u in
+      (* NOTE: Typing.GTLC.translate and Typing.CC.type_of_program expect
+       * normalized input *)
+      let tyenv, e, u = Typing.GTLC.normalize tyenv e u in
 
       (* Translation *)
       print_debug "***** Cast-insertion *****\n";

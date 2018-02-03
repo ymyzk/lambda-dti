@@ -17,9 +17,7 @@ let test_examples =
     program >:: fun ctxt ->
       let e = parse @@ program ^ ";;" in
       let tyenv, e, u = Typing.GTLC.type_of_program tyenv e in
-      let tyenv = Typing.GTLC.normalize_tyenv tyenv in
-      let e = Typing.GTLC.normalize_program e in
-      let u = Typing.GTLC.normalize_type u in
+      let tyenv, e, u = Typing.GTLC.normalize tyenv e u in
       let f, u' = Typing.GTLC.translate tyenv e in
       assert (u = u');
       let u'' = Typing.CC.type_of_program tyenv f in

@@ -67,9 +67,7 @@ let env, tyenv =
     (fun (env, tyenv) str ->
       let e = Parser.toplevel Lexer.main @@ Lexing.from_string str in
       let tyenv, e, u = Typing.GTLC.type_of_program tyenv e in
-      let tyenv = Typing.GTLC.normalize_tyenv tyenv in
-      let e = Typing.GTLC.normalize_program e in
-      let _ = Typing.GTLC.normalize_type u in
+      let tyenv, e, _ = Typing.GTLC.normalize tyenv e u in
       let f, _ = Typing.GTLC.translate tyenv e in
       let _ = Typing.CC.type_of_program tyenv f in
       let env, _, _ = Eval.eval_program env f in

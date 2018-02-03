@@ -346,6 +346,11 @@ module GTLC = struct
     | Exp e -> Exp (normalize_exp e)
     | LetDecl (x, xs, e) -> LetDecl (x, xs, normalize_exp e)
 
+  let normalize env p u =
+    normalize_tyenv env,
+    normalize_program p,
+    normalize_type u
+
   (* Cast insertion translation *)
 
   let cast f u1 u2 =

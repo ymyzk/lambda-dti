@@ -15,8 +15,7 @@ module GTLC : sig
 
   val type_of_program : tysc Environment.t -> program -> (tysc Environment.t * program * ty)
 
-  val normalize_tyenv : tysc Environment.t -> tysc Environment.t
-  val normalize_program : program -> program
+  val normalize : tysc Environment.t -> program -> ty -> (tysc Environment.t * program * ty)
   val normalize_type : ty -> ty
 
   val translate : tysc Environment.t -> program -> (CC.program * ty)
