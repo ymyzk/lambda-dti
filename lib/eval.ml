@@ -157,7 +157,7 @@ and cast ?(debug=false) v u1 u2 r p =
         cast v (TyFun (TyDyn, TyDyn)) u2 r p
       | _ -> raise @@ Eval_bug "cannot instantiate"
     end
-  | _ -> raise @@ Eval_bug "cannot cast value"
+  | _ -> raise @@ Eval_bug (asprintf "cannot cast value: %a" Pp.CC.pp_value v)
 
 let eval_program ?(debug=false) env p =
   match p with
