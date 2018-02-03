@@ -124,19 +124,21 @@ Some useful functions are available:
 - : int = 5
 
 # (fun (x:?) -> x + 2) true;;
-Blame: line 2, character 21 -- line 2, character 25
+Blame on the expression side:
+line 2, character 14 -- line 2, character 15
 
 # (fun (x:?) -> x 2) (fun y -> true);;
 - : ? = true: bool => ?
 
 # (fun (x:?) -> x) (fun y -> y);;
-- : ? = <wrapped_fun>: ? -> ? => ?
+- : ? = <fun>: ? -> ? => ?
 
 # (fun (x:?) -> x 2) (fun y -> y);;
 - : ? = 2: int => ?
 
 # (fun (f:?) -> f true) ((fun x -> x) ((fun (y:?) -> y) (fun z -> z + 1)));;
-Blame: line 6, character 55 -- line 7, character 69
+Blame on the environment side:
+line 6, character 55 -- line 6, character 69
 
 # (fun (f:?) -> f 2) ((fun x -> x) ((fun (y:?) -> y) (fun z -> z + 1)));;
 - : ? = 3: int => ?
@@ -147,14 +149,27 @@ id : 'a -> 'a = <fun>
 # let dynid (x:?) = x;;
 dynid : ? -> ? = <fun>
 
-# let succ x = x + 1;;
-succ : int -> int = <fun>
+# succ;;
+- : int -> int = <fun>
 
 # (fun (f:?) -> f 2) (id (dynid succ));;
 - : ? = 3: int => ?
 
 # (fun (f:?) -> f true) (id (dynid succ));;
-Blame: line 12, character 18 -- line 13, character 22
+Blame on the environment side:
+line 12, character 33 -- line 12, character 37
+
+# let rec sum (n:?) = if n < 1 then 0 else n + sum (n - 1);;
+sum : ? -> int = <fun>
+
+# sum 100;;
+- : int = 5050
+
+# sum true;;
+Blame on the expression side:
+line 13, character 23 -- line 13, character 24
+
+# exit 0;;
 ```
 
 ## References
