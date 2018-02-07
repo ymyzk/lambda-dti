@@ -1,13 +1,10 @@
-FROM debian:stretch
+FROM ocaml/opam:debian-9_ocaml-4.06.0
+COPY . ./app/
+RUN opam pin add lambda-rti ./app
 
-ENV OCAML_VERSION 4.05.0
+FROM debian:stretch-slim
+COPY --from=0 /home/opam/.opam/4.06.0/bin/lrti /usr/bin/
+ENTRYPOINT ["lrti"]
 
-RUN apt-get update && \
-        apt-get install -y aspcud build-essential m4 unzip wget
-
-RUN wget https://raw.github.com/ocaml/opam/master/shell/opam_installer.sh -O - | sh -s /usr/local/bin
-RUN adduser --disabled-password opam
-USER opam
-
-RUN opam init --comp $OCAML_VERSION
-RUN opam install jbuilder menhir ounit
+# RUN apt-get update && apt-get install --no-install-recommends -y rlwrap
+# ENTRYPOINT ["rlwrap", "lrti"]
