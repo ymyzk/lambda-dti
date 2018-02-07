@@ -33,6 +33,11 @@ $ ./_build/default/bin/main.exe
 
 Run `$ ./_build/default/bin/main.exe --help` for command line options.
 
+### Docker
+```console
+$ docker run -it --rm ymyzk/lambda-rti
+```
+
 ## Running tests
 ```console
 $ jbuilder runtest
