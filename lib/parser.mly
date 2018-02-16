@@ -37,13 +37,13 @@ toplevel :
 
 Program :
   | Expr SEMISEMI { Exp $1 }
-  | start=LET x=ID params=list(Param) u=LetTypeAnnot EQ e=Expr SEMISEMI {
+  | start=LET x=ID params=list(Param) u=Let_type_annot EQ e=Expr SEMISEMI {
       let r = join_range start (range_of_exp e) in
       let e = match u with None -> e | Some u -> AscExp (range_of_exp e, e, u) in
       let e = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e in
       LetDecl (x.value, ref [], e)
     }
-  | start=LET REC x=ID params=nonempty_list(Param) u2=LetRecTypeAnnot EQ e=Expr SEMISEMI {
+  | start=LET REC x=ID params=nonempty_list(Param) u2=Let_rec_type_annot EQ e=Expr SEMISEMI {
       let r = join_range start (range_of_exp e) in
       match params with
       | [] -> LetDecl (x.value, ref [], AscExp (r, e, u2))
@@ -54,13 +54,13 @@ Program :
     }
 
 Expr :
-  | start=LET x=ID params=list(Param) u1=LetTypeAnnot EQ e1=Expr IN e2=Expr {
+  | start=LET x=ID params=list(Param) u1=Let_type_annot EQ e1=Expr IN e2=Expr {
       let r = join_range start (range_of_exp e2) in
       let e1 = match u1 with None -> e1 | Some u1 -> AscExp (range_of_exp e1, e1, u1) in
       let e1 = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e1 in
       LetExp (r, x.value, ref [], e1, e2)
     }
-  | start=LET REC x=ID params=nonempty_list(Param) u2=LetRecTypeAnnot EQ e1=Expr IN e2=Expr {
+  | start=LET REC x=ID params=nonempty_list(Param) u2=Let_rec_type_annot EQ e1=Expr IN e2=Expr {
       let r = join_range start (range_of_exp e2) in
       match params with
       | [] -> LetExp (r, x.value, ref [], AscExp (r, e1, u2), e2)
@@ -73,43 +73,43 @@ Expr :
       let r = join_range start (range_of_exp e) in
       List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e
     }
-  | SeqExpr { $1 }
+  | Seq_expr { $1 }
 
 Param :
   | x=ID { (x, Typing.fresh_tyvar ()) }
   | LPAREN x=ID COLON u=Type RPAREN { (x, u) }
 
-%inline LetTypeAnnot :
+%inline Let_type_annot :
   | /* empty */ { None }
   | COLON u=Type { Some u }
 
-%inline LetRecTypeAnnot :
+%inline Let_rec_type_annot :
   | /* empty */ { Typing.fresh_tyvar () }
   | COLON u2=Type { u2 }
 
-SeqExpr :
-  | e1=SeqExpr SEMI e2=SeqExpr {
+Seq_expr :
+  | e1=Seq_expr SEMI e2=Seq_expr {
       let r = join_range (range_of_exp e1) (range_of_exp e2) in
       LetExp (r, "_", ref [], AscExp (range_of_exp e1, e1, TyUnit), e2)
     }
-  | start=IF e1=SeqExpr THEN e2=SeqExpr ELSE e3=SeqExpr %prec prec_if {
+  | start=IF e1=Seq_expr THEN e2=Seq_expr ELSE e3=Seq_expr %prec prec_if {
       let r = join_range start (range_of_exp e3) in
       IfExp (r, e1, e2, e3)
   }
-  | e1=SeqExpr op=LOR e2=SeqExpr {
+  | e1=Seq_expr op=LOR e2=Seq_expr {
       let r = join_range (range_of_exp e1) (range_of_exp e2) in
       let t, f = BConst (r, true), BConst (r, false) in
       IfExp (r, e1, t, IfExp (r, e2, t, f))
     }
-  | e1=SeqExpr op=LAND e2=SeqExpr {
+  | e1=Seq_expr op=LAND e2=Seq_expr {
       let r = join_range (range_of_exp e1) (range_of_exp e2) in
       let t, f = BConst (r, true), BConst (r, false) in
       IfExp (r, e1, IfExp (r, e2, t, f), f)
     }
-  | e1=SeqExpr op=Op e2=SeqExpr {
+  | e1=Seq_expr op=Op e2=Seq_expr {
       BinOp (join_range (range_of_exp e1) (range_of_exp e2), op, e1, e2)
     }
-  | UnaryExpr { $1 }
+  | Unary_expr { $1 }
 
 %inline Op :
   | PLUS { Plus }
@@ -124,22 +124,22 @@ SeqExpr :
   | GT { Gt }
   | GTE { Gte }
 
-UnaryExpr :
-  | PLUS e=UnaryExpr { e }
-  | start_r=MINUS e=UnaryExpr {
+Unary_expr :
+  | PLUS e=Unary_expr { e }
+  | start_r=MINUS e=Unary_expr {
       let r = join_range start_r (range_of_exp e) in
       let zero = IConst (dummy_range, 0) in
       BinOp (r, Minus, zero, e)
     }
-  | AppExpr { $1 }
+  | App_expr { $1 }
 
-AppExpr :
-  | e1=AppExpr e2=SimpleExpr {
+App_expr :
+  | e1=App_expr e2=Simple_expr {
       AppExp (join_range (range_of_exp e1) (range_of_exp e2), e1, e2)
     }
-  | SimpleExpr { $1 }
+  | Simple_expr { $1 }
 
-SimpleExpr :
+Simple_expr :
   | i=INTV { IConst (i.range, i.value) }
   | r=TRUE { BConst (r, true) }
   | r=FALSE { BConst (r, false) }
@@ -153,11 +153,10 @@ SimpleExpr :
   | LPAREN e=Expr RPAREN { e }
 
 Type :
-  | u1=AType RARROW u2=Type { TyFun (u1, u2) }
-  | AType { $1 }
+  | u1=Simple_type RARROW u2=Type { TyFun (u1, u2) }
+  | Simple_type { $1 }
 
-AType :
-  | LPAREN u=Type RPAREN { u }
+Simple_type :
   | INT { TyInt }
   | BOOL { TyBool }
   | UNIT { TyUnit }
@@ -170,3 +169,4 @@ AType :
         tyvenv := Environment.add x.value u !tyvenv;
         u
     }
+  | LPAREN u=Type RPAREN { u }
