@@ -74,6 +74,7 @@ $ jbuilder runtest
 - Dynamic type: `?`
 - Base types: `bool`, `int`, and `unit`
 - Function type: `U -> U`
+- Type variables: `'a`, `'b`, ...
 
 ### Comments
 - Simple: `(* comments *)`

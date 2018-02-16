@@ -2,9 +2,11 @@
 open Syntax
 open Syntax.GTLC
 open Utils.Error
+
+let tyvenv = ref Environment.empty
 %}
 
-%token <Utils.Error.range> LPAREN RPAREN SEMI SEMISEMI COLON EQ
+%token <Utils.Error.range> LPAREN RPAREN SEMI SEMISEMI COLON EQ QUOTE
 %token <Utils.Error.range> PLUS MINUS STAR DIV MOD LT LTE GT GTE NEQ LAND LOR
 %token <Utils.Error.range> LET REC IN FUN IF THEN ELSE
 %token <Utils.Error.range> INT BOOL UNIT QUESTION RARROW
@@ -28,6 +30,12 @@ open Utils.Error
 %%
 
 toplevel :
+  | p=Program {
+      tyvenv := Environment.empty;
+      p
+    }
+
+Program :
   | Expr SEMISEMI { Exp $1 }
   | start=LET x=ID params=list(Param) u=LetTypeAnnot EQ e=Expr SEMISEMI {
       let r = join_range start (range_of_exp e) in
@@ -154,3 +162,11 @@ AType :
   | BOOL { TyBool }
   | UNIT { TyUnit }
   | QUESTION { TyDyn }
+  | QUOTE x=ID {
+      try
+        Environment.find x.value !tyvenv
+      with Not_found ->
+        let u = Typing.fresh_tyvar () in
+        tyvenv := Environment.add x.value u !tyvenv;
+        u
+    }

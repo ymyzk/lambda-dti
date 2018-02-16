@@ -59,6 +59,7 @@ let test_examples =
     "fun (x: int -> bool) -> ()", "(int -> bool) -> unit", "<fun>";
     "fun (x: int -> bool -> int) -> ()", "(int -> bool -> int) -> unit", "<fun>";
     "fun (x: (int -> bool) -> int) -> ()", "((int -> bool) -> int) -> unit", "<fun>";
+    "fun (x:'a) (y:'b) -> x y", "('a -> 'b) -> 'a -> 'b", "<fun>";
     (* application *)
     "(fun x -> x + 1) 3", "int", "4";
     "(fun (x:?) -> x + 1) 3", "int", "4";

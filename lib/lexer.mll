@@ -39,6 +39,7 @@ rule main = parse
 | ":" { Parser.COLON (range_of lexbuf) }
 | ";" { Parser.SEMI (range_of lexbuf) }
 | ";;" { Parser.SEMISEMI (range_of lexbuf) }
+| "'" { Parser.QUOTE (range_of lexbuf) }
 | "=" { Parser.EQ (range_of lexbuf) }
 | "<>" { Parser.NEQ (range_of lexbuf) }
 | "->" { Parser.RARROW (range_of lexbuf) }
