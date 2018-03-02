@@ -1,5 +1,5 @@
 opam-version: "1.2"
-version: "1.0"
+version: "1.1"
 maintainer: "miyazaki@fos.kuis.kyoto-u.ac.jp"
 authors: ["Yusuke Miyazaki <miyazaki@fos.kuis.kyoto-u.ac.jp>"]
 homepage: "https://github.com/ymyzk/lambda-rti"
