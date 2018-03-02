@@ -179,4 +179,5 @@ line 13, character 23 -- line 13, character 24
 ```
 
 ## References
+- Yusuke Miyazaki. Runtime Type Inference for Gradual Typing. Master's Thesis. Graduate School of Informatics, Kyoto University, 2018.
 - [Ronald Garcia and Matteo Cimini. Principal Type Schemes for Gradual Programs. In Proc. of ACM POPL, 2015.](https://dl.acm.org/citation.cfm?id=2676992)
