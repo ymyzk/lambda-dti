@@ -387,7 +387,7 @@ module GTLC = struct
       let f1, u1 = translate_exp env e1 in
       let f2, u2 = translate_exp env e2 in
       CC.BinOp (r, op, cast f1 u1 ui1, cast f2 u2 ui2), ui
-    | AscExp (r, e, u1) ->
+    | AscExp (_, e, u1) ->
       let f, u = translate_exp env e in
       if is_consistent u u1 then
         cast f u u1, u1
@@ -407,8 +407,7 @@ module GTLC = struct
       let env = Environment.add x (tysc_of_ty (TyFun (u1, u2))) env in
       let env = Environment.add y (tysc_of_ty u1) env in
       let f, u2' = translate_exp env e in
-      let u, u' = TyFun (u1, u2), TyFun (u1, u2') in
-      CC.FixExp (r, x, y, u1, u2, cast f u2' u2), u
+      CC.FixExp (r, x, y, u1, u2, cast f u2' u2), TyFun (u1, u2)
     | AppExp (r, e1, e2) ->
       let f1, u1 = translate_exp env e1 in
       let f2, u2 = translate_exp env e2 in
@@ -468,7 +467,7 @@ module CC = struct
     | FunExp (_, x, u1, f) ->
       let u2 = type_of_exp (Environment.add x (tysc_of_ty u1) env) f in
       TyFun (u1, u2)
-    | FixExp (r, x, y, u1, u, f) ->
+    | FixExp (_, x, y, u1, u, f) ->
       let u2 = type_of_exp (Environment.add y (tysc_of_ty u1) (Environment.add x (tysc_of_ty (TyFun (u1, u))) env)) f in
       TyFun (u1, u2)
     | AppExp (_, f1, f2) ->

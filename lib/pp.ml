@@ -149,7 +149,7 @@ module GTLC = struct
         x1
         pp_ty u1
         pp_exp e
-    | FixExp (r, x, y, u1, u2, e) ->
+    | FixExp (_, x, y, u1, u2, e) ->
       fprintf ppf "fix %s (%s: %a): %a = %a"
         x
         y
@@ -216,7 +216,7 @@ module CC = struct
         x1
         pp_ty u1
         pp_exp f
-    | FixExp (r, x, y, u1, u2, f) ->
+    | FixExp (_, x, y, u1, u2, f) ->
       fprintf ppf "fix %s (%s: %a): %a = %a"
         x
         y

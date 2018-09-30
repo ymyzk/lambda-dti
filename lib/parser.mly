@@ -96,12 +96,12 @@ Seq_expr :
       let r = join_range start (range_of_exp e3) in
       IfExp (r, e1, e2, e3)
   }
-  | e1=Seq_expr op=LOR e2=Seq_expr {
+  | e1=Seq_expr LOR e2=Seq_expr {
       let r = join_range (range_of_exp e1) (range_of_exp e2) in
       let t, f = BConst (r, true), BConst (r, false) in
       IfExp (r, e1, t, IfExp (r, e2, t, f))
     }
-  | e1=Seq_expr op=LAND e2=Seq_expr {
+  | e1=Seq_expr LAND e2=Seq_expr {
       let r = join_range (range_of_exp e1) (range_of_exp e2) in
       let t, f = BConst (r, true), BConst (r, false) in
       IfExp (r, e1, IfExp (r, e2, t, f), f)

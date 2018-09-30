@@ -52,7 +52,7 @@ module GTLC = struct
   let test_type_of_program_errors =
     let tyenv = Environment.empty in
     let test program =
-      program >:: fun ctxt ->
+      program >:: fun _ ->
         let e = parse @@ program ^ ";;" in
         (* NOTE: Currently we do not care about contents of the exception *)
         let message = begin

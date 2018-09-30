@@ -136,12 +136,12 @@ and cast ?(debug=false) v u1 u2 r p =
   | TyUnit, TyDyn -> Tagged (U, v)
   | TyFun (TyDyn, TyDyn), TyDyn -> Tagged (Ar, v)
   (* Ground *)
-  | TyFun (u11, u12), TyDyn ->
+  | TyFun _, TyDyn ->
     let dfun = TyFun (TyDyn, TyDyn) in
     let v = cast v u1 dfun r p in
     cast v dfun TyDyn r p
   (* Expand *)
-  | TyDyn, TyFun (u21, u22) ->
+  | TyDyn, TyFun _ ->
     let dfun = TyFun (TyDyn, TyDyn) in
     let v = cast v TyDyn dfun r p in
     cast v dfun u2 r p

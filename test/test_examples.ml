@@ -22,7 +22,7 @@ let test_examples =
       assert (Typing.is_equal u u');
       let u'' = Typing.CC.type_of_program tyenv f in
       assert (Typing.is_equal u u'');
-      let env, x, v = Eval.eval_program env f in
+      let _, _, v = Eval.eval_program env f in
       assert_equal ~ctxt:ctxt ~printer:id expected_ty @@ asprintf "%a" Pp.pp_ty2 u;
       assert_equal ~ctxt:ctxt ~printer:id expected_value @@ asprintf "%a" Pp.CC.pp_value v
 
