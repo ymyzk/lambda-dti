@@ -25,7 +25,7 @@ let rec subst_exp s = function
     let s = List.filter (fun (x, _) -> not @@ List.memq x ys) s in
     LetExp (r, y, ys, subst_exp s f1, subst_exp s f2)
 
-let rec eval_binop op v1 v2 =
+let eval_binop op v1 v2 =
   begin match op, v1, v2 with
     | Plus, IntV i1, IntV i2 -> IntV (i1 + i2)
     | Minus, IntV i1, IntV i2 -> IntV (i1 - i2)
