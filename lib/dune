@@ -1,13 +1,11 @@
-(jbuild_version 1)
-
 (library
- ((name lambda_rti)
-  (public_name lambda-rti)))
+  (name lambda_rti)
+  (public_name lambda-rti))
 
-(ocamllex (lexer))
+(ocamllex lexer)
 ; Though we want to use --infer option in Menhir,
 ; it is not supported by dune now:
 ; https://github.com/ocaml/dune/issues/305
 (menhir
- ((flags (--explain))
-  (modules (parser))))
+  (flags (--explain))
+  (modules parser))

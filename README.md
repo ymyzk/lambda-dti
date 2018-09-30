@@ -18,8 +18,8 @@ This implementation consists of:
 ## Getting started
 ### Global installation
 ```console
-$ jbuilder build
-$ jbuilder install
+$ dune build
+$ dune install
 $ lrti
 ```
 
@@ -27,7 +27,7 @@ Run `$ lrti --help` for command line options.
 
 ### Local installation
 ```console
-$ jbuilder build
+$ dune build
 $ ./_build/default/bin/main.exe
 ```
 
@@ -40,7 +40,7 @@ $ docker run -it --rm ymyzk/lambda-rti
 
 ## Running tests
 ```console
-$ jbuilder runtest
+$ dune runtest
 ```
 
 ## Syntax

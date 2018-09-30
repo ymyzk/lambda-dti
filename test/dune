@@ -1,0 +1,8 @@
+(executable
+  (name runtests)
+  (libraries ounit lambda_rti))
+
+(alias
+  (name    runtest)
+  (deps    runtests.exe)
+  (action  (run %{deps})))
