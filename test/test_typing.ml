@@ -8,8 +8,8 @@ open Typing
 
 let id x = x
 
-module GTLC = struct
-  open Typing.GTLC
+module ITGL = struct
+  open Typing.ITGL
 
   let parse str =
     Parser.toplevel Lexer.main @@ Lexing.from_string str
@@ -19,8 +19,8 @@ module GTLC = struct
     let test (program, expected) =
       program >:: fun ctxt ->
         let e = parse @@ program ^ ";;" in
-        let _, _, u = Typing.GTLC.type_of_program tyenv e in
-        let u = Typing.GTLC.normalize_type u in
+        let _, _, u = Typing.ITGL.type_of_program tyenv e in
+        let u = Typing.ITGL.normalize_type u in
         assert_equal ~ctxt:ctxt ~printer:id expected @@ asprintf "%a" Pp.pp_ty2 u
     in
     List.map test [
@@ -86,5 +86,5 @@ module GTLC = struct
 end
 
 let suite = [
-  "test_GTLC">::: GTLC.suite;
+  "test_ITGL">::: ITGL.suite;
 ]

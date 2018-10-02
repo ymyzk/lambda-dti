@@ -99,8 +99,8 @@ let pp_let_tyabses ppf tyvars =
     let pp_list ppf types = pp_print_list pp_ty ppf types ~pp_sep:pp_sep in
     fprintf ppf "fun %a -> " pp_list @@ List.map (fun x -> TyVar x) tyvars
 
-module GTLC = struct
-  open Syntax.GTLC
+module ITGL = struct
+  open Syntax.ITGL
 
   let pp_constr ppf = function
     | CEqual (u1, u2) ->

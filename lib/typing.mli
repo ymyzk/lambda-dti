@@ -12,8 +12,8 @@ type substitution = tyvar * ty
 type substitutions = substitution list
 val subst_type : substitutions -> ty -> ty
 
-module GTLC : sig
-  open Syntax.GTLC
+module ITGL : sig
+  open Syntax.ITGL
 
   val type_of_program : tysc Environment.t -> program -> (tysc Environment.t * program * ty)
 

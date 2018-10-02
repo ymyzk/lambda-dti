@@ -1,6 +1,6 @@
 %{
 open Syntax
-open Syntax.GTLC
+open Syntax.ITGL
 open Utils.Error
 
 let tyvenv = ref Environment.empty
@@ -16,7 +16,7 @@ let tyvenv = ref Environment.empty
 %token <Syntax.id Utils.Error.with_range> ID
 
 %start toplevel
-%type <Syntax.GTLC.program> toplevel
+%type <Syntax.ITGL.program> toplevel
 
 (* Ref: https://caml.inria.fr/pub/docs/manual-ocaml/expr.html *)
 %right SEMI

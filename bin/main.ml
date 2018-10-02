@@ -22,21 +22,21 @@ let rec read_eval_print lexbuf env tyenv =
       (* Parsing *)
       print_debug "***** Parser *****\n";
       let e = Parser.toplevel Lexer.main lexbuf in
-      print_debug "e: %a\n" Pp.GTLC.pp_program e;
+      print_debug "e: %a\n" Pp.ITGL.pp_program e;
 
       (* Type inference *)
       print_debug "***** Typing *****\n";
-      let tyenv, e, u = Typing.GTLC.type_of_program tyenv e in
-      print_debug "e: %a\n" Pp.GTLC.pp_program e;
+      let tyenv, e, u = Typing.ITGL.type_of_program tyenv e in
+      print_debug "e: %a\n" Pp.ITGL.pp_program e;
       print_debug "U: %a\n" Pp.pp_ty u;
 
-      (* NOTE: Typing.GTLC.translate and Typing.CC.type_of_program expect
+      (* NOTE: Typing.ITGL.translate and Typing.CC.type_of_program expect
        * normalized input *)
-      let tyenv, e, u = Typing.GTLC.normalize tyenv e u in
+      let tyenv, e, u = Typing.ITGL.normalize tyenv e u in
 
       (* Translation *)
       print_debug "***** Cast-insertion *****\n";
-      let f, u' = Typing.GTLC.translate tyenv e in
+      let f, u' = Typing.ITGL.translate tyenv e in
       print_debug "f: %a\n" Pp.CC.pp_program f;
       print_debug "U: %a\n" Pp.pp_ty u';
       assert (Typing.is_equal u u');

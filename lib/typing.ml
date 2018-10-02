@@ -116,9 +116,9 @@ let subst_type s u =
   in
   List.fold_left subst u s
 
-module GTLC = struct
-  open Pp.GTLC
-  open Syntax.GTLC
+module ITGL = struct
+  open Pp.ITGL
+  open Syntax.ITGL
 
   (* Set of type variables used for tau and let polymorphism *)
 

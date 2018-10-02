@@ -40,8 +40,8 @@ let test_pp_ty2 =
     "('a -> 'b) -> 'a", TyFun (TyFun (c, b), c);
   ]
 
-module GTLC = struct
-  open Pp.GTLC
+module ITGL = struct
+  open Pp.ITGL
 
   let test_pp_program =
     let test (e) =
@@ -98,6 +98,6 @@ end
 let suite = [
   "test_pp_ty">::: test_pp_ty;
   "test_pp_ty2">::: test_pp_ty2;
-  "test_GTLC">::: GTLC.suite;
+  "test_ITGL">::: ITGL.suite;
   "test_CC">::: CC.suite;
 ]

@@ -34,7 +34,7 @@ let ground_of_ty = function
   | TyFun _ -> Some (TyFun (TyDyn, TyDyn))
   | _ -> None
 
-module GTLC = struct
+module ITGL = struct
   type constr =
     | CEqual of ty * ty
     | CConsistent of ty * ty

@@ -16,9 +16,9 @@ let test_examples =
   let test (program, expected_ty, expected_value) =
     program >:: fun ctxt ->
       let e = parse @@ program ^ ";;" in
-      let tyenv, e, u = Typing.GTLC.type_of_program tyenv e in
-      let tyenv, e, u = Typing.GTLC.normalize tyenv e u in
-      let f, u' = Typing.GTLC.translate tyenv e in
+      let tyenv, e, u = Typing.ITGL.type_of_program tyenv e in
+      let tyenv, e, u = Typing.ITGL.normalize tyenv e u in
+      let f, u' = Typing.ITGL.translate tyenv e in
       assert (Typing.is_equal u u');
       let u'' = Typing.CC.type_of_program tyenv f in
       assert (Typing.is_equal u u'');
