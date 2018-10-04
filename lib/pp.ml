@@ -109,7 +109,7 @@ module ITGL = struct
       fprintf ppf "%a ~.~ %a" pp_ty u1 pp_ty u2
 
   let gt_exp e1 e2 = match e1, e2 with
-    | (Var _ | IConst _ | BConst _ | UConst _ | AscExp _ | AppExp _ | BinOp _ | IfExp _), (LetExp _ | FunExp _ | FixExp _) -> true
+    | (Var _ | IConst _ | BConst _ | UConst _ | AscExp _ | AppExp _ | BinOp _ | IfExp _), (LetExp _ | FunEExp _ | FunIExp _ | FixEExp _ | FixIExp _) -> true
     | (Var _ | IConst _ | BConst _ | UConst _ | AscExp _ | AppExp _ | BinOp _), IfExp _ -> true
     | BinOp (_, op1, _, _), BinOp (_, op2, _, _) -> gt_binop op1 op2
     | (Var _ | IConst _ | BConst _ | UConst _ | AscExp _ | AppExp _), BinOp _ -> true
@@ -118,8 +118,10 @@ module ITGL = struct
 
   let gte_exp e1 e2 = match e1, e2 with
     | LetExp _, LetExp _ -> true
-    | FunExp _, FunExp _ -> true
-    | FixExp _, FixExp _ -> true
+    | FunEExp _, FunEExp _ -> true
+    | FunIExp _, FunIExp _ -> true
+    | FixEExp _, FixEExp _ -> true
+    | FixIExp _, FixIExp _ -> true
     | IfExp _, IfExp _ -> true
     | BinOp (_, op1, _, _), BinOp (_, op2, _, _) when op1 = op2 -> true
     | AppExp _, AppExp _ -> true
@@ -144,12 +146,16 @@ module ITGL = struct
         (with_paren (gt_exp e e1) pp_exp) e1
         (with_paren (gt_exp e e2) pp_exp) e2
         (with_paren (gt_exp e e3) pp_exp) e3
-    | FunExp (_, x1, u1, e) ->
+    (* TODO maybe we want to distinguish FunI from FunE *)
+    | FunEExp (_, x1, u1, e)
+    | FunIExp (_, x1, u1, e) ->
       fprintf ppf "fun (%s: %a) -> %a"
         x1
         pp_ty u1
         pp_exp e
-    | FixExp (_, x, y, u1, u2, e) ->
+    (* TODO maybe we want to distinguish FixI from FixE *)
+    | FixEExp (_, x, y, u1, u2, e)
+    | FixIExp (_, x, y, u1, u2, e) ->
       fprintf ppf "fix %s (%s: %a): %a = %a"
         x
         y

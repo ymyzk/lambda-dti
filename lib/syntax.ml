@@ -47,8 +47,10 @@ module ITGL = struct
     | BinOp of range * binop * exp * exp
     | AscExp of range * exp * ty
     | IfExp of range * exp * exp * exp
-    | FunExp of range * id * ty * exp
-    | FixExp of range * id * id * ty * ty * exp
+    | FunEExp of range * id * ty * exp
+    | FunIExp of range * id * ty * exp
+    | FixEExp of range * id * id * ty * ty * exp
+    | FixIExp of range * id * id * ty * ty * exp
     | AppExp of range * exp * exp
     | LetExp of range * id * tyvar list ref * exp * exp
 
@@ -60,8 +62,10 @@ module ITGL = struct
     | AscExp (r, _, _)
     | BinOp (r, _, _, _)
     | IfExp (r, _, _, _)
-    | FunExp (r, _, _, _)
-    | FixExp (r, _, _, _, _, _)
+    | FunEExp (r, _, _, _)
+    | FunIExp (r, _, _, _)
+    | FixEExp (r, _, _, _, _, _)
+    | FixIExp (r, _, _, _, _, _)
     | AppExp (r, _, _)
     | LetExp (r, _, _, _, _) -> r
 
@@ -70,8 +74,10 @@ module ITGL = struct
     | IConst _
     | BConst _
     | UConst _
-    | FunExp _
-    | FixExp _ -> true
+    | FunEExp _
+    | FunIExp _
+    | FixEExp _
+    | FixIExp _ -> true
     | _ -> false
 
   type program =

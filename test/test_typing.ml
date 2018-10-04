@@ -77,6 +77,8 @@ module ITGL = struct
       "if 0 then true else false";
       "if true then 1 else false";
       "x";
+      "let f (x:'a) = x in ignore (f 3); f true";
+      "let rec f (x:'a) = x in ignore (f 3); f true";
     ]
 
   let suite = [

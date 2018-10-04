@@ -143,8 +143,28 @@ module ITGL = struct
   let free_tyvars_tyenv env =
     Environment.fold (fun _ us vars -> V.union vars (free_tyvars_tysc us)) env V.empty
 
-  let closure_tyvars env u =
-    V.elements @@ V.diff (tyvars_ty u) (free_tyvars_tyenv env)
+  let rec free_tyvars_exp: exp -> V.t = function
+    | Var _
+    | IConst _
+    | BConst _
+    | UConst _ -> V.empty
+    | BinOp (_, _, e1, e2) -> V.union (free_tyvars_exp e1) (free_tyvars_exp e2)
+    | AscExp (_, e, u) -> V.union (free_tyvars_exp e) (tyvars_ty u)
+    | IfExp (_, e1, e2, e3) -> List.fold_right V.union (List.map free_tyvars_exp [e1; e2; e3]) V.empty
+    | FunEExp (_, _, u, e) -> V.union (tyvars_ty u) (free_tyvars_exp e)
+    | FunIExp (_, _, _, e) -> free_tyvars_exp e
+    | FixEExp (_, _, _, u1, _, e) -> V.union (tyvars_ty u1) (free_tyvars_exp e)
+    | FixIExp (_, _, _, _, _, e) -> free_tyvars_exp e
+    | AppExp (_, e1, e2) -> V.union (free_tyvars_exp e1) (free_tyvars_exp e2)
+    | LetExp (_, _, _, e1, e2) -> V.union (free_tyvars_exp e1) (free_tyvars_exp e2)
+
+  (* Create a list of type variables which can be generalized by let *)
+  (* ftv(U) \ (ftv(env) U ftv(v)) *)
+  let closure_tyvars env u v =
+    V.elements @@
+      V.diff
+        (tyvars_ty u) @@
+        V.union (free_tyvars_tyenv env) (free_tyvars_exp v)
 
   (* Unification *)
 
@@ -289,10 +309,12 @@ module ITGL = struct
       let u3 = type_of_exp env e3 in
       unify @@ CConsistent (u1, TyBool);
       type_of_meet u2 u3
-    | FunExp (_, x, u1, e) ->
+    | FunEExp (_, x, u1, e)
+    | FunIExp (_, x, u1, e) ->
       let u2 = type_of_exp (Environment.add x (tysc_of_ty u1) env) e in
       TyFun (u1, u2)
-    | FixExp (_, x, y, u1, u2, e) ->
+    | FixEExp (_, x, y, u1, u2, e)
+    | FixIExp (_, x, y, u1, u2, e) ->
       let env = Environment.add x (tysc_of_ty (TyFun (u1, u2))) env in
       let env = Environment.add y (tysc_of_ty u1) env in
       let u2' = type_of_exp env e in
@@ -306,20 +328,20 @@ module ITGL = struct
       u3
     | LetExp (_, x, xs, e1, e2) when is_value e1 ->
       let u1 = type_of_exp env e1 in
-      let free_tyvars = closure_tyvars env u1 in
+      let free_tyvars = closure_tyvars env u1 e1 in
       xs := free_tyvars;
       let us1 = TyScheme (free_tyvars, u1) in
       type_of_exp (Environment.add x us1 env) e2
     | LetExp (r, x, _, e1, e2) ->
       let u1 = type_of_exp env e1 in
-      type_of_exp env @@ AppExp (r, FunExp (r, x, u1, e2), e1)
+      type_of_exp env @@ AppExp (r, FunIExp (r, x, u1, e2), e1)
 
   let type_of_program tyenv = function
     | Exp e ->
       tyenv, Exp e, type_of_exp tyenv e
     | LetDecl (x, xs, e) ->
       let u = type_of_exp tyenv e in
-      let free_tyvars = if is_value e then closure_tyvars tyenv u else [] in
+      let free_tyvars = if is_value e then closure_tyvars tyenv u e else [] in
       xs := free_tyvars;
       let tyenv = Environment.add x (TyScheme (free_tyvars, u)) tyenv in
       tyenv, LetDecl (x, xs, e), u
@@ -345,10 +367,14 @@ module ITGL = struct
       AscExp (r, normalize_exp e, normalize_type u)
     | IfExp (r, e1, e2, e3) ->
       IfExp (r, normalize_exp e1, normalize_exp e2, normalize_exp e3)
-    | FunExp (r, x1, u1, e) ->
-      FunExp (r, x1, normalize_type u1, normalize_exp e)
-    | FixExp (r, x, y, u1, u2, e) ->
-      FixExp (r, x, y, normalize_type u1, normalize_type u2, normalize_exp e)
+    | FunEExp (r, x1, u1, e) ->
+      FunEExp (r, x1, normalize_type u1, normalize_exp e)
+    | FunIExp (r, x1, u1, e) ->
+      FunIExp (r, x1, normalize_type u1, normalize_exp e)
+    | FixEExp (r, x, y, u1, u2, e) ->
+      FixEExp (r, x, y, normalize_type u1, normalize_type u2, normalize_exp e)
+    | FixIExp (r, x, y, u1, u2, e) ->
+      FixIExp (r, x, y, normalize_type u1, normalize_type u2, normalize_exp e)
     | AppExp (r, e1, e2) ->
       AppExp (r, normalize_exp e1, normalize_exp e2)
     | LetExp (r, y, ys, e1, e2) ->
@@ -399,10 +425,12 @@ module ITGL = struct
       let f3, u3 = translate_exp env e3 in
       let u = meet u2 u3 in
       CC.IfExp (r, cast f1 u1 TyBool, cast f2 u2 u, cast f3 u3 u), u
-    | FunExp (r, x, u1, e) ->
+    | FunEExp (r, x, u1, e)
+    | FunIExp (r, x, u1, e) ->
       let f, u2 = translate_exp (Environment.add x (tysc_of_ty u1) env) e in
       CC.FunExp (r, x, u1, f), TyFun (u1, u2)
-    | FixExp (r, x, y, u1, u2, e) ->
+    | FixEExp (r, x, y, u1, u2, e)
+    | FixIExp (r, x, y, u1, u2, e) ->
       (* NOTE: Disallow to use x polymorphically in e *)
       let env = Environment.add x (tysc_of_ty (TyFun (u1, u2))) env in
       let env = Environment.add y (tysc_of_ty u1) env in
@@ -419,7 +447,7 @@ module ITGL = struct
       CC.LetExp (r, x, !xs, f1, f2), u2
     | LetExp (r, x, _, e1, e2) ->
       let _, u1 = translate_exp env e1 in
-      let e = AppExp (r, FunExp (r, x, u1, e2), e1) in
+      let e = AppExp (r, FunIExp (r, x, u1, e2), e1) in
       translate_exp env e
 
   let translate tyenv = function

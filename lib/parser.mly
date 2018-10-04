@@ -4,6 +4,17 @@ open Syntax.ITGL
 open Utils.Error
 
 let tyvenv = ref Environment.empty
+
+let param_to_fun r (x, u) e = match u with
+| None -> FunIExp (r, x.value, Typing.fresh_tyvar (), e)
+| Some u -> FunEExp (r, x.value, u, e)
+
+let param_to_fun_ty r (x, u1) (e, u) = match u1 with
+| None ->
+    let u1 = Typing.fresh_tyvar () in
+    FunIExp (r, x.value, u1, e), TyFun (u1, u)
+| Some u1 ->
+    FunEExp (r, x.value, u1, e), TyFun (u1, u)
 %}
 
 %token <Utils.Error.range> LPAREN RPAREN SEMI SEMISEMI COLON EQ QUOTE
@@ -40,44 +51,50 @@ Program :
   | start=LET x=ID params=list(Param) u=Let_type_annot EQ e=Expr SEMISEMI {
       let r = join_range start (range_of_exp e) in
       let e = match u with None -> e | Some u -> AscExp (range_of_exp e, e, u) in
-      let e = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e in
+      let e = List.fold_right (param_to_fun r) params e in
       LetDecl (x.value, ref [], e)
     }
   | start=LET REC x=ID params=nonempty_list(Param) u2=Let_rec_type_annot EQ e=Expr SEMISEMI {
       let r = join_range start (range_of_exp e) in
       match params with
       | [] -> LetDecl (x.value, ref [], AscExp (r, e, u2))
-      | (y, u1) :: params ->
-        let e = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e in
-        let u2 = List.fold_right (fun (_, u1) u -> TyFun (u1, u)) params u2 in
-        LetDecl (x.value, ref [], FixExp (r, x.value, y.value, u1, u2, e))
+      | (y, None) :: params ->
+        let u1 = Typing.fresh_tyvar () in
+        let e, u2 = List.fold_right (param_to_fun_ty r) params (e, u2) in
+        LetDecl (x.value, ref [], FixIExp (r, x.value, y.value, u1, u2, e))
+      | (y, Some u1) :: params ->
+        let e, u2 = List.fold_right (param_to_fun_ty r) params (e, u2) in
+        LetDecl (x.value, ref [], FixEExp (r, x.value, y.value, u1, u2, e))
     }
 
 Expr :
   | start=LET x=ID params=list(Param) u1=Let_type_annot EQ e1=Expr IN e2=Expr {
       let r = join_range start (range_of_exp e2) in
       let e1 = match u1 with None -> e1 | Some u1 -> AscExp (range_of_exp e1, e1, u1) in
-      let e1 = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e1 in
+      let e1 = List.fold_right (param_to_fun r) params e1 in
       LetExp (r, x.value, ref [], e1, e2)
     }
   | start=LET REC x=ID params=nonempty_list(Param) u2=Let_rec_type_annot EQ e1=Expr IN e2=Expr {
       let r = join_range start (range_of_exp e2) in
       match params with
       | [] -> LetExp (r, x.value, ref [], AscExp (r, e1, u2), e2)
-      | (y, u1) :: params ->
-        let e1 = List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e1 in
-        let u2 = List.fold_right (fun (_, u1) u -> TyFun (u1, u)) params u2 in
-        LetExp (r, x.value, ref [], FixExp (r, x.value, y.value, u1, u2, e1), e2)
+      | (y, None) :: params ->
+        let u1 = Typing.fresh_tyvar () in
+        let e1, u2 = List.fold_right (param_to_fun_ty r) params (e1, u2) in
+        LetExp (r, x.value, ref [], FixIExp (r, x.value, y.value, u1, u2, e1), e2)
+      | (y, Some u1) :: params ->
+        let e1, u2 = List.fold_right (param_to_fun_ty r) params (e1, u2) in
+        LetExp (r, x.value, ref [], FixEExp (r, x.value, y.value, u1, u2, e1), e2)
     }
   | start=FUN params=nonempty_list(Param) RARROW e=Expr {
       let r = join_range start (range_of_exp e) in
-      List.fold_right (fun (x, u) e -> FunExp (r, x.value, u, e)) params e
+      List.fold_right (param_to_fun r) params e
     }
   | Seq_expr { $1 }
 
 Param :
-  | x=ID { (x, Typing.fresh_tyvar ()) }
-  | LPAREN x=ID COLON u=Type RPAREN { (x, u) }
+  | x=ID { (x, None) }
+  | LPAREN x=ID COLON u=Type RPAREN { (x, Some u) }
 
 %inline Let_type_annot :
   | /* empty */ { None }
