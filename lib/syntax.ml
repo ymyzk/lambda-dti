@@ -34,6 +34,31 @@ let ground_of_ty = function
   | TyFun _ -> Some (TyFun (TyDyn, TyDyn))
   | _ -> None
 
+(* Set of type variables used for let polymorphism *)
+
+module V =
+  struct include Set.Make (
+    struct
+      type t = tyvar
+      (* NOTE: We want to compare with == *)
+      let compare (x : tyvar) y = compare ((Obj.magic x): int) (Obj.magic y)
+  end
+  )
+  let big_union vars = List.fold_right union vars empty
+end
+
+let rec ftv_ty: ty -> V.t = function
+  | TyVar ({ contents = None } as x) -> V.singleton x
+  | TyVar ({ contents = Some u }) -> ftv_ty u
+  | TyFun (u1, u2) -> V.union (ftv_ty u1) (ftv_ty u2)
+  | _ -> V.empty
+
+let ftv_tysc: tysc -> V.t = function
+  | TyScheme (xs, u) -> V.diff (ftv_ty u) (V.of_list xs)
+
+let ftv_tyenv (env: tysc Environment.t): V.t =
+  Environment.fold (fun _ us vars -> V.union vars (ftv_tysc us)) env V.empty
+
 module ITGL = struct
   type constr =
     | CEqual of ty * ty
@@ -80,6 +105,21 @@ module ITGL = struct
     | FixIExp _ -> true
     | _ -> false
 
+  let rec ftv_exp: exp -> V.t = function
+    | Var _
+    | IConst _
+    | BConst _
+    | UConst _ -> V.empty
+    | BinOp (_, _, e1, e2) -> V.union (ftv_exp e1) (ftv_exp e2)
+    | AscExp (_, e, u) -> V.union (ftv_exp e) (ftv_ty u)
+    | IfExp (_, e1, e2, e3) -> V.big_union @@ List.map ftv_exp [e1; e2; e3]
+    | FunEExp (_, _, u, e) -> V.union (ftv_ty u) (ftv_exp e)
+    | FunIExp (_, _, _, e) -> ftv_exp e
+    | FixEExp (_, _, _, u1, _, e) -> V.union (ftv_ty u1) (ftv_exp e)
+    | FixIExp (_, _, _, _, _, e) -> ftv_exp e
+    | AppExp (_, e1, e2) -> V.union (ftv_exp e1) (ftv_exp e2)
+    | LetExp (_, _, _, e1, e2) -> V.union (ftv_exp e1) (ftv_exp e2)
+
   type program =
     | Exp of exp
     | LetDecl of id * tyvar list ref * exp
@@ -125,6 +165,21 @@ module CC = struct
     | CastExp (_, v, TyFun _, TyFun _, _) when is_value v -> true
     | CastExp (_, v, g, TyDyn, _) when is_value v && is_ground g -> true
     | _ -> false
+
+  let rec ftv_exp: exp -> V.t = function
+    | Var (_, _, us) -> List.fold_right V.union (List.map ftv_ty us) V.empty
+    | IConst _
+    | BConst _
+    | UConst _ -> V.empty
+    | BinOp (_, _, f1, f2) -> V.union (ftv_exp f1) (ftv_exp f2)
+    | IfExp (_, f1, f2, f3) -> List.fold_right V.union (List.map ftv_exp [f1; f2; f3]) V.empty
+    | FunExp (_, _, u, e) -> V.union (ftv_ty u) (ftv_exp e)
+    | FixExp (_, _, _, u1, _, f) -> V.union (ftv_ty u1) (ftv_exp f)
+    | AppExp (_, f1, f2) -> V.union (ftv_exp f1) (ftv_exp f2)
+    | CastExp (_, f, u1, u2, _) ->
+        V.union (ftv_exp f) @@ V.union (ftv_ty u1) (ftv_ty u2)
+    | LetExp (_, _, xs, f1, f2) ->
+        V.union (V.diff (ftv_exp f1) (V.of_list xs)) (ftv_exp f2)
 
   type program =
     | Exp of exp
