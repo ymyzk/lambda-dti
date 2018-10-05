@@ -116,32 +116,32 @@ let subst_type s u =
   in
   List.fold_left subst u s
 
+(* Set of type variables used for let polymorphism *)
+
+module V = Set.Make(
+  struct
+    type t = tyvar
+    (* NOTE: We want to compare with == *)
+    let compare (x : tyvar) y = compare ((Obj.magic x): int) (Obj.magic y)
+  end
+)
+
+let rec tyvars_ty: ty -> V.t = function
+  | TyVar ({ contents = None } as x) -> V.singleton x
+  | TyVar ({ contents = Some u }) -> tyvars_ty u
+  | TyFun (u1, u2) -> V.union (tyvars_ty u1) (tyvars_ty u2)
+  | _ -> V.empty
+
+let free_tyvars_tysc: tysc -> V.t = function
+  | TyScheme (xs, u) ->
+    V.diff (tyvars_ty u) (V.of_list xs)
+
+let free_tyvars_tyenv env =
+  Environment.fold (fun _ us vars -> V.union vars (free_tyvars_tysc us)) env V.empty
+
 module ITGL = struct
   open Pp.ITGL
   open Syntax.ITGL
-
-  (* Set of type variables used for tau and let polymorphism *)
-
-  module V = Set.Make(
-    struct
-      type t = tyvar
-      (* NOTE: We want to compare with == *)
-      let compare (x : tyvar) y = compare ((Obj.magic x): int) (Obj.magic y)
-    end
-    )
-
-  let rec tyvars_ty: ty -> V.t = function
-    | TyVar ({ contents = None } as x) -> V.singleton x
-    | TyVar ({ contents = Some u }) -> tyvars_ty u
-    | TyFun (u1, u2) -> V.union (tyvars_ty u1) (tyvars_ty u2)
-    | _ -> V.empty
-
-  let free_tyvars_tysc: tysc -> V.t = function
-    | TyScheme (xs, u) ->
-      V.diff (tyvars_ty u) (V.of_list xs)
-
-  let free_tyvars_tyenv env =
-    Environment.fold (fun _ us vars -> V.union vars (free_tyvars_tysc us)) env V.empty
 
   let rec free_tyvars_exp: exp -> V.t = function
     | Var _
@@ -165,6 +165,31 @@ module ITGL = struct
       V.diff
         (tyvars_ty u) @@
         V.union (free_tyvars_tyenv env) (free_tyvars_exp v)
+
+  (* Move to CC? *)
+  let rec free_tyvars_exp': Syntax.CC.exp -> V.t = function
+    | Syntax.CC.Var (_, _, us) -> List.fold_right V.union (List.map tyvars_ty us) V.empty
+    | Syntax.CC.IConst _
+    | Syntax.CC.BConst _
+    | Syntax.CC.UConst _ -> V.empty
+    | Syntax.CC.BinOp (_, _, f1, f2) -> V.union (free_tyvars_exp' f1) (free_tyvars_exp' f2)
+    | Syntax.CC.IfExp (_, f1, f2, f3) -> List.fold_right V.union (List.map free_tyvars_exp' [f1; f2; f3]) V.empty
+    | Syntax.CC.FunExp (_, _, u, e) -> V.union (tyvars_ty u) (free_tyvars_exp' e)
+    | Syntax.CC.FixExp (_, _, _, u1, _, f) -> V.union (tyvars_ty u1) (free_tyvars_exp' f)
+    | Syntax.CC.AppExp (_, f1, f2) -> V.union (free_tyvars_exp' f1) (free_tyvars_exp' f2)
+    | Syntax.CC.CastExp (_, f, u1, u2, _) ->
+        V.union (free_tyvars_exp' f) @@ V.union (tyvars_ty u1) (tyvars_ty u2)
+    | Syntax.CC.LetExp (_, _, xs, f1, f2) ->
+        V.union (V.diff (free_tyvars_exp' f1) (V.of_list xs)) (free_tyvars_exp' f2)
+
+  (* Create a list of type variables which can be generalized by let *)
+  (* ftv(w) \ (ftv(env) U ftv(U) U ftv(v)) *)
+  let closure_tyvars' w env u v =
+    V.elements @@
+      V.diff
+        (free_tyvars_exp' w) @@
+        V.union (free_tyvars_tyenv env) @@
+          V.union (tyvars_ty u) (free_tyvars_exp v)
 
   (* Unification *)
 
@@ -442,9 +467,11 @@ module ITGL = struct
       CC.AppExp (r, cast f1 u1 (TyFun (dom u1, cod u1)), cast f2 u2 (dom u1)), cod u1
     | LetExp (r, x, xs, e1, e2) when is_value e1 ->
       let f1, u1 = translate_exp env e1 in
-      let us1 = TyScheme (!xs, u1) in
+      let ys = closure_tyvars' f1 env u1 e1 in
+      let xys = !xs @ ys in
+      let us1 = TyScheme (xys, u1) in
       let f2, u2 = translate_exp (Environment.add x us1 env) e2 in
-      CC.LetExp (r, x, !xs, f1, f2), u2
+      CC.LetExp (r, x, xys, f1, f2), u2
     | LetExp (r, x, _, e1, e2) ->
       let _, u1 = translate_exp env e1 in
       let e = AppExp (r, FunIExp (r, x, u1, e2), e1) in
