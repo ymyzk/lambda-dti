@@ -202,6 +202,20 @@ module CC = struct
     | CastExp _, CastExp _ -> true
     | _ -> gt_exp f1 f2
 
+  let pp_tyarg ppf = function
+    | Ty u -> pp_ty ppf u
+    | TyNu -> pp_print_string ppf "ν"
+
+  let pp_print_var ppf (x, ys) =
+    if List.length ys = 0 then
+      fprintf ppf "%s" x
+    else
+      let pp_sep ppf () = fprintf ppf "," in
+      let pp_list ppf types = pp_print_list pp_tyarg ppf types ~pp_sep:pp_sep in
+      fprintf ppf "%s[%a]"
+        x
+        pp_list ys
+
   let rec pp_exp ppf = function
     | Var (_, x, ys) -> pp_print_var ppf (x, ys)
     | BConst (_, b) -> pp_print_bool ppf b

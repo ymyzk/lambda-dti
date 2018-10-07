@@ -126,12 +126,14 @@ module ITGL = struct
 end
 
 module CC = struct
+  type tyarg = Ty of ty | TyNu
+
   type polarity = Pos | Neg
 
   let neg = function Pos -> Neg | Neg -> Pos
 
   type exp =
-    | Var of range * id * ty list
+    | Var of range * id * tyarg list
     | IConst of range * int
     | BConst of range * bool
     | UConst of range
@@ -166,8 +168,12 @@ module CC = struct
     | CastExp (_, v, g, TyDyn, _) when is_value v && is_ground g -> true
     | _ -> false
 
+  let ftv_tyarg = function
+    | Ty ty -> ftv_ty ty
+    | TyNu -> V.empty
+
   let rec ftv_exp: exp -> V.t = function
-    | Var (_, _, us) -> List.fold_right V.union (List.map ftv_ty us) V.empty
+    | Var (_, _, us) -> List.fold_right V.union (List.map ftv_tyarg us) V.empty
     | IConst _
     | BConst _
     | UConst _ -> V.empty

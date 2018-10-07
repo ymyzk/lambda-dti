@@ -35,3 +35,5 @@ let rec zip l1 l2 = match l1, l2 with
   | [], _ -> []
   | _, [] -> []
   | (x :: xs), (y :: ys) -> (x, y) :: (zip xs ys)
+
+let rec repeat i n = if n <= 0 then [] else i :: repeat i (n - 1)

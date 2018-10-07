@@ -106,7 +106,7 @@ type substitution = tyvar * ty
 type substitutions = substitution list
 
 (* S(t) *)
-let subst_type s u =
+let subst_type (s: (tyvar * ty) list) (u: ty) =
   (* {X':->U'}(U) *)
   let rec subst u (x', u' as s0) = match u with
     | TyFun (u1, u2) -> TyFun (subst u1 s0, subst u2 s0)
@@ -115,6 +115,12 @@ let subst_type s u =
     | _ as u -> u
   in
   List.fold_left subst u s
+
+(* When you're sure that this tyarg does not contain ν
+ * you can convert it to ty *)
+let tyarg_to_ty = function
+  | CC.Ty u -> u
+  | CC.TyNu -> raise @@ Type_bug "failed to cast tyarg to ty"
 
 module ITGL = struct
   open Pp.ITGL
@@ -359,9 +365,14 @@ module ITGL = struct
     | Var (r, x, ys) -> begin
         try
           let TyScheme (xs, u) = Environment.find x env in
+          let ftvs = ftv_ty u in
           let s = Utils.zip xs !ys in
-          let u = subst_type s u in
-          CC.Var (r, x, !ys), u
+          let ys = List.map
+            (fun (x, u) -> if V.mem x ftvs then CC.Ty u else CC.TyNu) s
+          in
+          let ys = ys @ Utils.repeat CC.TyNu (List.length xs - List.length ys) in
+          let u = subst_type (List.filter (fun (x, _) -> V.mem x ftvs) s) u in
+          CC.Var (r, x, ys), u
         with Not_found ->
           raise @@ Type_bug "variable not found during cast-inserting translation"
       end
@@ -432,7 +443,11 @@ module CC = struct
         try
           let TyScheme (xs, u) = Environment.find x env in
           if List.length xs = List.length ys then
-            subst_type (Utils.zip xs ys) u
+            let ftvs = ftv_ty u in
+            let s = Utils.zip xs ys in
+            let s = List.filter (fun (x, _) -> V.mem x ftvs) s in
+            let s = List.map (fun (x, u) -> x, tyarg_to_ty u) s in
+            subst_type s u
           else
             raise @@ Type_bug "invalid type application"
         with Not_found ->

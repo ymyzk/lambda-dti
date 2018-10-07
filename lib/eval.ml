@@ -8,8 +8,14 @@ exception Blame of range * Syntax.CC.polarity
 exception Eval_bug of string
 
 let subst_type = Typing.subst_type
+
 let rec subst_exp s = function
-  | Var (r, x, ys) -> Var (r, x, List.map (subst_type s) ys)
+  | Var (r, x, ys) ->
+    let subst_type = function
+      | Ty u -> Ty (subst_type s u)
+      | TyNu -> TyNu
+    in
+    Var (r, x, List.map subst_type ys)
   | IConst _
   | BConst _
   | UConst _ as f -> f
@@ -41,12 +47,17 @@ let eval_binop op v1 v2 =
     | _ -> raise @@ Eval_bug "binop: unexpected type of argument"
   end
 
+let nu_to_fresh = function
+  | Ty u -> u
+  | TyNu -> Typing.fresh_tyvar ()
+
 let rec eval ?(debug=false) (env: (tyvar list * value) Environment.t) f =
   if debug then fprintf err_formatter "eval <-- %a\n" Pp.CC.pp_exp f;
   let eval = eval ~debug:debug in
   match f with
   | Var (_, x, us) ->
     let xs, v = Environment.find x env in
+    let us = List.map nu_to_fresh us in
     begin match v with
       | FunV proc -> FunV (fun _ -> proc (xs, us))
       | _ -> v

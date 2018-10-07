@@ -12,6 +12,8 @@ type substitution = tyvar * ty
 type substitutions = substitution list
 val subst_type : substitutions -> ty -> ty
 
+val tyarg_to_ty : Syntax.CC.tyarg -> ty
+
 module ITGL : sig
   open Syntax.ITGL
 
