@@ -66,6 +66,7 @@ let test_examples =
     "(fun x y -> x + y) 3 4", "int", "7";
     "(fun (x:?) -> x 2) (fun y -> true)", "?", "true: bool => ?";
     "(fun (x:?) -> x) (fun y -> true)", "?", "<fun>: ? -> ? => ?";
+    "(fun x -> 1 + ((fun (y:?) -> y) x)) 2", "int", "3";
     (* sequence *)
     "(); 1 + 2", "int", "3";
     "(():?); 1 + 2", "int", "3";
@@ -82,6 +83,8 @@ let test_examples =
     "let s = fun (x:?) (y:?) (z:?) -> x z (y z) in let k = fun x y -> x in s k k 1", "?", "1: int => ?";
     "let succ x = x + 1 in let twice f x = f (f x) in twice succ 1", "int", "3";
     "let id x = x in let did (x:?) = x in let succ x = x + 1 in (fun (x:?) -> x 1) (id (did succ))", "?", "2: int => ?";
+    "let id x = x in id (); id true", "bool", "true";
+    "let g = fun x -> ((fun y -> y) : ?->?) x in g (); g 3", "?", "3: int => ?";
     (* let-poly & recursion *)
     "let rec fact n = if n <= 1 then 1 else n * fact (n - 1) in fact 5", "int", "120";
     "let rec fact (n:?) = if n <= 1 then 1 else n * fact (n - 1) in fact 5", "int", "120";
@@ -90,6 +93,7 @@ let test_examples =
     "let rec f (n:?) (x:?) = if n < 0 then x else f (n - 1) x in f 100 true", "bool", "true";
     "let rec f n (x:?) = if n <= 0 then x else f 0 x in f 0 true", "bool", "true";
     "let rec f n (x:?) = if n <= 0 then x else f 0 x in f 10 true", "bool", "true";
+    "let rec id x = x in id (); id true", "bool", "true";
   ]
 
 let suite = [
