@@ -15,7 +15,9 @@ let rec gt_ty (u1: ty) u2 = match u1, u2 with
 
 let rec pp_ty ppf = function
   | TyDyn -> pp_print_string ppf "?"
-  | TyVar ({ contents = None } as r) -> fprintf ppf "'x%d" (2 * Obj.magic r) (* TODO: OK? *)
+  | TyVar ({ contents = None } as r) ->
+    (* Use memory address to distinguish type variables *)
+    fprintf ppf "'x%d" (2 * Obj.magic r)
   | TyVar ({ contents = Some u }) -> pp_ty ppf u
   | TyInt -> pp_print_string ppf "int"
   | TyBool -> pp_print_string ppf "bool"
@@ -146,14 +148,12 @@ module ITGL = struct
         (with_paren (gt_exp e e1) pp_exp) e1
         (with_paren (gt_exp e e2) pp_exp) e2
         (with_paren (gt_exp e e3) pp_exp) e3
-    (* TODO maybe we want to distinguish FunI from FunE *)
     | FunEExp (_, x1, u1, e)
     | FunIExp (_, x1, u1, e) ->
       fprintf ppf "fun (%s: %a) -> %a"
         x1
         pp_ty u1
         pp_exp e
-    (* TODO maybe we want to distinguish FixI from FixE *)
     | FixEExp (_, x, y, u1, u2, e)
     | FixIExp (_, x, y, u1, u2, e) ->
       fprintf ppf "fix %s (%s: %a): %a = %a"
