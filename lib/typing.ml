@@ -52,10 +52,6 @@ let rec is_static_type = function
   | TyDyn -> false
   | _ -> true
 
-(*
-let is_static_types types = List.fold_left (&&) true @@ List.map is_static_type types
-*)
-
 let rec is_bv_type = function
   | TyBool
   | TyInt
@@ -64,8 +60,9 @@ let rec is_bv_type = function
   | TyVar ({ contents = Some u }) -> is_bv_type u
   | _ -> false
 
-let is_base_type = function
+let rec is_base_type = function
   | TyBool | TyInt | TyUnit -> true
+  | TyVar ({ contents = Some u }) -> is_base_type u
   | _ -> false
 
 let rec is_tyvar = function
@@ -126,23 +123,15 @@ module ITGL = struct
   open Pp.ITGL
   open Syntax.ITGL
 
-  (* Utility functions for let polymorpism *)
-  let closure_tyvars1 u1 env v1 =
-    V.elements @@ V.diff (ftv_ty u1) @@ V.union (ftv_tyenv env) (ftv_exp v1)
-
-  let closure_tyvars2 w1 env u1 v1 =
-    let ftvs = V.big_union [ftv_tyenv env; ftv_ty u1; ftv_exp v1] in
-    V.elements @@ V.diff (Syntax.CC.ftv_exp w1) ftvs
-
   (* Unification *)
 
   let rec unify = function
-    (* iota ~ iota *)
-    | CConsistent (u1, u2) when u1 = u2 && is_base_type u1 -> ()
     (* When tyvar is already instantiated *)
     | CConsistent (TyVar ({ contents = Some u1 }), u2)
     | CConsistent (u1, TyVar ({ contents = Some u2 })) ->
       unify @@ CConsistent (u1, u2)
+    (* iota ~ iota *)
+    | CConsistent (u1, u2) when u1 = u2 && is_base_type u1 -> ()
     (* X ~ X *)
     | CConsistent (TyVar x1, TyVar x2) when x1 == x2 -> ()
     (* ? ~ U or U ~ ? *)
@@ -163,23 +152,23 @@ module ITGL = struct
       unify @@ CEqual (TyVar x, TyFun (x1, x2));
       unify @@ CConsistent (x1, u1);
       unify @@ CConsistent (x2, u2)
-    (* iota = iota *)
-    | CEqual (t1, t2) when t1 = t2 && is_base_type t1 -> ()
     (* When tyvar is already instantiated *)
     | CEqual (TyVar ({ contents = Some u1 }), u2)
     | CEqual (u1, TyVar ({ contents = Some u2 })) ->
       unify @@ CEqual (u1, u2)
+    (* CEqual can be used only for static types *)
     | CEqual (u1, u2) as c when not (is_static_type u1 && is_static_type u2) ->
       raise @@ Type_bug (asprintf "invalid constraint: %a" pp_constr c)
+    (* iota = iota *)
+    | CEqual (t1, t2) when t1 = t2 && is_base_type t1 -> ()
     (* X = X *)
-    | CEqual (TyVar x1, TyVar x2) when x1 == x2 ->
-      ()
+    | CEqual (TyVar x1, TyVar x2) when x1 == x2 -> ()
     (* T11->T12 = T21->T22 *)
-    | CEqual (TyFun (t11, t12), TyFun (t21, t22)) (* when is_static_types [t11; t12; t21; t22] *) ->
+    | CEqual (TyFun (t11, t12), TyFun (t21, t22)) ->
       unify @@ CEqual (t11, t21);
       unify @@ CEqual (t12, t22)
     (* T = X *)
-    | CEqual (t, TyVar x) when (* is_static_type t && *) not (is_tyvar t) ->
+    | CEqual (t, TyVar x) when not (is_tyvar t) ->
       unify @@ CEqual (TyVar x, t)
     (* X = T *)
     | CEqual (TyVar x, t) when not (V.mem x (ftv_ty t)) ->
@@ -243,6 +232,15 @@ module ITGL = struct
           pp_ty u1 pp_ty u2
       )
 
+  (* Utility functions for let polymorpism *)
+
+  let closure_tyvars1 u1 env v1 =
+    V.elements @@ V.diff (ftv_ty u1) @@ V.union (ftv_tyenv env) (ftv_exp v1)
+
+  let closure_tyvars2 w1 env u1 v1 =
+    let ftvs = V.big_union [ftv_tyenv env; ftv_ty u1; ftv_exp v1] in
+    V.elements @@ V.diff (Syntax.CC.ftv_exp w1) ftvs
+
   (* Type inference *)
 
   let rec type_of_exp env = function
@@ -303,14 +301,14 @@ module ITGL = struct
       let u1 = type_of_exp env e1 in
       type_of_exp env @@ AppExp (r, FunIExp (r, x, u1, e2), e1)
 
-  let type_of_program tyenv = function
+  let type_of_program env = function
     | Exp e ->
-      tyenv, Exp e, type_of_exp tyenv e
+      env, Exp e, type_of_exp env e
     | LetDecl (x, e) ->
-      let u = type_of_exp tyenv e in
-      let xs = if is_value e then closure_tyvars1 u tyenv e else [] in
-      let tyenv = Environment.add x (TyScheme (xs, u)) tyenv in
-      tyenv, LetDecl (x, e), u
+      let u = type_of_exp env e in
+      let xs = if is_value e then closure_tyvars1 u env e else [] in
+      let env = Environment.add x (TyScheme (xs, u)) env in
+      env, LetDecl (x, e), u
 
   (* Normalize type variables *)
 
@@ -424,19 +422,19 @@ module ITGL = struct
       let e = AppExp (r, FunIExp (r, x, u1, e2), e1) in
       translate_exp env e
 
-  let translate tyenv = function
+  let translate env = function
     | Exp e ->
-      let f, u = translate_exp tyenv e in
-      tyenv, CC.Exp f, u
+      let f, u = translate_exp env e in
+      env, CC.Exp f, u
     | LetDecl (x, e) when is_value e ->
-      let f, u = translate_exp tyenv e in
-      let xs = closure_tyvars1 u tyenv e in
-      let ys = closure_tyvars2 f tyenv u e in
-      let tyenv = Environment.add x (TyScheme (xs @ ys, u)) tyenv in
-      tyenv, CC.LetDecl (x, xs @ ys, f), u
+      let f, u = translate_exp env e in
+      let xs = closure_tyvars1 u env e in
+      let ys = closure_tyvars2 f env u e in
+      let env = Environment.add x (TyScheme (xs @ ys, u)) env in
+      env, CC.LetDecl (x, xs @ ys, f), u
     | LetDecl (x, e) ->
-      let f, u = translate_exp tyenv e in
-      tyenv, CC.LetDecl (x, [], f), u
+      let f, u = translate_exp env e in
+      env, CC.LetDecl (x, [], f), u
 end
 
 module CC = struct
@@ -510,7 +508,7 @@ module CC = struct
     | LetExp _ ->
       raise @@ Type_bug "invalid translation for let expression"
 
-  let type_of_program tyenv = function
-    | Exp e -> type_of_exp tyenv e
-    | LetDecl (_, _, f) -> type_of_exp tyenv f
+  let type_of_program env = function
+    | Exp e -> type_of_exp env e
+    | LetDecl (_, _, f) -> type_of_exp env f
 end
