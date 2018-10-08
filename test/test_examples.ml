@@ -96,6 +96,34 @@ let test_examples =
     "let rec id x = x in id (); id true", "bool", "true";
   ]
 
+let test_examples2 =
+  let test i cases =
+    (string_of_int i) >:: fun ctxt ->
+      ignore @@ List.fold_left
+        (fun (env, tyenv) (program, expected_ty, expected_value) ->
+          let e = parse @@ program ^ ";;" in
+          let tyenv, e, u = Typing.ITGL.type_of_program tyenv e in
+          let tyenv, e, u = Typing.ITGL.normalize tyenv e u in
+          let tyenv, f, u' = Typing.ITGL.translate tyenv e in
+          assert (Typing.is_equal u u');
+          let u'' = Typing.CC.type_of_program tyenv f in
+          assert (Typing.is_equal u u'');
+          let env, _, v = Eval.eval_program env f in
+          assert_equal ~ctxt:ctxt ~printer:id expected_ty @@ asprintf "%a" Pp.pp_ty2 u;
+          assert_equal ~ctxt:ctxt ~printer:id expected_value @@ asprintf "%a" Pp.CC.pp_value v;
+          env, tyenv
+          )
+        (Environment.empty, Environment.empty)
+        cases
+  in
+  List.mapi test [
+    [
+      "let g = fun x -> ((fun y -> y) : ?->?) x", "'a -> ?", "<fun>";
+      "g (); g true", "?", "true: bool => ?";
+    ];
+  ]
+
 let suite = [
   "test_examples">::: test_examples;
+  "test_examples2">::: test_examples2;
 ]
