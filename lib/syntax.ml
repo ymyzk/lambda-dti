@@ -122,7 +122,7 @@ module ITGL = struct
 
   type program =
     | Exp of exp
-    | LetDecl of id * tyvar list ref * exp
+    | LetDecl of id * exp
 end
 
 module CC = struct

@@ -174,10 +174,9 @@ module ITGL = struct
 
   let pp_program ppf = function
     | Exp e -> pp_exp ppf e
-    | LetDecl (x, xs, e) ->
-      fprintf ppf "let %s = %a%a"
+    | LetDecl (x, e) ->
+      fprintf ppf "let %s = %a"
         x
-        pp_let_tyabses !xs
         pp_exp e
 end
 

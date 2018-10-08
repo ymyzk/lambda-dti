@@ -300,16 +300,15 @@ module ITGL = struct
   let type_of_program tyenv = function
     | Exp e ->
       tyenv, Exp e, type_of_exp tyenv e
-    | LetDecl (x, xs, e) ->
+    | LetDecl (x, e) ->
       let u = type_of_exp tyenv e in
-      let free_tyvars = if is_value e
+      let xs = if is_value e
         then (V.elements @@
           V.diff (ftv_ty u) @@ V.union (ftv_tyenv tyenv) (ftv_exp e))
         else []
       in
-      xs := free_tyvars;
-      let tyenv = Environment.add x (TyScheme (free_tyvars, u)) tyenv in
-      tyenv, LetDecl (x, xs, e), u
+      let tyenv = Environment.add x (TyScheme (xs, u)) tyenv in
+      tyenv, LetDecl (x, e), u
 
   (* Normalize type variables *)
 
@@ -347,7 +346,7 @@ module ITGL = struct
 
   let normalize_program = function
     | Exp e -> Exp (normalize_exp e)
-    | LetDecl (x, xs, e) -> LetDecl (x, xs, normalize_exp e)
+    | LetDecl (x, e) -> LetDecl (x, normalize_exp e)
 
   let normalize env p u =
     normalize_tyenv env,
@@ -431,15 +430,17 @@ module ITGL = struct
     | Exp e ->
       let f, u = translate_exp tyenv e in
       tyenv, CC.Exp f, u
-    | LetDecl (x, xs, e) when is_value e ->
+    | LetDecl (x, e) when is_value e ->
       let f, u = translate_exp tyenv e in
+      let xs = V.elements @@
+        V.diff (ftv_ty u) @@ V.union (ftv_tyenv tyenv) (ftv_exp e) in
       let ys = V.elements @@
         V.diff
           (Syntax.CC.ftv_exp f) @@
           V.big_union [ftv_tyenv tyenv; ftv_ty u; ftv_exp e] in
-      let tyenv = Environment.add x (TyScheme (!xs @ ys, u)) tyenv in
-      tyenv, CC.LetDecl (x, !xs @ ys, f), u
-    | LetDecl (x, _, e) ->
+      let tyenv = Environment.add x (TyScheme (xs @ ys, u)) tyenv in
+      tyenv, CC.LetDecl (x, xs @ ys, f), u
+    | LetDecl (x, e) ->
       let f, u = translate_exp tyenv e in
       tyenv, CC.LetDecl (x, [], f), u
 end

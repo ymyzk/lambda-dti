@@ -52,19 +52,19 @@ Program :
       let r = join_range start (range_of_exp e) in
       let e = match u with None -> e | Some u -> AscExp (range_of_exp e, e, u) in
       let e = List.fold_right (param_to_fun r) params e in
-      LetDecl (x.value, ref [], e)
+      LetDecl (x.value, e)
     }
   | start=LET REC x=ID params=nonempty_list(Param) u2=Let_rec_type_annot EQ e=Expr SEMISEMI {
       let r = join_range start (range_of_exp e) in
       match params with
-      | [] -> LetDecl (x.value, ref [], AscExp (r, e, u2))
+      | [] -> LetDecl (x.value, AscExp (r, e, u2))
       | (y, None) :: params ->
         let u1 = Typing.fresh_tyvar () in
         let e, u2 = List.fold_right (param_to_fun_ty r) params (e, u2) in
-        LetDecl (x.value, ref [], FixIExp (r, x.value, y.value, u1, u2, e))
+        LetDecl (x.value, FixIExp (r, x.value, y.value, u1, u2, e))
       | (y, Some u1) :: params ->
         let e, u2 = List.fold_right (param_to_fun_ty r) params (e, u2) in
-        LetDecl (x.value, ref [], FixEExp (r, x.value, y.value, u1, u2, e))
+        LetDecl (x.value, FixEExp (r, x.value, y.value, u1, u2, e))
     }
 
 Expr :
