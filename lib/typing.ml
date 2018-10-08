@@ -286,15 +286,14 @@ module ITGL = struct
       let u3 = type_of_cod_eq u1 in
       type_of_dom_con u1 u2;
       u3
-    | LetExp (_, x, xs, e1, e2) when is_value e1 ->
+    | LetExp (_, x, e1, e2) when is_value e1 ->
       let u1 = type_of_exp env e1 in
-      let free_tyvars =
+      let xs =
         V.elements @@
           V.diff (ftv_ty u1) @@ V.union (ftv_tyenv env) (ftv_exp e1) in
-      xs := free_tyvars;
-      let us1 = TyScheme (free_tyvars, u1) in
+      let us1 = TyScheme (xs, u1) in
       type_of_exp (Environment.add x us1 env) e2
-    | LetExp (r, x, _, e1, e2) ->
+    | LetExp (r, x, e1, e2) ->
       let u1 = type_of_exp env e1 in
       type_of_exp env @@ AppExp (r, FunIExp (r, x, u1, e2), e1)
 
@@ -343,8 +342,8 @@ module ITGL = struct
       FixIExp (r, x, y, normalize_type u1, normalize_type u2, normalize_exp e)
     | AppExp (r, e1, e2) ->
       AppExp (r, normalize_exp e1, normalize_exp e2)
-    | LetExp (r, y, ys, e1, e2) ->
-      LetExp (r, y, ys, normalize_exp e1, normalize_exp e2)
+    | LetExp (r, y, e1, e2) ->
+      LetExp (r, y, normalize_exp e1, normalize_exp e2)
 
   let normalize_program = function
     | Exp e -> Exp (normalize_exp e)
@@ -411,17 +410,19 @@ module ITGL = struct
       let f1, u1 = translate_exp env e1 in
       let f2, u2 = translate_exp env e2 in
       CC.AppExp (r, cast f1 u1 (TyFun (dom u1, cod u1)), cast f2 u2 (dom u1)), cod u1
-    | LetExp (r, x, xs, e1, e2) when is_value e1 ->
+    | LetExp (r, x, e1, e2) when is_value e1 ->
       let f1, u1 = translate_exp env e1 in
+      let xs = V.elements @@
+        V.diff (ftv_ty u1) @@ V.union (ftv_tyenv env) (ftv_exp e1) in
       let ys = V.elements @@
         V.diff
           (Syntax.CC.ftv_exp f1) @@
           V.big_union [ftv_tyenv env; ftv_ty u1; ftv_exp e1] in
-      let xys = !xs @ ys in
+      let xys = xs @ ys in
       let us1 = TyScheme (xys, u1) in
       let f2, u2 = translate_exp (Environment.add x us1 env) e2 in
       CC.LetExp (r, x, xys, f1, f2), u2
-    | LetExp (r, x, _, e1, e2) ->
+    | LetExp (r, x, e1, e2) ->
       let _, u1 = translate_exp env e1 in
       let e = AppExp (r, FunIExp (r, x, u1, e2), e1) in
       translate_exp env e

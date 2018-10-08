@@ -77,7 +77,7 @@ module ITGL = struct
     | FixEExp of range * id * id * ty * ty * exp
     | FixIExp of range * id * id * ty * ty * exp
     | AppExp of range * exp * exp
-    | LetExp of range * id * tyvar list ref * exp * exp
+    | LetExp of range * id * exp * exp
 
   let range_of_exp = function
     | Var (r, _, _)
@@ -92,7 +92,7 @@ module ITGL = struct
     | FixEExp (r, _, _, _, _, _)
     | FixIExp (r, _, _, _, _, _)
     | AppExp (r, _, _)
-    | LetExp (r, _, _, _, _) -> r
+    | LetExp (r, _, _, _) -> r
 
   (* For value restriction *)
   let is_value = function
@@ -118,7 +118,7 @@ module ITGL = struct
     | FixEExp (_, _, _, u1, _, e) -> V.union (ftv_ty u1) (ftv_exp e)
     | FixIExp (_, _, _, _, _, e) -> ftv_exp e
     | AppExp (_, e1, e2) -> V.union (ftv_exp e1) (ftv_exp e2)
-    | LetExp (_, _, _, e1, e2) -> V.union (ftv_exp e1) (ftv_exp e2)
+    | LetExp (_, _, e1, e2) -> V.union (ftv_exp e1) (ftv_exp e2)
 
   type program =
     | Exp of exp

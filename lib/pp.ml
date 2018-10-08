@@ -166,10 +166,9 @@ module ITGL = struct
       fprintf ppf "%a %a"
         (with_paren (gt_exp e e1) pp_exp) e1
         (with_paren (gte_exp e e2) pp_exp) e2
-    | LetExp (_, x, xs, e1, e2) as e ->
-      fprintf ppf "let %s = %a%a in %a"
+    | LetExp (_, x, e1, e2) as e ->
+      fprintf ppf "let %s = %a in %a"
         x
-        pp_let_tyabses !xs
         (with_paren (gt_exp e e1) pp_exp) e1
         (with_paren (gte_exp e e2) pp_exp) e2
 

@@ -72,19 +72,19 @@ Expr :
       let r = join_range start (range_of_exp e2) in
       let e1 = match u1 with None -> e1 | Some u1 -> AscExp (range_of_exp e1, e1, u1) in
       let e1 = List.fold_right (param_to_fun r) params e1 in
-      LetExp (r, x.value, ref [], e1, e2)
+      LetExp (r, x.value, e1, e2)
     }
   | start=LET REC x=ID params=nonempty_list(Param) u2=Let_rec_type_annot EQ e1=Expr IN e2=Expr {
       let r = join_range start (range_of_exp e2) in
       match params with
-      | [] -> LetExp (r, x.value, ref [], AscExp (r, e1, u2), e2)
+      | [] -> LetExp (r, x.value, AscExp (r, e1, u2), e2)
       | (y, None) :: params ->
         let u1 = Typing.fresh_tyvar () in
         let e1, u2 = List.fold_right (param_to_fun_ty r) params (e1, u2) in
-        LetExp (r, x.value, ref [], FixIExp (r, x.value, y.value, u1, u2, e1), e2)
+        LetExp (r, x.value, FixIExp (r, x.value, y.value, u1, u2, e1), e2)
       | (y, Some u1) :: params ->
         let e1, u2 = List.fold_right (param_to_fun_ty r) params (e1, u2) in
-        LetExp (r, x.value, ref [], FixEExp (r, x.value, y.value, u1, u2, e1), e2)
+        LetExp (r, x.value, FixEExp (r, x.value, y.value, u1, u2, e1), e2)
     }
   | start=FUN params=nonempty_list(Param) RARROW e=Expr {
       let r = join_range start (range_of_exp e) in
@@ -107,7 +107,7 @@ Param :
 Seq_expr :
   | e1=Seq_expr SEMI e2=Seq_expr {
       let r = join_range (range_of_exp e1) (range_of_exp e2) in
-      LetExp (r, "_", ref [], AscExp (range_of_exp e1, e1, TyUnit), e2)
+      LetExp (r, "_", AscExp (range_of_exp e1, e1, TyUnit), e2)
     }
   | start=IF e1=Seq_expr THEN e2=Seq_expr ELSE e3=Seq_expr %prec prec_if {
       let r = join_range start (range_of_exp e3) in
