@@ -10,7 +10,7 @@ exception Type_bug of string
 
 let fresh_tyvar () = TyVar (ref None)
 
-(*  These functions only can be used for normalized types *)
+(* These functions only can be used for normalized types *)
 let dom = function
   | TyFun (u1, _) -> u1
   | TyDyn -> TyDyn
@@ -125,6 +125,14 @@ let tyarg_to_ty = function
 module ITGL = struct
   open Pp.ITGL
   open Syntax.ITGL
+
+  (* Utility functions for let polymorpism *)
+  let closure_tyvars1 u1 env v1 =
+    V.elements @@ V.diff (ftv_ty u1) @@ V.union (ftv_tyenv env) (ftv_exp v1)
+
+  let closure_tyvars2 w1 env u1 v1 =
+    let ftvs = V.big_union [ftv_tyenv env; ftv_ty u1; ftv_exp v1] in
+    V.elements @@ V.diff (Syntax.CC.ftv_exp w1) ftvs
 
   (* Unification *)
 
@@ -288,9 +296,7 @@ module ITGL = struct
       u3
     | LetExp (_, x, e1, e2) when is_value e1 ->
       let u1 = type_of_exp env e1 in
-      let xs =
-        V.elements @@
-          V.diff (ftv_ty u1) @@ V.union (ftv_tyenv env) (ftv_exp e1) in
+      let xs = closure_tyvars1 u1 env e1 in
       let us1 = TyScheme (xs, u1) in
       type_of_exp (Environment.add x us1 env) e2
     | LetExp (r, x, e1, e2) ->
@@ -302,11 +308,7 @@ module ITGL = struct
       tyenv, Exp e, type_of_exp tyenv e
     | LetDecl (x, e) ->
       let u = type_of_exp tyenv e in
-      let xs = if is_value e
-        then (V.elements @@
-          V.diff (ftv_ty u) @@ V.union (ftv_tyenv tyenv) (ftv_exp e))
-        else []
-      in
+      let xs = if is_value e then closure_tyvars1 u tyenv e else [] in
       let tyenv = Environment.add x (TyScheme (xs, u)) tyenv in
       tyenv, LetDecl (x, e), u
 
@@ -411,12 +413,8 @@ module ITGL = struct
       CC.AppExp (r, cast f1 u1 (TyFun (dom u1, cod u1)), cast f2 u2 (dom u1)), cod u1
     | LetExp (r, x, e1, e2) when is_value e1 ->
       let f1, u1 = translate_exp env e1 in
-      let xs = V.elements @@
-        V.diff (ftv_ty u1) @@ V.union (ftv_tyenv env) (ftv_exp e1) in
-      let ys = V.elements @@
-        V.diff
-          (Syntax.CC.ftv_exp f1) @@
-          V.big_union [ftv_tyenv env; ftv_ty u1; ftv_exp e1] in
+      let xs = closure_tyvars1 u1 env e1 in
+      let ys = closure_tyvars2 f1 env u1 e1 in
       let xys = xs @ ys in
       let us1 = TyScheme (xys, u1) in
       let f2, u2 = translate_exp (Environment.add x us1 env) e2 in
@@ -432,12 +430,8 @@ module ITGL = struct
       tyenv, CC.Exp f, u
     | LetDecl (x, e) when is_value e ->
       let f, u = translate_exp tyenv e in
-      let xs = V.elements @@
-        V.diff (ftv_ty u) @@ V.union (ftv_tyenv tyenv) (ftv_exp e) in
-      let ys = V.elements @@
-        V.diff
-          (Syntax.CC.ftv_exp f) @@
-          V.big_union [ftv_tyenv tyenv; ftv_ty u; ftv_exp e] in
+      let xs = closure_tyvars1 u tyenv e in
+      let ys = closure_tyvars2 f tyenv u e in
       let tyenv = Environment.add x (TyScheme (xs @ ys, u)) tyenv in
       tyenv, CC.LetDecl (x, xs @ ys, f), u
     | LetDecl (x, e) ->
