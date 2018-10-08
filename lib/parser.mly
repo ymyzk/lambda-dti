@@ -54,7 +54,7 @@ Program :
       let e = List.fold_right (param_to_fun r) params e in
       LetDecl (x.value, e)
     }
-  | start=LET REC x=ID params=nonempty_list(Param) u2=Let_rec_type_annot EQ e=Expr SEMISEMI {
+  | start=LET REC x=ID params=list(Param) u2=Let_rec_type_annot EQ e=Expr SEMISEMI {
       let r = join_range start (range_of_exp e) in
       match params with
       | [] -> LetDecl (x.value, AscExp (r, e, u2))
@@ -74,7 +74,7 @@ Expr :
       let e1 = List.fold_right (param_to_fun r) params e1 in
       LetExp (r, x.value, e1, e2)
     }
-  | start=LET REC x=ID params=nonempty_list(Param) u2=Let_rec_type_annot EQ e1=Expr IN e2=Expr {
+  | start=LET REC x=ID params=list(Param) u2=Let_rec_type_annot EQ e1=Expr IN e2=Expr {
       let r = join_range start (range_of_exp e2) in
       match params with
       | [] -> LetExp (r, x.value, AscExp (r, e1, u2), e2)
