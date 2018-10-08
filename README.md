@@ -11,7 +11,7 @@ This implementation consists of:
 
 ## Requirements
 - OCaml 4.03.0+
-- Jbuiler (Dune)
+- Dune (formerly known as Jbuilder)
 - Menhir
 - OUnit (for running unit tests)
 
