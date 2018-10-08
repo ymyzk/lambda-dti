@@ -147,7 +147,7 @@ module ITGL = struct
     | CConsistent (TyVar x, u) when is_bv_type u ->
       unify @@ CEqual (TyVar x, u)
     (* X ~ U1->U2 *)
-    | CConsistent (TyVar x, TyFun (u1, u2)) when not @@ V.mem x (ftv_ty (TyFun (u1, u2))) ->
+    | CConsistent (TyVar x, TyFun (u1, u2)) when not @@ TV.mem x (ftv_ty (TyFun (u1, u2))) ->
       let x1, x2 = fresh_tyvar (), fresh_tyvar () in
       unify @@ CEqual (TyVar x, TyFun (x1, x2));
       unify @@ CConsistent (x1, u1);
@@ -171,7 +171,7 @@ module ITGL = struct
     | CEqual (t, TyVar x) when not (is_tyvar t) ->
       unify @@ CEqual (TyVar x, t)
     (* X = T *)
-    | CEqual (TyVar x, t) when not (V.mem x (ftv_ty t)) ->
+    | CEqual (TyVar x, t) when not (TV.mem x (ftv_ty t)) ->
       x := Some t
     | _ as c ->
       raise @@ Type_error (asprintf "cannot solve a constraint: %a" pp_constr c)
@@ -235,11 +235,11 @@ module ITGL = struct
   (* Utility functions for let polymorpism *)
 
   let closure_tyvars1 u1 env v1 =
-    V.elements @@ V.diff (ftv_ty u1) @@ V.union (ftv_tyenv env) (ftv_exp v1)
+    TV.elements @@ TV.diff (ftv_ty u1) @@ TV.union (ftv_tyenv env) (ftv_exp v1)
 
   let closure_tyvars2 w1 env u1 v1 =
-    let ftvs = V.big_union [ftv_tyenv env; ftv_ty u1; ftv_exp v1] in
-    V.elements @@ V.diff (Syntax.CC.ftv_exp w1) ftvs
+    let ftvs = TV.big_union [ftv_tyenv env; ftv_ty u1; ftv_exp v1] in
+    TV.elements @@ TV.diff (Syntax.CC.ftv_exp w1) ftvs
 
   (* Type inference *)
 
@@ -366,10 +366,10 @@ module ITGL = struct
           let ftvs = ftv_ty u in
           let s = Utils.zip xs !ys in
           let ys = List.map
-            (fun (x, u) -> if V.mem x ftvs then CC.Ty u else CC.TyNu) s
+            (fun (x, u) -> if TV.mem x ftvs then CC.Ty u else CC.TyNu) s
           in
           let ys = ys @ Utils.repeat CC.TyNu (List.length xs - List.length ys) in
-          let u = subst_type (List.filter (fun (x, _) -> V.mem x ftvs) s) u in
+          let u = subst_type (List.filter (fun (x, _) -> TV.mem x ftvs) s) u in
           CC.Var (r, x, ys), u
         with Not_found ->
           raise @@ Type_bug "variable not found during cast-inserting translation"
@@ -447,7 +447,7 @@ module CC = struct
           if List.length xs = List.length ys then
             let ftvs = ftv_ty u in
             let s = Utils.zip xs ys in
-            let s = List.filter (fun (x, _) -> V.mem x ftvs) s in
+            let s = List.filter (fun (x, _) -> TV.mem x ftvs) s in
             let s = List.map (fun (x, u) -> x, tyarg_to_ty u) s in
             subst_type s u
           else
