@@ -430,10 +430,18 @@ module ITGL = struct
   let translate tyenv = function
     | Exp e ->
       let f, u = translate_exp tyenv e in
-      CC.Exp f, u
-    | LetDecl (x, xs, e) ->
+      tyenv, CC.Exp f, u
+    | LetDecl (x, xs, e) when is_value e ->
       let f, u = translate_exp tyenv e in
-      CC.LetDecl (x, !xs, f), u
+      let ys = V.elements @@
+        V.diff
+          (Syntax.CC.ftv_exp f) @@
+          V.big_union [ftv_tyenv tyenv; ftv_ty u; ftv_exp e] in
+      let tyenv = Environment.add x (TyScheme (!xs @ ys, u)) tyenv in
+      tyenv, CC.LetDecl (x, !xs @ ys, f), u
+    | LetDecl (x, _, e) ->
+      let f, u = translate_exp tyenv e in
+      tyenv, CC.LetDecl (x, [], f), u
 end
 
 module CC = struct

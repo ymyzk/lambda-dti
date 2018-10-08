@@ -22,7 +22,7 @@ module ITGL : sig
   val normalize : tysc Environment.t -> program -> ty -> (tysc Environment.t * program * ty)
   val normalize_type : ty -> ty
 
-  val translate : tysc Environment.t -> program -> (CC.program * ty)
+  val translate : tysc Environment.t -> program -> (tysc Environment.t * CC.program * ty)
 end
 
 module CC : sig

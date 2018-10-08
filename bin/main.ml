@@ -36,7 +36,7 @@ let rec read_eval_print lexbuf env tyenv =
 
       (* Translation *)
       print_debug "***** Cast-insertion *****\n";
-      let f, u' = Typing.ITGL.translate tyenv e in
+      let tyenv, f, u' = Typing.ITGL.translate tyenv e in
       print_debug "f: %a\n" Pp.CC.pp_program f;
       print_debug "U: %a\n" Pp.pp_ty u';
       assert (Typing.is_equal u u');
