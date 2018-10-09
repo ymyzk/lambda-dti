@@ -1,6 +1,6 @@
 (executable
   (name runtests)
-  (libraries ounit lambda_rti))
+  (libraries oUnit lambda_rti))
 
 (alias
   (name    runtest)
