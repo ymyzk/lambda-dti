@@ -109,8 +109,8 @@ and cast ?(debug=false) v u1 u2 r p =
   (* fprintf std_formatter "cast <-- %a: %a => %a\n" pp_value v Pp.pp_ty u1 Pp.pp_ty u2; *)
   match u1, u2 with
   (* When type variables are instantiated *)
-  | TyVar ({ contents = Some u1 }), u2
-  | u1, TyVar ({ contents = Some u2 }) ->
+  | TyVar (_, { contents = Some u1 }), u2
+  | u1, TyVar (_, { contents = Some u2 }) ->
     cast v u1 u2 r p
   (* IdBase *)
   | TyBool, TyBool
@@ -157,7 +157,7 @@ and cast ?(debug=false) v u1 u2 r p =
     let v = cast v TyDyn dfun r p in
     cast v dfun u2 r p
   (* InstBase / InstArrow *)
-  | TyDyn, TyVar ({ contents = None } as x) -> begin
+  | TyDyn, TyVar (_, ({ contents = None } as x)) -> begin
     match v with
       | Tagged (B | I | U as t, v) ->
         x := Some (tag_to_ty t);

@@ -18,7 +18,7 @@ type ty =
   | TyBool
   | TyUnit
   | TyFun of ty * ty
-and tyvar = ty option ref
+and tyvar = int * ty option ref
 
 type tysc = TyScheme of tyvar list * ty
 
@@ -40,16 +40,15 @@ module TV = struct
   include Set.Make (
   struct
       type t = tyvar
-      (* NOTE: We want to compare with == *)
-      let compare (x : tyvar) y = compare ((Obj.magic x): int) (Obj.magic y)
+      let compare (a1, _ : tyvar) (a2, _) = compare a1 a2
   end
   )
   let big_union vars = List.fold_right union vars empty
 end
 
 let rec ftv_ty: ty -> TV.t = function
-  | TyVar ({ contents = None } as x) -> TV.singleton x
-  | TyVar ({ contents = Some u }) -> ftv_ty u
+  | TyVar (_, { contents = None } as x) -> TV.singleton x
+  | TyVar (_, { contents = Some u }) -> ftv_ty u
   | TyFun (u1, u2) -> TV.union (ftv_ty u1) (ftv_ty u2)
   | _ -> TV.empty
 

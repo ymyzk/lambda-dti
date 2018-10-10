@@ -8,13 +8,19 @@ exception Type_error of string
 (* Bug in this implementation *)
 exception Type_bug of string
 
-let fresh_tyvar () = TyVar (ref None)
+let fresh_tyvar =
+  let counter = ref 0 in
+  let body () =
+    let v = !counter in
+    counter := v + 1;
+    TyVar (!counter, ref None)
+  in body
 
 (* These functions only can be used for normalized types *)
 let dom = function
   | TyFun (u1, _) -> u1
   | TyDyn -> TyDyn
-  | TyVar ({ contents = Some _ }) ->
+  | TyVar (_, { contents = Some _ }) ->
     raise @@ Type_bug "dom: instantiated tyvar is given"
   | _ as u ->
     raise @@ Type_error (asprintf "failed to match: dom(%a)" pp_ty u)
@@ -22,7 +28,7 @@ let dom = function
 let cod = function
   | TyFun (_, u2) -> u2
   | TyDyn -> TyDyn
-  | TyVar ({ contents = Some _ }) ->
+  | TyVar (_, { contents = Some _ }) ->
     raise @@ Type_bug "cod: instantiated tyvar is given"
   | _ as u ->
     raise @@ Type_error (asprintf "failed to match: cod(%a)" pp_ty u)
@@ -31,13 +37,13 @@ let rec meet u1 u2 = match u1, u2 with
   | TyBool, TyBool -> TyBool
   | TyInt, TyInt -> TyInt
   | TyUnit, TyUnit -> TyUnit
-  | TyVar ({ contents = None } as x1), TyVar ({ contents = None } as x2) when x1 == x2 ->
+  | TyVar (a1, { contents = None } as x1), TyVar (a2, { contents = None }) when a1 = a2 ->
     TyVar x1
   | TyDyn, u | u, TyDyn -> u
   | TyFun (u11, u12), TyFun (u21, u22) ->
     TyFun (meet u11 u21, meet u12 u22)
-  | TyVar ({ contents = Some _ }), _
-  | _, TyVar ({ contents = Some _ }) ->
+  | TyVar (_, { contents = Some _ }), _
+  | _, TyVar (_, { contents = Some _ }) ->
     raise @@ Type_bug "meet: instantiated tyvar is given"
   | _ ->
     raise @@ Type_error (asprintf "failed to match: meet(%a, %a)" pp_ty u1 pp_ty u2)
@@ -47,7 +53,7 @@ let type_of_binop = function
   | Eq | Neq | Lt | Lte | Gt | Gte -> TyInt, TyInt, TyBool
 
 let rec is_static_type = function
-  | TyVar ({ contents = Some u }) -> is_static_type u
+  | TyVar (_, { contents = Some u }) -> is_static_type u
   | TyFun (u1, u2) -> (is_static_type u1) && (is_static_type u2)
   | TyDyn -> false
   | _ -> true
@@ -56,18 +62,18 @@ let rec is_bv_type = function
   | TyBool
   | TyInt
   | TyUnit
-  | TyVar ({ contents = None }) -> true
-  | TyVar ({ contents = Some u }) -> is_bv_type u
+  | TyVar (_, { contents = None }) -> true
+  | TyVar (_, { contents = Some u }) -> is_bv_type u
   | _ -> false
 
 let rec is_base_type = function
   | TyBool | TyInt | TyUnit -> true
-  | TyVar ({ contents = Some u }) -> is_base_type u
+  | TyVar (_, { contents = Some u }) -> is_base_type u
   | _ -> false
 
 let rec is_tyvar = function
-  | TyVar ({ contents = None }) -> true
-  | TyVar ({ contents = Some u }) -> is_tyvar u
+  | TyVar (_, { contents = None }) -> true
+  | TyVar (_, { contents = Some u }) -> is_tyvar u
   | _ -> false
 
 let rec is_equal u1 u2 = match u1, u2 with
@@ -75,9 +81,9 @@ let rec is_equal u1 u2 = match u1, u2 with
   | TyBool, TyBool
   | TyInt, TyInt
   | TyUnit, TyUnit -> true
-  | TyVar x1, TyVar x2 when x1 == x2 -> true
-  | TyVar ({ contents = Some u1 }), u2
-  | u1, TyVar ({ contents = Some u2 }) -> is_equal u1 u2
+  | TyVar (a1, _), TyVar (a2, _) when a1 = a2 -> true
+  | TyVar (_, { contents = Some u1 }), u2
+  | u1, TyVar (_, { contents = Some u2 }) -> is_equal u1 u2
   | TyFun (u11, u12), TyFun (u21, u22) ->
     (is_equal u11 u21) && (is_equal u12 u22)
   | _ -> false
@@ -87,10 +93,10 @@ let rec is_consistent u1 u2 = match u1, u2 with
   | TyBool, TyBool
   | TyInt, TyInt
   | TyUnit, TyUnit -> true
-  | TyVar x1, TyVar x2 when x1 == x2 -> true
-  | TyVar ({ contents = Some u1 }), u2
-  | u1, TyVar ({ contents = Some u2 }) ->
+  | TyVar (_, { contents = Some u1 }), u2
+  | u1, TyVar (_, { contents = Some u2 }) ->
     is_consistent u1 u2
+  | TyVar (a1, _), TyVar (a2, _) when a1 = a2 -> true
   | _, TyDyn
   | TyDyn, _ -> true
   | TyFun (u11, u12), TyFun (u21, u22) ->
@@ -105,10 +111,10 @@ type substitutions = substitution list
 (* S(t) *)
 let subst_type (s: (tyvar * ty) list) (u: ty) =
   (* {X':->U'}(U) *)
-  let rec subst u (x', u' as s0) = match u with
+  let rec subst u ((a', _), u' as s0) = match u with
     | TyFun (u1, u2) -> TyFun (subst u1 s0, subst u2 s0)
-    | TyVar ({ contents = None } as x) when x == x' -> u'
-    | TyVar ({ contents = Some u }) -> subst u s0
+    | TyVar (a, { contents = None }) when a = a' -> u'
+    | TyVar (_, { contents = Some u }) -> subst u s0
     | _ as u -> u
   in
   List.fold_left subst u s
@@ -127,13 +133,13 @@ module ITGL = struct
 
   let rec unify = function
     (* When tyvar is already instantiated *)
-    | CConsistent (TyVar ({ contents = Some u1 }), u2)
-    | CConsistent (u1, TyVar ({ contents = Some u2 })) ->
+    | CConsistent (TyVar (_, { contents = Some u1 }), u2)
+    | CConsistent (u1, TyVar (_, { contents = Some u2 })) ->
       unify @@ CConsistent (u1, u2)
     (* iota ~ iota *)
     | CConsistent (u1, u2) when u1 = u2 && is_base_type u1 -> ()
     (* X ~ X *)
-    | CConsistent (TyVar x1, TyVar x2) when x1 == x2 -> ()
+    | CConsistent (TyVar (a1, _), TyVar (a2, _)) when a1 = a2 -> ()
     (* ? ~ U or U ~ ? *)
     | CConsistent (TyDyn, _) | CConsistent (_, TyDyn) -> ()
     (* U11->U12 ~ U21->U22 *)
@@ -153,8 +159,8 @@ module ITGL = struct
       unify @@ CConsistent (x1, u1);
       unify @@ CConsistent (x2, u2)
     (* When tyvar is already instantiated *)
-    | CEqual (TyVar ({ contents = Some u1 }), u2)
-    | CEqual (u1, TyVar ({ contents = Some u2 })) ->
+    | CEqual (TyVar (_, { contents = Some u1 }), u2)
+    | CEqual (u1, TyVar (_, { contents = Some u2 })) ->
       unify @@ CEqual (u1, u2)
     (* CEqual can be used only for static types *)
     | CEqual (u1, u2) as c when not (is_static_type u1 && is_static_type u2) ->
@@ -162,7 +168,7 @@ module ITGL = struct
     (* iota = iota *)
     | CEqual (t1, t2) when t1 = t2 && is_base_type t1 -> ()
     (* X = X *)
-    | CEqual (TyVar x1, TyVar x2) when x1 == x2 -> ()
+    | CEqual (TyVar (a1, _), TyVar (a2, _)) when a1 = a2 -> ()
     (* T11->T12 = T21->T22 *)
     | CEqual (TyFun (t11, t12), TyFun (t21, t22)) ->
       unify @@ CEqual (t11, t21);
@@ -171,7 +177,7 @@ module ITGL = struct
     | CEqual (t, TyVar x) when not (is_tyvar t) ->
       unify @@ CEqual (TyVar x, t)
     (* X = T *)
-    | CEqual (TyVar x, t) when not (TV.mem x (ftv_ty t)) ->
+    | CEqual (TyVar (a, x), t) when not (TV.mem (a, x) (ftv_ty t)) ->
       x := Some t
     | _ as c ->
       raise @@ Type_error (asprintf "cannot solve a constraint: %a" pp_constr c)
@@ -179,8 +185,8 @@ module ITGL = struct
   (* Utility for type inference *)
 
   let rec type_of_cod_eq = function
-    | TyVar ({ contents = Some u }) -> type_of_cod_eq u
-    | TyVar ({ contents = None }) as u ->
+    | TyVar (_, { contents = Some u }) -> type_of_cod_eq u
+    | TyVar (_, { contents = None }) as u ->
       let x1, x2 = fresh_tyvar (), fresh_tyvar () in
       unify @@ CEqual (u, (TyFun (x1, x2)));
       x2
@@ -192,10 +198,10 @@ module ITGL = struct
       )
 
   let rec type_of_dom_con u1 u2 = match u1, u2 with
-    | TyVar ({ contents = Some u1 }), u2
-    | u1, TyVar ({ contents = Some u2 }) ->
+    | TyVar (_, { contents = Some u1 }), u2
+    | u1, TyVar (_, { contents = Some u2 }) ->
       type_of_dom_con u1 u2
-    | TyVar ({ contents = None }) as u, u2 ->
+    | TyVar (_, { contents = None }) as u, u2 ->
       let x1, x2 = fresh_tyvar (), fresh_tyvar () in
       unify @@ CEqual (u, (TyFun (x1, x2)));
       unify @@ CConsistent (x1, u2)
@@ -209,8 +215,8 @@ module ITGL = struct
       )
 
   let rec type_of_meet u1 u2 = match u1, u2 with
-    | TyVar ({ contents = Some u1 }), u2
-    | u1, TyVar ({ contents = Some u2 }) ->
+    | TyVar (_, { contents = Some u1 }), u2
+    | u1, TyVar (_, { contents = Some u2 }) ->
       type_of_meet u1 u2
     | TyBool, TyBool -> TyBool
     | TyInt, TyInt -> TyInt
@@ -313,7 +319,7 @@ module ITGL = struct
   (* Normalize type variables *)
 
   let rec normalize_type = function
-    | TyVar ({ contents = Some u }) -> normalize_type u
+    | TyVar (_, { contents = Some u }) -> normalize_type u
     | TyFun (u1, u2) -> TyFun (normalize_type u1, normalize_type u2)
     | _ as u -> u
 
@@ -488,8 +494,8 @@ module CC = struct
           u12
         | _ -> raise @@ Type_bug "app"
       end
-    | CastExp (r, f, TyVar ({ contents = Some u1 }), u2, p)
-    | CastExp (r, f, u1, TyVar ({ contents = Some u2 }), p) ->
+    | CastExp (r, f, TyVar (_, { contents = Some u1 }), u2, p)
+    | CastExp (r, f, u1, TyVar (_, { contents = Some u2 }), p) ->
       type_of_exp env @@ CastExp (r, f, u1, u2, p)
     | CastExp (_, f, u1, u2, _) ->
       let u = type_of_exp env f in
