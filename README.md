@@ -43,6 +43,12 @@ $ docker run -it --rm ymyzk/lambda-rti
 $ dune runtest
 ```
 
+## Using debug mode
+By enabling the debug mode, our interpreter show various messages to stderr.
+```console
+$ lrti -d
+```
+
 ## Syntax
 ### Top-level
 - Let declaration: `let x ... = e;;`
