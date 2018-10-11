@@ -10,22 +10,29 @@ let id x = x
 let parse str =
   Parser.toplevel Lexer.main @@ Lexing.from_string str
 
+let run env tyenv program =
+  let e = parse @@ program ^ ";;" in
+  let tyenv, e, u = Typing.ITGL.type_of_program tyenv e in
+  let tyenv, e, u = Typing.ITGL.normalize tyenv e u in
+  let tyenv, f, u' = Typing.ITGL.translate tyenv e in
+  assert (Typing.is_equal u u');
+  let u'' = Typing.CC.type_of_program tyenv f in
+  assert (Typing.is_equal u u'');
+  try
+    let env, _, v = Eval.eval_program env f in
+    env, tyenv, asprintf "%a" Pp.pp_ty2 u, asprintf "%a" Pp.CC.pp_value v
+  with
+  | Eval.Blame (_, CC.Pos) -> env, tyenv, asprintf "%a" Pp.pp_ty2 u, "blame+"
+  | Eval.Blame (_, CC.Neg) -> env, tyenv, asprintf "%a" Pp.pp_ty2 u, "blame-"
+
 let test_examples =
   let env = Environment.empty in
   let tyenv = Environment.empty in
   let test (program, expected_ty, expected_value) =
     program >:: fun ctxt ->
-      let e = parse @@ program ^ ";;" in
-      let tyenv, e, u = Typing.ITGL.type_of_program tyenv e in
-      let tyenv, e, u = Typing.ITGL.normalize tyenv e u in
-      let tyenv, f, u' = Typing.ITGL.translate tyenv e in
-      assert (Typing.is_equal u u');
-      let u'' = Typing.CC.type_of_program tyenv f in
-      assert (Typing.is_equal u u'');
-      let _, _, v = Eval.eval_program env f in
-      assert_equal ~ctxt:ctxt ~printer:id expected_ty @@ asprintf "%a" Pp.pp_ty2 u;
-      assert_equal ~ctxt:ctxt ~printer:id expected_value @@ asprintf "%a" Pp.CC.pp_value v
-
+      let _, _, actual_ty, actual_value = run env tyenv program in
+      assert_equal ~ctxt:ctxt ~printer:id expected_ty actual_ty;
+      assert_equal ~ctxt:ctxt ~printer:id expected_value actual_value
   in
   List.map test [
     (* Constants *)
@@ -75,6 +82,10 @@ let test_examples =
     "(fun (f:?) -> f 2) ((fun x -> x) ((fun (y:?) -> y) (fun z -> z + 1)))", "?", "3: int => ?";
     "(fun (x:?) -> (fun y -> y) x) (fun (z:?) -> z + 1) 3", "int", "4";
     "(fun x -> x) ((fun (y:?) -> y) (fun x -> x + 1)) 1", "int", "2";
+    "(fun (f:?) -> f (); f true) (fun (x:?) -> x)", "?", "true: bool => ?";
+    "(fun (f:?) -> f (); f true) (fun x -> x)", "?", "blame-";
+    "(fun (f:?) -> let d = f 2 in f true) (fun (x:?) -> x)", "?", "true: bool => ?";
+    "(fun (f:?) -> let d = f 2 in f true) (fun x -> x)", "?", "blame-";
     (* let-poly *)
     "let s = fun x y z -> x z (y z) in s", "('a -> 'b -> 'c) -> ('a -> 'b) -> 'a -> 'c", "<fun>";
     "let k = fun x y -> x in k", "'a -> 'b -> 'a", "<fun>";
@@ -101,16 +112,9 @@ let test_examples2 =
     (string_of_int i) >:: fun ctxt ->
       ignore @@ List.fold_left
         (fun (env, tyenv) (program, expected_ty, expected_value) ->
-          let e = parse @@ program ^ ";;" in
-          let tyenv, e, u = Typing.ITGL.type_of_program tyenv e in
-          let tyenv, e, u = Typing.ITGL.normalize tyenv e u in
-          let tyenv, f, u' = Typing.ITGL.translate tyenv e in
-          assert (Typing.is_equal u u');
-          let u'' = Typing.CC.type_of_program tyenv f in
-          assert (Typing.is_equal u u'');
-          let env, _, v = Eval.eval_program env f in
-          assert_equal ~ctxt:ctxt ~printer:id expected_ty @@ asprintf "%a" Pp.pp_ty2 u;
-          assert_equal ~ctxt:ctxt ~printer:id expected_value @@ asprintf "%a" Pp.CC.pp_value v;
+          let env, tyenv, actual_ty, actual_value = run env tyenv program in
+          assert_equal ~ctxt:ctxt ~printer:id expected_ty actual_ty;
+          assert_equal ~ctxt:ctxt ~printer:id expected_value actual_value;
           env, tyenv
           )
         (Environment.empty, Environment.empty)
