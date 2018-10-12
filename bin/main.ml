@@ -3,8 +3,6 @@ open Lambda_rti
 
 let debug = ref false
 
-let empty_formatter = make_formatter (fun _ _ _ -> ()) (fun _ -> ())
-
 let rec read_eval_print lexbuf env tyenv =
   (* Used in all modes *)
   let print f = fprintf std_formatter f in
@@ -13,7 +11,7 @@ let rec read_eval_print lexbuf env tyenv =
     if !debug then
       fprintf err_formatter f
     else
-      fprintf empty_formatter f
+      fprintf Utils.Format.empty_formatter f
   in
   flush stderr;
   flush stdout;

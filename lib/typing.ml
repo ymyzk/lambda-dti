@@ -256,7 +256,7 @@ module ITGL = struct
           let TyScheme (xs, u) = Environment.find x env in
           (* Replace type variables with fresh ones *)
           ys := List.map (fun _ -> fresh_tyvar ()) xs;
-          let s = Utils.zip xs !ys in
+          let s = Utils.List.zip xs !ys in
           subst_type s u
         with Not_found ->
           raise @@ Type_error (asprintf "variable '%s' not found in the environment" x)
@@ -370,11 +370,11 @@ module ITGL = struct
         try
           let TyScheme (xs, u) = Environment.find x env in
           let ftvs = ftv_ty u in
-          let s = Utils.zip xs !ys in
+          let s = Utils.List.zip xs !ys in
           let ys = List.map
             (fun (x, u) -> if TV.mem x ftvs then CC.Ty u else CC.TyNu) s
           in
-          let ys = ys @ Utils.repeat CC.TyNu (List.length xs - List.length ys) in
+          let ys = ys @ Utils.List.repeat CC.TyNu (List.length xs - List.length ys) in
           let u = subst_type (List.filter (fun (x, _) -> TV.mem x ftvs) s) u in
           CC.Var (r, x, ys), u
         with Not_found ->
@@ -452,7 +452,7 @@ module CC = struct
           let TyScheme (xs, u) = Environment.find x env in
           if List.length xs = List.length ys then
             let ftvs = ftv_ty u in
-            let s = Utils.zip xs ys in
+            let s = Utils.List.zip xs ys in
             let s = List.filter (fun (x, _) -> TV.mem x ftvs) s in
             let s = List.map (fun (x, u) -> x, tyarg_to_ty u) s in
             subst_type s u

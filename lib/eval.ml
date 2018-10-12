@@ -72,11 +72,11 @@ let rec eval ?(debug=false) (env: (tyvar list * value) Environment.t) f =
   | FunExp (_, x, _, f') ->
     FunV (
       fun (xs, ys) -> fun v ->
-        eval (Environment.add x ([], v) env) @@ subst_exp (Utils.zip xs ys) f'
+        eval (Environment.add x ([], v) env) @@ subst_exp (Utils.List.zip xs ys) f'
     )
   | FixExp (_, x, y, _, _, f') ->
     let f (xs, ys) v =
-      let f' = subst_exp (Utils.zip xs ys) f' in
+      let f' = subst_exp (Utils.List.zip xs ys) f' in
       let rec f _ v =
         let env = Environment.add x (xs, FunV f) env in
         let env = Environment.add y ([], v) env in
@@ -106,7 +106,6 @@ let rec eval ?(debug=false) (env: (tyvar list * value) Environment.t) f =
 and cast ?(debug=false) v u1 u2 r p =
   if debug then fprintf err_formatter "cast <-- %a => %a\n" Pp.pp_ty u1 Pp.pp_ty u2;
   let cast = cast ~debug:debug in
-  (* fprintf std_formatter "cast <-- %a: %a => %a\n" pp_value v Pp.pp_ty u1 Pp.pp_ty u2; *)
   match u1, u2 with
   (* When type variables are instantiated *)
   | TyVar (_, { contents = Some u1 }), u2
@@ -134,7 +133,7 @@ and cast ?(debug=false) v u1 u2 r p =
       | FunV proc ->
         FunV (
           fun (xs, ys) x ->
-            let subst = subst_type @@ Utils.zip xs ys in
+            let subst = subst_type @@ Utils.List.zip xs ys in
             let arg = cast x (subst u21) (subst u11) r @@ neg p in
             let res = proc (xs, ys) arg in
             cast res (subst u12) (subst u22) r p

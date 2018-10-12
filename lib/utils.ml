@@ -31,9 +31,15 @@ module Error = struct
       (p2.pos_cnum - p2.pos_bol)
 end
 
-let rec zip l1 l2 = match l1, l2 with
-  | [], _ -> []
-  | _, [] -> []
-  | (x :: xs), (y :: ys) -> (x, y) :: (zip xs ys)
+module Format = struct
+  let empty_formatter = Format.make_formatter (fun _ _ _ -> ()) (fun _ -> ())
+end
 
-let rec repeat i n = if n <= 0 then [] else i :: repeat i (n - 1)
+module List = struct
+  let rec zip l1 l2 = match l1, l2 with
+    | [], _ -> []
+    | _, [] -> []
+    | (x :: xs), (y :: ys) -> (x, y) :: (zip xs ys)
+
+  let rec repeat i n = if n <= 0 then [] else i :: repeat i (n - 1)
+end
