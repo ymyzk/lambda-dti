@@ -158,7 +158,7 @@ and cast ?(debug=false) v u1 u2 r p =
     cast v dfun u2 r p
   (* InstBase / InstArrow *)
   | TyDyn, (TyVar (_, ({ contents = None } as x)) as x') -> begin
-    match v with
+      match v with
       | Tagged (B | I | U as t, v) ->
         let u = tag_to_ty t in
         print_debug "DTI: %a is instantiated to %a\n"

@@ -8,6 +8,7 @@ exception Type_error of string
 (* Bug in this implementation *)
 exception Type_bug of string
 
+(** Returns a fresh type variable *)
 let fresh_tyvar =
   let counter = ref 0 in
   let body () =
@@ -18,33 +19,31 @@ let fresh_tyvar =
 
 (* These functions only can be used for normalized types *)
 let dom = function
-  | TyFun (u1, _) -> u1
-  | TyDyn -> TyDyn
   | TyVar (_, { contents = Some _ }) ->
     raise @@ Type_bug "dom: instantiated tyvar is given"
+  | TyFun (u1, _) -> u1
+  | TyDyn -> TyDyn
   | _ as u ->
     raise @@ Type_error (asprintf "failed to match: dom(%a)" pp_ty u)
 
 let cod = function
-  | TyFun (_, u2) -> u2
-  | TyDyn -> TyDyn
   | TyVar (_, { contents = Some _ }) ->
     raise @@ Type_bug "cod: instantiated tyvar is given"
+  | TyFun (_, u2) -> u2
+  | TyDyn -> TyDyn
   | _ as u ->
     raise @@ Type_error (asprintf "failed to match: cod(%a)" pp_ty u)
 
 let rec meet u1 u2 = match u1, u2 with
-  | TyBool, TyBool -> TyBool
-  | TyInt, TyInt -> TyInt
-  | TyUnit, TyUnit -> TyUnit
-  | TyVar (a1, { contents = None } as x1), TyVar (a2, { contents = None }) when a1 = a2 ->
-    TyVar x1
-  | TyDyn, u | u, TyDyn -> u
-  | TyFun (u11, u12), TyFun (u21, u22) ->
-    TyFun (meet u11 u21, meet u12 u22)
   | TyVar (_, { contents = Some _ }), _
   | _, TyVar (_, { contents = Some _ }) ->
     raise @@ Type_bug "meet: instantiated tyvar is given"
+  | TyBool, TyBool -> TyBool
+  | TyInt, TyInt -> TyInt
+  | TyUnit, TyUnit -> TyUnit
+  | TyVar (a1, _ as x1), TyVar (a2, _) when a1 = a2 -> TyVar x1
+  | TyDyn, u | u, TyDyn -> u
+  | TyFun (u11, u12), TyFun (u21, u22) -> TyFun (meet u11 u21, meet u12 u22)
   | _ ->
     raise @@ Type_error (asprintf "failed to match: meet(%a, %a)" pp_ty u1 pp_ty u2)
 
@@ -77,28 +76,28 @@ let rec is_tyvar = function
   | _ -> false
 
 let rec is_equal u1 u2 = match u1, u2 with
+  | TyVar (_, { contents = Some u1 }), u2
+  | u1, TyVar (_, { contents = Some u2 }) -> is_equal u1 u2
   | TyDyn, TyDyn
   | TyBool, TyBool
   | TyInt, TyInt
   | TyUnit, TyUnit -> true
   | TyVar (a1, _), TyVar (a2, _) when a1 = a2 -> true
-  | TyVar (_, { contents = Some u1 }), u2
-  | u1, TyVar (_, { contents = Some u2 }) -> is_equal u1 u2
   | TyFun (u11, u12), TyFun (u21, u22) ->
     (is_equal u11 u21) && (is_equal u12 u22)
   | _ -> false
 
 let rec is_consistent u1 u2 = match u1, u2 with
-  | TyDyn, TyDyn
-  | TyBool, TyBool
-  | TyInt, TyInt
-  | TyUnit, TyUnit -> true
   | TyVar (_, { contents = Some u1 }), u2
   | u1, TyVar (_, { contents = Some u2 }) ->
     is_consistent u1 u2
-  | TyVar (a1, _), TyVar (a2, _) when a1 = a2 -> true
+  | TyDyn, TyDyn
+  | TyBool, TyBool
+  | TyInt, TyInt
+  | TyUnit, TyUnit
   | _, TyDyn
   | TyDyn, _ -> true
+  | TyVar (a1, _), TyVar (a2, _) when a1 = a2 -> true
   | TyFun (u11, u12), TyFun (u21, u22) ->
     (is_consistent u11 u21) && (is_consistent u12 u22)
   | _ -> false
@@ -371,8 +370,7 @@ module ITGL = struct
           let TyScheme (xs, u) = Environment.find x env in
           let ftvs = ftv_ty u in
           let s = Utils.List.zip xs !ys in
-          let ys = List.map
-            (fun (x, u) -> if TV.mem x ftvs then CC.Ty u else CC.TyNu) s
+          let ys = List.map (fun (x, u) -> if TV.mem x ftvs then CC.Ty u else CC.TyNu) s
           in
           let ys = ys @ Utils.List.repeat CC.TyNu (List.length xs - List.length ys) in
           let u = subst_type (List.filter (fun (x, _) -> TV.mem x ftvs) s) u in

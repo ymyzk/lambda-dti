@@ -36,13 +36,14 @@ let ground_of_ty = function
 
 (* Set of type variables used for let polymorphism *)
 
+(** Module for a set of type variables *)
 module TV = struct
   include Set.Make (
-  struct
+    struct
       type t = tyvar
       let compare (a1, _ : tyvar) (a2, _) = compare a1 a2
-  end
-  )
+    end
+    )
   let big_union vars = List.fold_right union vars empty
 end
 
@@ -129,6 +130,7 @@ module CC = struct
 
   type polarity = Pos | Neg
 
+  (** Returns the negation of the given polarity *)
   let neg = function Pos -> Neg | Neg -> Pos
 
   type exp =
@@ -177,14 +179,15 @@ module CC = struct
     | BConst _
     | UConst _ -> TV.empty
     | BinOp (_, _, f1, f2) -> TV.union (ftv_exp f1) (ftv_exp f2)
-    | IfExp (_, f1, f2, f3) -> List.fold_right TV.union (List.map ftv_exp [f1; f2; f3]) TV.empty
+    | IfExp (_, f1, f2, f3) ->
+      List.fold_right TV.union (List.map ftv_exp [f1; f2; f3]) TV.empty
     | FunExp (_, _, u, e) -> TV.union (ftv_ty u) (ftv_exp e)
     | FixExp (_, _, _, u1, _, f) -> TV.union (ftv_ty u1) (ftv_exp f)
     | AppExp (_, f1, f2) -> TV.union (ftv_exp f1) (ftv_exp f2)
     | CastExp (_, f, u1, u2, _) ->
-        TV.union (ftv_exp f) @@ TV.union (ftv_ty u1) (ftv_ty u2)
+      TV.union (ftv_exp f) @@ TV.union (ftv_ty u1) (ftv_ty u2)
     | LetExp (_, _, xs, f1, f2) ->
-        TV.union (TV.diff (ftv_exp f1) (TV.of_list xs)) (ftv_exp f2)
+      TV.union (TV.diff (ftv_exp f1) (TV.of_list xs)) (ftv_exp f2)
 
   type program =
     | Exp of exp
