@@ -2,12 +2,15 @@
 
 [![Build Status](https://travis-ci.org/ymyzk/lambda-dti.svg?branch=master)](https://travis-ci.org/ymyzk/lambda-dti)
 
-**lambda-rti** is an interpreter of the implicitly typed gradual language (ITGL).
+**lambda-dti** is an interpreter of the implicitly typed gradual language (ITGL) which uses *dynamic type inference* for evaluating programs.
 This implementation consists of:
 
 - Garcia and Cimini's type inference algorithm;
-- a cast-insedting translator from the ITGL to the blame calculus; and
-- an evaluator of the blame calculus with runtime type inference.
+- a cast-inserting translator from the ITGL to the blame calculus;
+- an evaluator of the blame calculus with dynamic type inference; and
+- some extensions to the ITGL.
+
+This is an artifact of "Dynamic Type Inference for Gradual Hindley-Milner Typing" in POPL 2019.
 
 ## Requirements
 - OCaml 4.03.0+
