@@ -15,6 +15,9 @@ let param_to_fun_ty r (x, u1) (e, u) = match u1 with
     FunIExp (r, x.value, u1, e), TyFun (u1, u)
 | Some u1 ->
     FunEExp (r, x.value, u1, e), TyFun (u1, u)
+
+exception Parser_bug of string
+
 %}
 
 %token <Utils.Error.range> LPAREN RPAREN SEMI SEMISEMI COLON EQ QUOTE
@@ -54,10 +57,11 @@ Program :
       let e = List.fold_right (param_to_fun r) params e in
       LetDecl (x.value, e)
     }
-  | start=LET REC x=ID params=list(Param) u2=Let_rec_type_annot EQ e=Expr SEMISEMI {
+  | start=LET REC x=ID params=nonempty_list(Param) u2=Let_rec_type_annot EQ e=Expr SEMISEMI {
       let r = join_range start (range_of_exp e) in
       match params with
-      | [] -> LetDecl (x.value, AscExp (r, e, u2))
+      | [] ->
+        raise @@ Parser_bug "params must not be empty"
       | (y, None) :: params ->
         let u1 = Typing.fresh_tyvar () in
         let e, u2 = List.fold_right (param_to_fun_ty r) params (e, u2) in
@@ -74,10 +78,11 @@ Expr :
       let e1 = List.fold_right (param_to_fun r) params e1 in
       LetExp (r, x.value, e1, e2)
     }
-  | start=LET REC x=ID params=list(Param) u2=Let_rec_type_annot EQ e1=Expr IN e2=Expr {
+  | start=LET REC x=ID params=nonempty_list(Param) u2=Let_rec_type_annot EQ e1=Expr IN e2=Expr {
       let r = join_range start (range_of_exp e2) in
       match params with
-      | [] -> LetExp (r, x.value, AscExp (r, e1, u2), e2)
+      | [] ->
+        raise @@ Parser_bug "params must not be empty"
       | (y, None) :: params ->
         let u1 = Typing.fresh_tyvar () in
         let e1, u2 = List.fold_right (param_to_fun_ty r) params (e1, u2) in
