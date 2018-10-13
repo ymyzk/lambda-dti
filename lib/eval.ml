@@ -104,7 +104,13 @@ let rec eval ?(debug=false) (env: (tyvar list * value) Environment.t) f =
     let v = eval env f in
     cast ~debug:debug v u1 u2 r p
 and cast ?(debug=false) v u1 u2 r p =
-  if debug then fprintf err_formatter "cast <-- %a => %a\n" Pp.pp_ty u1 Pp.pp_ty u2;
+  let print_debug f =
+    if debug then
+      fprintf err_formatter f
+    else
+      fprintf Utils.Format.empty_formatter f
+  in
+  print_debug "cast <-- %a: %a => %a\n" Pp.CC.pp_value v Pp.pp_ty u1 Pp.pp_ty u2;
   let cast = cast ~debug:debug in
   match u1, u2 with
   (* When type variables are instantiated *)
@@ -156,15 +162,22 @@ and cast ?(debug=false) v u1 u2 r p =
     let v = cast v TyDyn dfun r p in
     cast v dfun u2 r p
   (* InstBase / InstArrow *)
-  | TyDyn, TyVar (_, ({ contents = None } as x)) -> begin
+  | TyDyn, (TyVar (_, ({ contents = None } as x)) as x') -> begin
     match v with
       | Tagged (B | I | U as t, v) ->
-        x := Some (tag_to_ty t);
+        let u = tag_to_ty t in
+        print_debug "DTI: %a is instantiated to %a\n"
+          Pp.pp_ty x'
+          Pp.pp_ty u;
+        x := Some u;
         v
       | Tagged (Ar, v) ->
-        let u2 = TyFun (Typing.fresh_tyvar (), Typing.fresh_tyvar ()) in
-        x := Some u2;
-        cast v (TyFun (TyDyn, TyDyn)) u2 r p
+        let u = TyFun (Typing.fresh_tyvar (), Typing.fresh_tyvar ()) in
+        print_debug "DTI: %a is instantiated to %a\n"
+          Pp.pp_ty x'
+          Pp.pp_ty u;
+        x := Some u;
+        cast v (TyFun (TyDyn, TyDyn)) u r p
       | _ -> raise @@ Eval_bug "cannot instantiate"
     end
   | _ -> raise @@ Eval_bug (asprintf "cannot cast value: %a" Pp.CC.pp_value v)
