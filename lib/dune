@@ -1,6 +1,6 @@
 (library
-  (name lambda_rti)
-  (public_name lambda-rti))
+  (name lambda_dti)
+  (public_name lambda-dti))
 
 (ocamllex lexer)
 ; Though we want to use --infer option in Menhir,

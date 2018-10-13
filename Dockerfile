@@ -5,13 +5,13 @@ RUN apt-get update && apt-get install --no-install-recommends -y m4
 
 USER opam
 COPY . ./app/
-RUN opam pin add lambda-rti ./app
+RUN opam pin add lambda-dti ./app
 
 FROM debian:stretch-slim
 
 RUN apt-get update && apt-get install --no-install-recommends -y rlwrap
 
-COPY --from=0 /home/opam/.opam/4.07/bin/lrti /usr/bin/
+COPY --from=0 /home/opam/.opam/4.07/bin/ldti /usr/bin/
 
-ENTRYPOINT ["lrti"]
-# ENTRYPOINT ["rlwrap", "lrti"]
+ENTRYPOINT ["ldti"]
+# ENTRYPOINT ["rlwrap", "ldti"]

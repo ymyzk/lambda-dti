@@ -2,9 +2,9 @@ opam-version: "1.2"
 version: "1.1"
 maintainer: "miyazaki@fos.kuis.kyoto-u.ac.jp"
 authors: ["Yusuke Miyazaki <miyazaki@fos.kuis.kyoto-u.ac.jp>"]
-homepage: "https://github.com/ymyzk/lambda-rti"
-bug-reports: "https://github.com/ymyzk/lambda-rti/issues"
-dev-repo: "https://github.com/ymyzk/lambda-rti.git"
+homepage: "https://github.com/ymyzk/lambda-dti"
+bug-reports: "https://github.com/ymyzk/lambda-dti/issues"
+dev-repo: "https://github.com/ymyzk/lambda-dti.git"
 license: "MIT"
 build: [
   ["dune" "build" "-p" name "-j" jobs]

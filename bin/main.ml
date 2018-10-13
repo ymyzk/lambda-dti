@@ -1,5 +1,5 @@
 open Format
-open Lambda_rti
+open Lambda_dti
 
 let debug = ref false
 

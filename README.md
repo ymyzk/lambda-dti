@@ -1,12 +1,12 @@
-# lambda-rti
+# lambda-dti
 
-[![Build Status](https://travis-ci.org/ymyzk/lambda-rti.svg?branch=master)](https://travis-ci.org/ymyzk/lambda-rti)
+[![Build Status](https://travis-ci.org/ymyzk/lambda-dti.svg?branch=master)](https://travis-ci.org/ymyzk/lambda-dti)
 
 **lambda-rti** is an interpreter of the implicitly typed gradual language (ITGL).
 This implementation consists of:
 
 - Garcia and Cimini's type inference algorithm;
-- a cast-inserting translator from the ITGL to the blame calculus; and
+- a cast-insedting translator from the ITGL to the blame calculus; and
 - an evaluator of the blame calculus with runtime type inference.
 
 ## Requirements
@@ -20,10 +20,10 @@ This implementation consists of:
 ```console
 $ dune build
 $ dune install
-$ lrti
+$ ldti
 ```
 
-Run `$ lrti --help` for command line options.
+Run `$ ldti --help` for command line options.
 
 ### Local installation
 ```console
@@ -35,7 +35,7 @@ Run `$ ./_build/default/bin/main.exe --help` for command line options.
 
 ### Docker
 ```console
-$ docker run -it --rm ymyzk/lambda-rti
+$ docker run -it --rm ymyzk/lambda-dti
 ```
 
 ## Running tests
@@ -46,7 +46,7 @@ $ dune runtest
 ## Using debug mode
 By enabling the debug mode, our interpreter show various messages to stderr.
 ```console
-$ lrti -d
+$ ldti -d
 ```
 
 ## Syntax
