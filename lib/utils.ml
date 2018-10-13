@@ -32,7 +32,15 @@ module Error = struct
 end
 
 module Format = struct
-  let empty_formatter = Format.make_formatter (fun _ _ _ -> ()) (fun _ -> ())
+  open Format
+
+  let empty_formatter = make_formatter (fun _ _ _ -> ()) (fun _ -> ())
+
+  let make_print_debug debug f =
+    if debug then
+      fprintf err_formatter f
+    else
+      fprintf empty_formatter f
 end
 
 module List = struct

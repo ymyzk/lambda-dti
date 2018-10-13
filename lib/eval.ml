@@ -104,12 +104,7 @@ let rec eval ?(debug=false) (env: (tyvar list * value) Environment.t) f =
     let v = eval env f in
     cast ~debug:debug v u1 u2 r p
 and cast ?(debug=false) v u1 u2 r p =
-  let print_debug f =
-    if debug then
-      fprintf err_formatter f
-    else
-      fprintf Utils.Format.empty_formatter f
-  in
+  let print_debug f = Utils.Format.make_print_debug debug f in
   print_debug "cast <-- %a: %a => %a\n" Pp.CC.pp_value v Pp.pp_ty u1 Pp.pp_ty u2;
   let cast = cast ~debug:debug in
   match u1, u2 with

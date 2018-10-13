@@ -7,12 +7,7 @@ let rec read_eval_print lexbuf env tyenv =
   (* Used in all modes *)
   let print f = fprintf std_formatter f in
   (* Used in debug mode *)
-  let print_debug f =
-    if !debug then
-      fprintf err_formatter f
-    else
-      fprintf Utils.Format.empty_formatter f
-  in
+  let print_debug f = Utils.Format.make_print_debug !debug f in
   flush stderr;
   flush stdout;
   print "# @?";
