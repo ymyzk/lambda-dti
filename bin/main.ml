@@ -63,7 +63,7 @@ let rec read_eval_print lexbuf env tyenv =
   read_eval_print lexbuf env tyenv
 
 let () =
-  let usage = "Interpreter of the ITGL with runtime type inference" in
+  let usage = "Interpreter of the ITGL with dynamic type inference" in
   let options = Arg.align [
       ("-d", Arg.Set debug, " Enable debug mode");
     ] in

@@ -77,7 +77,7 @@ let test_examples =
     (* sequence *)
     "(); 1 + 2", "int", "3";
     "(():?); 1 + 2", "int", "3";
-    (* runtime type inference *)
+    (* dynamic type inference *)
     "(fun (x:?) -> x 2) (fun y -> y)", "?", "2: int => ?";
     "(fun (f:?) -> f 2) ((fun x -> x) ((fun (y:?) -> y) (fun z -> z + 1)))", "?", "3: int => ?";
     "(fun (x:?) -> (fun y -> y) x) (fun (z:?) -> z + 1) 3", "int", "4";
