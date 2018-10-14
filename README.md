@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/ymyzk/lambda-dti.svg?branch=master)](https://travis-ci.org/ymyzk/lambda-dti)
 
-**lambda-dti** is an interpreter of the implicitly typed gradual language (ITGL) which uses *dynamic type inference* for evaluating programs.
+**lambda-dti** is an interpreter of the implicitly typed gradual language (ITGL) which uses **dynamic type inference** for evaluating programs.
 This implementation consists of:
 
 - Garcia and Cimini's type inference algorithm;
@@ -60,9 +60,18 @@ $ ldti -d
 - Expression: `e;;`
 
 ### Expressions `e`
-- Constants: integers, `true`, `false`, and `()`
-- Unary operators: `+` and `-`
-- Binary operators: `+`, `-`, `*`, `/`, `mod`, `=`, `<>`, `<`, `<=`, `>`, `>=`, `&&`, and `||`
+- Variables: lowercase alphabet followed by lowercase alphabets, numbers, `_`, or `'`
+- Constants:
+  - Integers: `0`, `1`, `2`, ...
+  - Booleans: `true`, `false`
+  - Unit: `()`
+- Unary operators for integers: `+`,  `-`
+- Binary operators (from higher precedence to lower precedence):
+  - Integer multiplication, division, remainder (left): `*`, `/`, `mod`
+  - Integer addition, subtraction (left): `+`, `-`
+  - Integer comparators (left): `=`, `<>`, `<`, `<=`, `>`, `>=`
+  - Boolean and (right): `&&`
+  - Boolean or (right): `||`
 - Abstraction:
   - Simple: `fun x -> e`
   - Multiple parameters: `fun x y z ... -> e`
@@ -72,7 +81,7 @@ $ ldti -d
   - Simple: `let x = e1 in e2`
   - Multiple parameters: `let x y z ... = e1 in e2`
   - With type annotations: `let (x:U1) y (z: U3) ... : U ... = e1 in e2`
-- Recursion:
+- Recursion (requires at least one parameter):
   - Simple: `let rec f x = e1 in e2`
   - Multiple parameters: `let rec f x y z ... = e1 in e2`
   - With type annotations: `let rec f (x: U1) y (z: U3) ... : U = e1 in e2`
