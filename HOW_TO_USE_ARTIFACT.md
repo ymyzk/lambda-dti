@@ -5,7 +5,7 @@
 
 ## Getting Started
 1. Download the appliance (the image of the VM)
-- URL: https://www.fos.kuis.kyoto-u.ac.jp/~miyazaki/popl/lambda-dti.ova
+- URL: https://www.fos.kuis.kyoto-u.ac.jp/~miyazaki/popl19/lambda-dti.ova
 
 2. Import the appliance and create a VM
 - Click `File` -> `Import Appliance` on VirtualBox and choose `lambda-dti.ova`
