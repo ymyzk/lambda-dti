@@ -41,7 +41,10 @@ let test_cases = [
   (* application *)
   ["(fun x -> x + 1) 3", "int", "4"];
   ["(fun (x:?) -> x + 1) 3", "int", "4"];
+  ["(fun (x:?) -> x + 1) false", "int", "blame+"];
   ["(fun x y -> x + y) 3 4", "int", "7"];
+  ["(fun (x:?) -> x 2) (fun y -> y)", "?", "2: int => ?"];
+  ["(fun (x:?) -> x 2) (fun (y: int) -> y)", "?", "2: int => ?"];
   ["(fun (x:?) -> x 2) (fun y -> true)", "?", "true: bool => ?"];
   ["(fun (x:?) -> x) (fun y -> true)", "?", "<fun>: ? -> ? => ?"];
   ["(fun x -> 1 + ((fun (y:?) -> y) x)) 2", "int", "3"];
@@ -49,7 +52,7 @@ let test_cases = [
   ["(); 1 + 2", "int", "3"];
   ["(():?); 1 + 2", "int", "3"];
   (* dynamic type inference *)
-  ["(fun (x:?) -> x 2) (fun y -> y)", "?", "2: int => ?"];
+  ["(fun (f:?) -> f 2) (fun y -> y)", "?", "2: int => ?"];
   ["(fun (f:?) -> f 2) ((fun x -> x) ((fun (y:?) -> y) (fun z -> z + 1)))", "?", "3: int => ?"];
   ["(fun (x:?) -> (fun y -> y) x) (fun (z:?) -> z + 1) 3", "int", "4"];
   ["(fun x -> x) ((fun (y:?) -> y) (fun x -> x + 1)) 1", "int", "2"];
@@ -67,6 +70,27 @@ let test_cases = [
   ["let id x = x in let did (x:?) = x in let succ x = x + 1 in (fun (x:?) -> x 1) (id (did succ))", "?", "2: int => ?"];
   ["let id x = x in id (); id true", "bool", "true"];
   ["let g = fun x -> ((fun y -> y) : ?->?) x in g (); g 3", "?", "3: int => ?"];
+  ["let f = fun x -> 1 + ((fun (y:?) -> y) x) in 2", "int", "2"];
+  [
+    "let g = fun x -> ((fun y -> y) : ?->?) x", "'a -> ?", "<fun>";
+    "g (); g true", "?", "true: bool => ?";
+  ];
+  [
+    "let f = (fun x -> x) (fun y -> y)", "'a -> 'a", "<fun>";
+    "f", "'a -> 'a", "<fun>";
+    "f 3", "int", "3";
+    "f", "int -> int", "<fun>";
+  ];
+  [
+    "let twice f x = f (f x)", "('a -> 'a) -> 'a -> 'a", "<fun>";
+    "twice succ 3", "int", "5";
+    "twice not true", "bool", "true";
+  ];
+  [
+    "let dtwice (f:?) (x:?) = f (f x)", "? -> ? -> ?", "<fun>";
+    "dtwice succ 3", "?", "5: int => ?";
+    "dtwice not true", "?", "true: bool => ?";
+  ];
   (* let-poly & recursion *)
   ["let rec fact n = if n <= 1 then 1 else n * fact (n - 1) in fact 5", "int", "120"];
   ["let rec fact (n:?) = if n <= 1 then 1 else n * fact (n - 1) in fact 5", "int", "120"];
@@ -76,10 +100,9 @@ let test_cases = [
   ["let rec f n (x:?) = if n <= 0 then x else f 0 x in f 0 true", "bool", "true"];
   ["let rec f n (x:?) = if n <= 0 then x else f 0 x in f 10 true", "bool", "true"];
   ["let rec id x = x in id (); id true", "bool", "true"];
-  [
-    "let g = fun x -> ((fun y -> y) : ?->?) x", "'a -> ?", "<fun>";
-    "g (); g true", "?", "true: bool => ?";
-  ];
+  (* stdlib *)
+  ["succ 2", "int", "3"];
+  ["prec 0", "int", "-1"];
 ]
 
 
@@ -111,7 +134,7 @@ let test_examples =
           assert_equal ~ctxt:ctxt ~printer:id expected_value actual_value;
           env, tyenv
           )
-        (Environment.empty, Environment.empty)
+        Stdlib.pervasives
         cases
   in
   List.mapi test test_cases
