@@ -12,41 +12,42 @@ This implementation consists of:
 
 This is an artifact of "Dynamic Type Inference for Gradual Hindley-Milner Typing" in POPL 2019.
 
+## How to use the artifact
+Please see [HOW_TO_USE_ARTIFACT.md](HOW_TO_USE_ARTIFACT.md).
+
 ## Requirements
+- opam 2.0.0+
 - OCaml 4.03.0+
-- Dune (formerly known as Jbuilder)
+- Dune 1.3.0+ (formerly known as Jbuilder)
 - Menhir
-- OUnit (for running unit tests)
+- OUnit 2 (for running unit tests)
 
 ## Getting started
-### Global installation
-```console
-$ dune build
-$ dune install
-$ ldti
-```
-
-Run `$ ldti --help` for command line options.
-
-### Local installation
+### A. Building from source
 ```console
 $ dune build
 $ ./_build/default/bin/main.exe
 ```
-
 Run `$ ./_build/default/bin/main.exe --help` for command line options.
 
-### Docker
+(Optional) To install the application,
+```
+$ dune install
+$ ldti
+```
+
+### B. Running a Docker image
 ```console
 $ docker run -it --rm ymyzk/lambda-dti
 ```
 
-## Running tests
+## Tips
+### Running tests
 ```console
 $ dune runtest
 ```
 
-## Using debug mode
+### Using debug mode
 By enabling the debug mode, our interpreter show various messages to stderr.
 ```console
 $ ldti -d
@@ -142,28 +143,30 @@ Some useful functions and values are available:
 Blame on the expression side:
 line 2, character 14 -- line 2, character 15
 
-# (fun (x:?) -> x 2) (fun y -> true);;
-- : ? = true: bool => ?
-
 # (fun (x:?) -> x) (fun y -> y);;
 - : ? = <fun>: ? -> ? => ?
 
+(* DTI: a type of y is instantiated to int *)
 # (fun (x:?) -> x 2) (fun y -> y);;
 - : ? = 2: int => ?
 
-# (fun (f:?) -> f true) ((fun x -> x) ((fun (y:?) -> y) (fun z -> z + 1)));;
-Blame on the environment side:
-line 6, character 55 -- line 6, character 69
-
+(* DTI: a type of x is instantiated to X1->X2 where X1 and X2 are fresh,
+   then X1 and X2 are instantiated to int *)
 # (fun (f:?) -> f 2) ((fun x -> x) ((fun (y:?) -> y) (fun z -> z + 1)));;
 - : ? = 3: int => ?
 
+# (fun (f:?) -> f true) ((fun x -> x) ((fun (y:?) -> y) (fun z -> z + 1)));;
+Blame on the environment side:
+line 8, character 55 -- line 8, character 69
+
+(* Let polymorphism *)
 # let id x = x;;
 id : 'a -> 'a = <fun>
 
 # let dynid (x:?) = x;;
 dynid : ? -> ? = <fun>
 
+(* succ is in the standard library *)
 # succ;;
 - : int -> int = <fun>
 
@@ -172,8 +175,9 @@ dynid : ? -> ? = <fun>
 
 # (fun (f:?) -> f true) (id (dynid succ));;
 Blame on the environment side:
-line 12, character 33 -- line 12, character 37
+line 15, character 33 -- line 15, character 37
 
+(* Recursion *)
 # let rec sum (n:?) = if n < 1 then 0 else n + sum (n - 1);;
 sum : ? -> int = <fun>
 
@@ -182,7 +186,7 @@ sum : ? -> int = <fun>
 
 # sum true;;
 Blame on the expression side:
-line 13, character 23 -- line 13, character 24
+line 17, character 23 -- line 17, character 24
 
 # exit 0;;
 ```
