@@ -75,7 +75,7 @@ $ ldti -d
   - Simple: `let rec f x = e1 in e2`
   - Multiple parameters: `let rec f x y z ... = e1 in e2`
   - With type annotations: `let rec f (x: U1) y (z: U3) ... : U = e1 in e2`
-- If-then-else Expression: `if e1 then e2 else e3`
+- If-then-else expression: `if e1 then e2 else e3`
 - Sequence of expressions: `e1; e2`
 - Type ascription: `(e : U)`
 
@@ -90,7 +90,7 @@ $ ldti -d
 - Nested comments: `(* leave comments here (* nested comments are also supported *) *)`
 
 ## Standard library
-Some useful functions are available:
+Some useful functions and values are available:
 ```
 # is_bool;;
 - : ? -> bool = <fun>
@@ -188,5 +188,4 @@ line 13, character 23 -- line 13, character 24
 ```
 
 ## References
-- Yusuke Miyazaki. Runtime Type Inference for Gradual Typing. Master's Thesis. Graduate School of Informatics, Kyoto University, 2018.
 - [Ronald Garcia and Matteo Cimini. Principal Type Schemes for Gradual Programs. In Proc. of ACM POPL, 2015.](https://dl.acm.org/citation.cfm?id=2676992)
