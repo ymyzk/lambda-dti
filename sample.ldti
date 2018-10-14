@@ -1,0 +1,35 @@
+(fun (x:?) -> x + 2) 3;;
+
+(fun (x:?) -> x + 2) true;;
+
+(fun (x:?) -> x) (fun y -> y);;
+
+(* DTI: a type of y is instantiated to int *)
+(fun (x:?) -> x 2) (fun y -> y);;
+
+(* DTI: a type of x is instantiated to X1->X2 where X1 and X2 are fresh,
+   then X1 and X2 are instantiated to int *)
+(fun (f:?) -> f 2) ((fun x -> x) ((fun (y:?) -> y) (fun z -> z + 1)));;
+
+(fun (f:?) -> f true) ((fun x -> x) ((fun (y:?) -> y) (fun z -> z + 1)));;
+
+(* Let polymorphism *)
+let id x = x;;
+
+let dynid (x:?) = x;;
+
+(* succ is in the standard library *)
+succ;;
+
+(fun (f:?) -> f 2) (id (dynid succ));;
+
+(fun (f:?) -> f true) (id (dynid succ));;
+
+(* Recursion *)
+let rec sum (n:?) = if n < 1 then 0 else n + sum (n - 1);;
+
+sum 100;;
+
+sum true;;
+
+exit 0;;
