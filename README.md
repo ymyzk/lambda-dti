@@ -8,9 +8,9 @@ This implementation consists of:
 - Garcia and Cimini's type inference algorithm;
 - a cast-inserting translator from the ITGL to the blame calculus;
 - an evaluator of the blame calculus with dynamic type inference; and
-- some extensions to the ITGL.
+- some extensions (recursion, operators, and libraries) to the ITGL.
 
-This is an artifact of "Dynamic Type Inference for Gradual Hindley-Milner Typing" in POPL 2019.
+This is the artifact of "Dynamic Type Inference for Gradual Hindley-Milner Typing" in POPL 2019.
 
 ## How to use the artifact
 Please see [HOW_TO_USE_ARTIFACT.md](HOW_TO_USE_ARTIFACT.md).
@@ -30,7 +30,7 @@ $ ./_build/default/bin/main.exe
 ```
 Run `$ ./_build/default/bin/main.exe --help` for command line options.
 
-(Optional) To install the application,
+(Optional) Run the following command to install the application:
 ```
 $ dune install
 $ ldti
@@ -144,6 +144,7 @@ Some useful functions and values are available:
 ```
 
 ## Examples
+You can check more examples in `sample.ldti` and `test/test_examples.ml`.
 ```
 # (fun (x:?) -> x + 2) 3;;
 - : int = 5
@@ -199,6 +200,14 @@ line 17, character 23 -- line 17, character 24
 
 # exit 0;;
 ```
+
+## Contents
+- `bin`: Entry point of the interpreter
+- `lib`: Implementation of the calculus
+- `test`: Unit tests
+
+## License
+MIT License. See [LICENSE](LICENSE).
 
 ## References
 - [Ronald Garcia and Matteo Cimini. Principal Type Schemes for Gradual Programs. In Proc. of ACM POPL, 2015.](https://dl.acm.org/citation.cfm?id=2676992)
