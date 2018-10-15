@@ -146,6 +146,7 @@ Some useful functions and values are available:
 ## Examples
 You can check more examples in `sample.ldti` and `test/test_examples.ml`.
 ```
+(* Simple examples which use the dynamic type *)
 # (fun (x:?) -> x + 2) 3;;
 - : int = 5
 
@@ -165,9 +166,11 @@ line 2, character 14 -- line 2, character 15
 # (fun (f:?) -> f 2) ((fun x -> x) ((fun (y:?) -> y) (fun z -> z + 1)));;
 - : ? = 3: int => ?
 
-# (fun (f:?) -> f true) ((fun x -> x) ((fun (y:?) -> y) (fun z -> z + 1)));;
+(* DTI: a type of x is instantiated to unit, then raises blame
+   because a cast "true: bool => ? => unit" fails *)
+# (fun (f:?) -> f (); f true) (fun x -> x);;
 Blame on the environment side:
-line 8, character 55 -- line 8, character 69
+line 6, character 29 -- line 6, character 39
 
 (* Let polymorphism *)
 # let id x = x;;
@@ -185,7 +188,33 @@ dynid : ? -> ? = <fun>
 
 # (fun (f:?) -> f true) (id (dynid succ));;
 Blame on the environment side:
-line 15, character 33 -- line 15, character 37
+line 11, character 33 -- line 11, character 37
+
+(* A polymorphic function which does not behave parametric *)
+# let succ_non_para x = 1 + dynid x;;
+succ_non_para : 'a -> int = <fun>
+
+(* Returns a value when applied to an interger value *)
+# succ_non_para 3;;
+- : int = 4
+
+(* Returns a value when applied to a non-interger value *)
+# succ_non_para true;;
+Blame on the expression side:
+line 12, character 26 -- line 12, character 33
+
+(* "let x = v in e" and "e[x:=v]" should behave the same way *)
+# (fun x -> 1 + dynid x) 3;;
+- : int = 4
+
+(* The following example uses ν during the evaluation *)
+# let nu_fun x = ((fun y -> y): ? -> ?) x;;
+nu_fun : 'a -> ? = <fun>
+
+(* The following expression is translated into "nu_fun[unit,ν]; nu_fun[int,ν];;"
+   and returns a value *)
+# nu_fun (); nu_fun 3;;
+- : ? = 3: int => ?
 
 (* Recursion *)
 # let rec sum (n:?) = if n < 1 then 0 else n + sum (n - 1);;
@@ -196,7 +225,7 @@ sum : ? -> int = <fun>
 
 # sum true;;
 Blame on the expression side:
-line 17, character 23 -- line 17, character 24
+line 18, character 23 -- line 18, character 24
 
 # exit 0;;
 ```

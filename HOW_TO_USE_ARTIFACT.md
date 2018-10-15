@@ -16,65 +16,13 @@
 
 4. Start the interpreter and try it!
   - Run `ldti` on the terminal
-  - Try some inputs:
-```
-# (fun (x:?) -> x + 2) 3;;
-- : int = 5
-
-# (fun (x:?) -> x + 2) true;;
-Blame on the expression side:
-line 2, character 14 -- line 2, character 15
-
-# (fun (x:?) -> x) (fun y -> y);;
-- : ? = <fun>: ? -> ? => ?
-
-(* DTI: a type of y is instantiated to int *)
-# (fun (x:?) -> x 2) (fun y -> y);;
-- : ? = 2: int => ?
-
-(* DTI: a type of x is instantiated to X1->X2 where X1 and X2 are fresh,
-   then X1 and X2 are instantiated to int *)
-# (fun (f:?) -> f 2) ((fun x -> x) ((fun (y:?) -> y) (fun z -> z + 1)));;
-- : ? = 3: int => ?
-
-# (fun (f:?) -> f true) ((fun x -> x) ((fun (y:?) -> y) (fun z -> z + 1)));;
-Blame on the environment side:
-line 8, character 55 -- line 8, character 69
-
-(* Let polymorphism *)
-# let id x = x;;
-id : 'a -> 'a = <fun>
-
-# let dynid (x:?) = x;;
-dynid : ? -> ? = <fun>
-
-(* succ is in the standard library *)
-# succ;;
-- : int -> int = <fun>
-
-# (fun (f:?) -> f 2) (id (dynid succ));;
-- : ? = 3: int => ?
-
-# (fun (f:?) -> f true) (id (dynid succ));;
-Blame on the environment side:
-line 15, character 33 -- line 15, character 37
-
-(* Recursion *)
-# let rec sum (n:?) = if n < 1 then 0 else n + sum (n - 1);;
-sum : ? -> int = <fun>
-
-# sum 100;;
-- : int = 5050
-
-# sum true;;
-Blame on the expression side:
-line 17, character 23 -- line 17, character 24
-
-# exit 0;;
-```
+  - Try some inputs
+    - Input: `# (fun (x:?) -> x 2) (fun y -> y);;`
+    - Output: `- : ? = 2: int => ?`
 
 ## Next Step
-Please see [~/lambda-dti/README.md](README.md) for the full syntax.
+Please see [~/lambda-dti/README.md](README.md) for more examples and full syntax.
+[~/lambda-dti/test/test_examples.ml](test/test_examples.ml) also contains sample programs.
 
 ## Remark
 - To rebuild the interpreter, run `dune build && dune install` in `~/lambda-dti/`

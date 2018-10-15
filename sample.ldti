@@ -1,7 +1,6 @@
+(* Simple examples which use the dynamic type *)
 (fun (x:?) -> x + 2) 3;;
-
 (fun (x:?) -> x + 2) true;;
-
 (fun (x:?) -> x) (fun y -> y);;
 
 (* DTI: a type of y is instantiated to int *)
@@ -11,11 +10,12 @@
    then X1 and X2 are instantiated to int *)
 (fun (f:?) -> f 2) ((fun x -> x) ((fun (y:?) -> y) (fun z -> z + 1)));;
 
-(fun (f:?) -> f true) ((fun x -> x) ((fun (y:?) -> y) (fun z -> z + 1)));;
+(* DTI: a type of x is instantiated to unit, then raises blame
+   because a cast "true: bool => ? => unit" fails *)
+(fun (f:?) -> f (); f true) (fun x -> x);;
 
 (* Let polymorphism *)
 let id x = x;;
-
 let dynid (x:?) = x;;
 
 (* succ is in the standard library *)
@@ -25,11 +25,28 @@ succ;;
 
 (fun (f:?) -> f true) (id (dynid succ));;
 
+(* A polymorphic function which does not behave parametric *)
+let succ_non_para x = 1 + dynid x;;
+
+(* Returns a value when applied to an interger value *)
+succ_non_para 3;;
+
+(* Returns a value when applied to a non-interger value *)
+succ_non_para true;;
+
+(* "let x = v in e" and "e[x:=v]" should behave the same way *)
+(fun x -> 1 + dynid x) 3;;
+
+(* The following example uses ν during the evaluation *)
+let nu_fun x = ((fun y -> y): ? -> ?) x;;
+
+(* The following expression is translated into "nu_fun[unit,ν]; nu_fun[int,ν];;"
+   and returns a value *)
+nu_fun (); nu_fun 3;;
+
 (* Recursion *)
 let rec sum (n:?) = if n < 1 then 0 else n + sum (n - 1);;
-
 sum 100;;
-
 sum true;;
 
 exit 0;;
