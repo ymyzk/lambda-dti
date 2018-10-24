@@ -21,6 +21,7 @@ Please see [HOW_TO_USE_ARTIFACT.md](HOW_TO_USE_ARTIFACT.md).
 - Dune 1.3.0+ (formerly known as Jbuilder)
 - Menhir
 - OUnit 2 (for running unit tests)
+- rlwrap (for line editing and input history)
 
 ## Getting started
 ### A. Building from source
@@ -51,6 +52,12 @@ $ dune runtest
 By enabling the debug mode, our interpreter show various messages to stderr.
 ```console
 $ ldti -d
+```
+
+### Line editing
+You may want to use rlwrap for line editing and input history.
+```console
+$ rlwrap ldti
 ```
 
 ## Syntax
