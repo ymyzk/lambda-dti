@@ -71,6 +71,7 @@ let test_cases = [
   ["let id x = x in id (); id true", "bool", "true"];
   ["let g = fun x -> ((fun y -> y) : ?->?) x in g (); g 3", "?", "3: int => ?"];
   ["let f = fun x -> 1 + ((fun (y:?) -> y) x) in 2", "int", "2"];
+  (* toplevel let-poly *)
   [
     "let g = fun x -> ((fun y -> y) : ?->?) x", "'a -> ?", "<fun>";
     "g (); g true", "?", "true: bool => ?";
@@ -90,6 +91,19 @@ let test_cases = [
     "let dtwice (f:?) (x:?) = f (f x)", "? -> ? -> ?", "<fun>";
     "dtwice succ 3", "?", "5: int => ?";
     "dtwice not true", "?", "true: bool => ?";
+  ];
+  [
+    "let f x: 'a = x", "'a -> 'a", "<fun>";
+    "f 3", "int", "3";
+    "f true", "bool", "true";
+    "f", "'a -> 'a", "<fun>";
+  ];
+  [
+    "let did (x:?) = x", "? -> ?", "<fun>";
+    "let f x: 'a = did x", "'a -> 'b", "<fun>";
+    "f 3", "int", "3";
+    "f true", "bool", "true";
+    "f", "'a -> 'b", "<fun>";
   ];
   (* let-poly & recursion *)
   ["let rec fact n = if n <= 1 then 1 else n * fact (n - 1) in fact 5", "int", "120"];
