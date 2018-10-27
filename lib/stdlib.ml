@@ -2,6 +2,7 @@ open Syntax
 open Syntax.CC
 
 exception Stdlib_bug of string
+exception Stdlib_exit of int
 
 let env, tyenv = Environment.empty, Environment.empty
 
@@ -13,7 +14,7 @@ let is_some u = FunV (fun _ -> function
   )
 
 let lib_exit = FunV (fun _ -> function
-    | IntV i -> exit i
+    | IntV i -> raise @@ Stdlib_exit i
     | _ -> raise @@ Stdlib_bug "exit: unexpected value"
 )
 
