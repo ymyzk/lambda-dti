@@ -15,7 +15,7 @@ let rec read_eval_print lexbuf env tyenv =
   let print_debug f = Utils.Format.make_print_debug !debug f in
   flush stderr;
   flush stdout;
-  print "# @?";
+  if lexbuf.Lexing.lex_curr_p.pos_fname = "" then print "# @?";
   begin try
       (* Parsing *)
       print_debug "***** Parser *****\n";
