@@ -71,6 +71,11 @@ let start file =
   let env, tyenv = Stdlib.pervasives in
   let channel = match file with None -> stdin | Some f -> open_in f in
   let lexbuf = Lexing.from_channel channel in
+  begin
+    match file with
+    | Some f -> lexbuf.lex_curr_p <- {lexbuf.lex_curr_p with pos_fname = f}
+    | None -> ()
+  end;
   try
     read_eval_print lexbuf env tyenv
   with

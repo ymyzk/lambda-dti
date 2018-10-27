@@ -23,7 +23,8 @@ module Error = struct
   }
 
   let pp_range ppf {start_p=p1; end_p=p2} =
-    (* TODO: show filename *)
+    if p1.pos_fname <> "" then
+      fprintf ppf "File \"%s\", " p1.pos_fname;
     fprintf ppf "line %d, character %d -- line %d, character %d"
       p1.pos_lnum
       (p1.pos_cnum - p1.pos_bol)
