@@ -44,6 +44,13 @@ module Format = struct
       fprintf empty_formatter f
 end
 
+module Lexing = struct
+  (* Altenative to Lexing.flush_input so that pos_bol is also reset to 0 *)
+  let flush_input lexbuf =
+    Lexing.flush_input lexbuf;
+    lexbuf.lex_curr_p <- {lexbuf.lex_curr_p with pos_bol = 0}
+end
+
 module List = struct
   let zip l1 l2 =
     let rec zip' l1 l2 l = match l1, l2 with
