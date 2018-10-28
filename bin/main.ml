@@ -15,7 +15,7 @@ let rec read_eval_print lexbuf env tyenv =
   let print_debug f = Utils.Format.make_print_debug !debug f in
   flush stderr;
   flush stdout;
-  print "# @?";
+  if lexbuf.Lexing.lex_curr_p.pos_fname = "" then print "# @?";
   begin try
       (* Parsing *)
       print_debug "***** Parser *****\n";
@@ -67,12 +67,45 @@ let rec read_eval_print lexbuf env tyenv =
   end;
   read_eval_print lexbuf env tyenv
 
+let start file =
+  let env, tyenv = Stdlib.pervasives in
+  let channel = match file with None -> stdin | Some f -> open_in f in
+  let lexbuf = Lexing.from_channel channel in
+  begin
+    match file with
+    | Some f -> lexbuf.lex_curr_p <- {lexbuf.lex_curr_p with pos_fname = f}
+    | None -> ()
+  end;
+  try
+    read_eval_print lexbuf env tyenv
+  with
+    | Lexer.Eof ->
+      (* Exiting normally *)
+      close_in channel
+    | Stdlib.Stdlib_exit i ->
+      (* Exiting with the status code *)
+      close_in channel;
+      exit i
+    | e ->
+      (* Unexpected error occurs, close the opened channel *)
+      close_in_noerr channel;
+      raise e
+
 let () =
-  let usage = "Interpreter of the ITGL with dynamic type inference" in
+  let program = Sys.argv.(0) in
+  let usage =
+    "Interpreter of the ITGL with dynamic type inference\n" ^
+    asprintf "Usage: %s <options> [file]\n" program ^
+    "Options: "
+  in
+  let file = ref None in
   let options = Arg.align [
       ("-d", Arg.Set debug, " Enable debug mode");
-    ] in
-  Arg.parse options (fun _ -> ()) usage;
-  let lexbuf = Lexing.from_channel stdin in
-  let env, tyenv = Stdlib.pervasives in
-  read_eval_print lexbuf env tyenv
+    ]
+  in
+  let parse_argv arg = match !file with
+    | None -> file := Some arg
+    | Some _ -> raise @@ Arg.Bad "error: only one file can be specified"
+  in
+  Arg.parse options parse_argv usage;
+  start !file

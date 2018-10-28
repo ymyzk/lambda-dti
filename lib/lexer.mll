@@ -1,6 +1,8 @@
 {
 open Utils.Error
 
+exception Eof
+
 let reservedWords = [
   ("let", fun r -> Parser.LET r);
   ("rec", fun r -> Parser.REC r);
@@ -63,7 +65,7 @@ rule main = parse
     with
     _ -> Parser.ID { value=id; range=range }
   }
-| eof { exit 0 }
+| eof { raise Eof }
 and comment = parse
   "*)" { () }
 | "(*" { comment lexbuf; comment lexbuf }
