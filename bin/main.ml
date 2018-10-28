@@ -68,14 +68,20 @@ let rec read_eval_print lexbuf env tyenv =
   read_eval_print lexbuf env tyenv
 
 let start file =
+  let print_debug f = Utils.Format.make_print_debug !debug f in
+  print_debug "***** Lexer *****\n";
+  let channel, lexbuf = match file with
+    | None ->
+        print_debug "Reading from stdin\n%!";
+        stdin, Lexing.from_channel stdin
+    | Some f ->
+        print_debug "Reading from file \"%s\"\n%!" f;
+        let channel = open_in f in
+        let lexbuf = Lexing.from_channel channel in
+        lexbuf.lex_curr_p <- {lexbuf.lex_curr_p with pos_fname = f};
+        channel, lexbuf
+  in
   let env, tyenv = Stdlib.pervasives in
-  let channel = match file with None -> stdin | Some f -> open_in f in
-  let lexbuf = Lexing.from_channel channel in
-  begin
-    match file with
-    | Some f -> lexbuf.lex_curr_p <- {lexbuf.lex_curr_p with pos_fname = f}
-    | None -> ()
-  end;
   try
     read_eval_print lexbuf env tyenv
   with
