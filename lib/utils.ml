@@ -45,10 +45,14 @@ module Format = struct
 end
 
 module List = struct
-  let rec zip l1 l2 = match l1, l2 with
-    | [], _ -> []
-    | _, [] -> []
-    | (x :: xs), (y :: ys) -> (x, y) :: (zip xs ys)
+  let zip l1 l2 =
+    let rec zip' l1 l2 l = match l1, l2 with
+      | [], _ | _, [] -> List.rev l
+      | (x :: xs), (y :: ys) -> zip' xs ys @@ (x, y) :: l
+    in
+    zip' l1 l2 []
 
-  let rec repeat i n = if n <= 0 then [] else i :: repeat i (n - 1)
+  let repeat i n =
+    let rec f i n l = if n <= 0 then l else f i (n - 1) @@ i :: l in
+    f i n []
 end
