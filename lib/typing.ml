@@ -242,12 +242,87 @@ module ITGL = struct
   let closure_tyvars1 u1 env v1 =
     TV.elements @@ TV.diff (ftv_ty u1) @@ TV.union (ftv_tyenv env) (ftv_exp v1)
 
-  let closure_tyvars_let_decl u1 env =
-    TV.elements @@ TV.diff (ftv_ty u1) (ftv_tyenv env)
+  let closure_tyvars_let_decl e u1 env =
+    TV.elements @@ TV.diff (TV.union (tv_exp e) (ftv_ty u1)) (ftv_tyenv env)
 
   let closure_tyvars2 w1 env u1 v1 =
     let ftvs = TV.big_union [ftv_tyenv env; ftv_ty u1; ftv_exp v1] in
     TV.elements @@ TV.diff (Syntax.CC.ftv_exp w1) ftvs
+
+  let rec is_base_value env u =
+    assert (u = TyInt || u = TyBool || u = TyUnit);
+    function
+    | Var (_, x, ys) ->
+      begin try
+        let TyScheme (xs, u') = Environment.find x env in
+        let s = Utils.List.zip xs !ys in
+        subst_type s u' = u
+      with Not_found ->
+        raise @@ Type_bug (asprintf "variable '%s' not found in the environment" x)
+      end
+    | IConst _ when u = TyInt -> true
+    | BConst _ when u = TyBool -> true
+    | UConst _ when u = TyUnit -> true
+    | AscExp (r, e, TyVar (_, { contents = Some u' })) ->
+      is_base_value env u @@ AscExp (r, e, u')
+    | AscExp (_, e, u') when u = u' -> is_base_value env u e
+    | _ -> false
+
+  let rec is_fun_value env = function
+    | Var (_, x, ys) ->
+      begin try
+        begin
+          let TyScheme (xs, u') = Environment.find x env in
+          let s = Utils.List.zip xs !ys in
+          begin match subst_type s u' with
+          | TyFun _ -> true
+          | _ -> false
+          end
+        end with Not_found ->
+          raise @@ Type_bug (asprintf "variable '%s' not found in the environment" x)
+      end
+    | FunEExp _
+    | FunIExp _
+    | FixEExp _
+    | FixIExp _ -> true
+    | AscExp (_, e, TyFun _) -> is_fun_value env e
+    | AscExp (r, e, TyVar (_, { contents = Some u })) -> is_fun_value env @@ AscExp (r, e, u)
+    | _ -> false
+
+  let rec is_tyvar_value env x = function
+    | Var (_, x', ys) ->
+      begin
+        try
+          let TyScheme (xs, u') = Environment.find x' env in
+          let s = Utils.List.zip xs !ys in
+          begin match subst_type s u' with
+          | TyVar (x'', _) when x = x'' -> true
+          | _ -> false
+          end
+        with Not_found ->
+          raise @@ Type_bug (asprintf "variable '%s' not found in the environment" x')
+      end
+    | AscExp (r, e, TyVar (_, { contents = Some u })) ->
+        is_tyvar_value env x @@ AscExp (r, e, u)
+    | AscExp (_, e, TyVar (x', { contents = None })) when x = x' ->
+        is_tyvar_value env x e
+    | _ -> false
+
+  let rec is_value env = function
+    | Var _
+    | IConst _
+    | BConst _
+    | UConst _
+    | FunEExp _
+    | FunIExp _
+    | FixEExp _
+    | FixIExp _ -> true
+    | AscExp (_, e, (TyInt | TyBool | TyUnit as u)) when is_base_value env u e -> true
+    | AscExp (_, e, TyFun _) when is_fun_value env e -> true
+    | AscExp (_, e, TyDyn) when is_value env e -> true
+    | AscExp (r, e, TyVar (_, { contents = Some u })) -> is_value env @@ AscExp (r, e, u)
+    | AscExp (_, e, TyVar (x, { contents = None })) -> is_tyvar_value env x e
+    | _ -> false
 
   (* Type inference *)
 
@@ -300,21 +375,21 @@ module ITGL = struct
       let u3 = type_of_cod_eq u1 in
       type_of_dom_con u1 u2;
       u3
-    | LetExp (_, x, e1, e2) when is_value e1 ->
-      let u1 = type_of_exp env e1 in
-      let xs = closure_tyvars1 u1 env e1 in
-      let us1 = TyScheme (xs, u1) in
-      type_of_exp (Environment.add x us1 env) e2
     | LetExp (r, x, e1, e2) ->
       let u1 = type_of_exp env e1 in
-      type_of_exp env @@ AppExp (r, FunIExp (r, x, u1, e2), e1)
+      if is_value env e1 then
+        let xs = closure_tyvars1 u1 env e1 in
+        let us1 = TyScheme (xs, u1) in
+        type_of_exp (Environment.add x us1 env) e2
+      else
+        type_of_exp env @@ AppExp (r, FunIExp (r, x, u1, e2), e1)
 
   let type_of_program env = function
     | Exp e ->
       env, Exp e, type_of_exp env e
     | LetDecl (x, e) ->
       let u = type_of_exp env e in
-      let xs = if is_value e then closure_tyvars_let_decl u env else [] in
+      let xs = if is_value env e then closure_tyvars_let_decl e u env else [] in
       let env = Environment.add x (TyScheme (xs, u)) env in
       env, LetDecl (x, e), u
 
@@ -416,7 +491,7 @@ module ITGL = struct
       let f1, u1 = translate_exp env e1 in
       let f2, u2 = translate_exp env e2 in
       CC.AppExp (r, cast f1 u1 (TyFun (dom u1, cod u1)), cast f2 u2 (dom u1)), cod u1
-    | LetExp (r, x, e1, e2) when is_value e1 ->
+    | LetExp (r, x, e1, e2) when is_value env e1 ->
       let f1, u1 = translate_exp env e1 in
       let xs = closure_tyvars1 u1 env e1 in
       let ys = closure_tyvars2 f1 env u1 e1 in
@@ -433,9 +508,9 @@ module ITGL = struct
     | Exp e ->
       let f, u = translate_exp env e in
       env, CC.Exp f, u
-    | LetDecl (x, e) when is_value e ->
+    | LetDecl (x, e) when is_value env e ->
       let f, u = translate_exp env e in
-      let xs = closure_tyvars_let_decl u env in
+      let xs = closure_tyvars_let_decl e u env in
       let ys = closure_tyvars2 f env u e in
       let env = Environment.add x (TyScheme (xs @ ys, u)) env in
       env, CC.LetDecl (x, xs @ ys, f), u

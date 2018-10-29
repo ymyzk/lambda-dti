@@ -94,16 +94,20 @@ module ITGL = struct
     | AppExp (r, _, _)
     | LetExp (r, _, _, _) -> r
 
-  (* For value restriction *)
-  let is_value = function
+  let rec tv_exp: exp -> TV.t = function
+    | Var _
     | IConst _
     | BConst _
-    | UConst _
-    | FunEExp _
-    | FunIExp _
-    | FixEExp _
-    | FixIExp _ -> true
-    | _ -> false
+    | UConst _ -> TV.empty
+    | BinOp (_, _, e1, e2) -> TV.union (tv_exp e1) (tv_exp e2)
+    | AscExp (_, e, u) -> TV.union (tv_exp e) (ftv_ty u)
+    | IfExp (_, e1, e2, e3) -> TV.big_union @@ List.map tv_exp [e1; e2; e3]
+    | FunEExp (_, _, u, e)
+    | FunIExp (_, _, u, e) -> TV.union (ftv_ty u) (tv_exp e)
+    | FixEExp (_, _, _, u1, _, e)
+    | FixIExp (_, _, _, u1, _, e) -> TV.union (ftv_ty u1) (tv_exp e)
+    | AppExp (_, e1, e2) -> TV.union (tv_exp e1) (tv_exp e2)
+    | LetExp (_, _, e1, e2) -> TV.union (tv_exp e1) (tv_exp e2)
 
   let rec ftv_exp: exp -> TV.t = function
     | Var _

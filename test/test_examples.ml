@@ -105,6 +105,57 @@ let test_cases = [
     "f true", "bool", "true";
     "f", "'a -> 'b", "<fun>";
   ];
+  [
+    "let f: 'a -> 'a = fun x -> x", "'a -> 'a", "<fun>";
+    "f 3", "int", "3";
+    "f true", "bool", "true";
+    "f", "'a -> 'a", "<fun>";
+    "let g = f", "'a -> 'a", "<fun>";
+    "g 3", "int", "3";
+    "g true", "bool", "true";
+    "g", "'a -> 'a", "<fun>";
+    "let g: 'b = f", "'a -> 'a", "<fun>";
+    "g 3", "int", "3";
+    "g true", "bool", "true";
+    "g", "'a -> 'a", "<fun>";
+  ];
+  [
+    "let f: 'a = fun x -> x", "'a -> 'a", "<fun>";
+    "f 3", "int", "3";
+    "f true", "bool", "true";
+    "f", "'a -> 'a", "<fun>";
+    "let g = f", "'a -> 'a", "<fun>";
+    "g 3", "int", "3";
+    "g true", "bool", "true";
+    "g", "'a -> 'a", "<fun>";
+  ];
+  [
+    "let f = ((fun x -> x: 'a -> 'a): 'a -> 'a)", "'a -> 'a", "<fun>";
+    "f 3", "int", "3";
+    "f true", "bool", "true";
+    "f", "'a -> 'a", "<fun>";
+    "let g = f", "'a -> 'a", "<fun>";
+    "g 3", "int", "3";
+    "g true", "bool", "true";
+    "g", "'a -> 'a", "<fun>";
+  ];
+  [
+    "let f: 'a -> 'a -> ? = fun x y -> 0", "'a -> 'a -> ?", "<fun>";
+    "let g1 x = ((fun y -> y) : ? -> ?) x", "'a -> ?", "<fun>";
+    "fun x y -> f (g1 x) (g1 y)", "'a -> 'b -> ?", "<fun>";
+    "let g2 (x: 'a) = ((fun y -> y) : ? -> ?) x", "'a -> ?", "<fun>";
+    "fun x y -> f (g2 x) (g2 y)", "'a -> 'b -> ?", "<fun>";
+  ];
+  [
+    "let f = ((((fun x -> x): 'a ->'a): ?): 'a->'a)", "'a -> 'a", "<fun>";
+    "f 3", "int", "3";
+    "f", "int -> int", "<fun>";
+  ];
+  [
+    "let f (x: int) (y: bool) = 0", "int -> bool -> int", "<fun>";
+    "let dyn x = ((fun (y: 'b) -> y): ? -> ?) x", "'a -> ?", "<fun>";
+    "f (dyn 2) (dyn true)", "int", "0";
+  ];
   (* let-poly & recursion *)
   ["let rec fact n = if n <= 1 then 1 else n * fact (n - 1) in fact 5", "int", "120"];
   ["let rec fact (n:?) = if n <= 1 then 1 else n * fact (n - 1) in fact 5", "int", "120"];
