@@ -44,11 +44,22 @@ module Format = struct
       fprintf empty_formatter f
 end
 
-module List = struct
-  let rec zip l1 l2 = match l1, l2 with
-    | [], _ -> []
-    | _, [] -> []
-    | (x :: xs), (y :: ys) -> (x, y) :: (zip xs ys)
+module Lexing = struct
+  (* Altenative to Lexing.flush_input so that pos_bol is also reset to 0 *)
+  let flush_input lexbuf =
+    Lexing.flush_input lexbuf;
+    lexbuf.lex_curr_p <- {lexbuf.lex_curr_p with pos_bol = 0}
+end
 
-  let rec repeat i n = if n <= 0 then [] else i :: repeat i (n - 1)
+module List = struct
+  let zip l1 l2 =
+    let rec zip' l1 l2 l = match l1, l2 with
+      | [], _ | _, [] -> List.rev l
+      | (x :: xs), (y :: ys) -> zip' xs ys @@ (x, y) :: l
+    in
+    zip' l1 l2 []
+
+  let repeat i n =
+    let rec f i n l = if n <= 0 then l else f i (n - 1) @@ i :: l in
+    f i n []
 end

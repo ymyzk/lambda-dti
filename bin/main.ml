@@ -1,11 +1,6 @@
 open Format
 open Lambda_dti
 
-(* Altenative to Lexing.flush_input so that pos_bol is also reset to 0 *)
-let flush_input lexbuf =
-  Lexing.flush_input lexbuf;
-  lexbuf.lex_curr_p <- {lexbuf.lex_curr_p with pos_bol = 0}
-
 let debug = ref false
 
 let rec read_eval_print lexbuf env tyenv =
@@ -52,11 +47,11 @@ let rec read_eval_print lexbuf env tyenv =
     with
     | Failure message ->
       print "Failure: %s\n" message;
-      flush_input lexbuf
+      Utils.Lexing.flush_input lexbuf
     | Parser.Error -> (* Menhir *)
       let token = Lexing.lexeme lexbuf in
       print "Parser.Error: unexpected token %s\n" token;
-      flush_input lexbuf
+      Utils.Lexing.flush_input lexbuf
     | Typing.Type_error message ->
       print "Type_error: %s\n" message
     | Eval.Blame (r, p) -> begin
