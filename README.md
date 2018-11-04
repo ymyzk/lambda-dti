@@ -82,7 +82,7 @@ $ rlwrap ldti
 - Abstraction:
   - Simple: `fun x -> e`
   - Multiple parameters: `fun x y z ... -> e`
-  - With type annotations: `fun (x: U1) y (z: U3) ... -> e`
+  - With type annotations: `fun (x: U1) y (z: U3) ...: U -> e`
 - Application: `e1 e2`
 - Let expression:
   - Simple: `let x = e1 in e2`

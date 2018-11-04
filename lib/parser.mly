@@ -97,8 +97,9 @@ Expr :
         let e1, u2 = List.fold_right (param_to_fun_ty r) params (e1, u2) in
         LetExp (r, x.value, FixEExp (r, x.value, y.value, u1, u2, e1), e2)
     }
-  | start=FUN params=nonempty_list(Param) RARROW e=Expr {
+  | start=FUN params=nonempty_list(Param) u=Opt_simple_type_annot RARROW e=Expr {
       let r = join_range start (range_of_exp e) in
+      let e = match u with None -> e | Some u -> AscExp (range_of_exp e, e, u) in
       List.fold_right (param_to_fun r) params e
     }
   | Seq_expr { $1 }
@@ -110,6 +111,10 @@ Param :
 %inline Opt_type_annot :
   | /* empty */ { None }
   | COLON u=Type { Some u }
+
+%inline Opt_simple_type_annot :
+  | /* empty */ { None }
+  | COLON u=Simple_type { Some u }
 
 Seq_expr :
   | e1=Seq_expr SEMI e2=Seq_expr {
