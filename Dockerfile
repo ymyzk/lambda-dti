@@ -1,17 +1,22 @@
-FROM ocaml/opam2:debian-9-ocaml-4.07
+FROM ocaml/opam2:alpine-3.8-ocaml-4.07
 
 USER root
-RUN apt-get update && apt-get install --no-install-recommends -y m4
+RUN apk --update add m4
 
 USER opam
 COPY . ./app/
 RUN opam pin add lambda-dti ./app
 
-FROM debian:stretch-slim
+FROM alpine:3.8
 
-RUN apt-get update && apt-get install --no-install-recommends -y rlwrap
+RUN echo "@testing http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
+RUN apk --update add rlwrap@testing
 
 COPY --from=0 /home/opam/.opam/4.07/bin/ldti /usr/bin/
 
-ENTRYPOINT ["ldti"]
-# ENTRYPOINT ["rlwrap", "ldti"]
+# Workaround: sleep for 1 second to avoid the following error:
+# rlwrap: error: My terminal reports width=0
+RUN echo $'#!/bin/ash\nsleep 1; rlwrap ldti "$@"' >> /usr/bin/ldti-start.sh
+RUN chmod +x /usr/bin/ldti-start.sh
+
+ENTRYPOINT ["ldti-start.sh"]
