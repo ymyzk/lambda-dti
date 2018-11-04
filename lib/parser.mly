@@ -16,6 +16,10 @@ let param_to_fun_ty r (x, u1) (e, u) = match u1 with
 | Some u1 ->
     FunEExp (r, x.value, u1, e), TyFun (u1, u)
 
+let opt_ty_to_fresh_ty = function
+  | None -> Typing.fresh_tyvar ()
+  | Some u -> u
+
 exception Parser_bug of string
 
 %}
@@ -51,14 +55,15 @@ toplevel :
 
 Program :
   | Expr SEMISEMI { Exp $1 }
-  | start=LET x=ID params=list(Param) u=Let_type_annot EQ e=Expr SEMISEMI {
+  | start=LET x=ID params=list(Param) u=Opt_type_annot EQ e=Expr SEMISEMI {
       let r = join_range start (range_of_exp e) in
       let e = match u with None -> e | Some u -> AscExp (range_of_exp e, e, u) in
       let e = List.fold_right (param_to_fun r) params e in
       LetDecl (x.value, e)
     }
-  | start=LET REC x=ID params=nonempty_list(Param) u2=Let_rec_type_annot EQ e=Expr SEMISEMI {
+  | start=LET REC x=ID params=nonempty_list(Param) u2=Opt_type_annot EQ e=Expr SEMISEMI {
       let r = join_range start (range_of_exp e) in
+      let u2 = opt_ty_to_fresh_ty u2 in
       match params with
       | [] ->
         raise @@ Parser_bug "params must not be empty"
@@ -72,14 +77,15 @@ Program :
     }
 
 Expr :
-  | start=LET x=ID params=list(Param) u1=Let_type_annot EQ e1=Expr IN e2=Expr {
+  | start=LET x=ID params=list(Param) u1=Opt_type_annot EQ e1=Expr IN e2=Expr {
       let r = join_range start (range_of_exp e2) in
       let e1 = match u1 with None -> e1 | Some u1 -> AscExp (range_of_exp e1, e1, u1) in
       let e1 = List.fold_right (param_to_fun r) params e1 in
       LetExp (r, x.value, e1, e2)
     }
-  | start=LET REC x=ID params=nonempty_list(Param) u2=Let_rec_type_annot EQ e1=Expr IN e2=Expr {
+  | start=LET REC x=ID params=nonempty_list(Param) u2=Opt_type_annot EQ e1=Expr IN e2=Expr {
       let r = join_range start (range_of_exp e2) in
+      let u2 = opt_ty_to_fresh_ty u2 in
       match params with
       | [] ->
         raise @@ Parser_bug "params must not be empty"
@@ -101,13 +107,9 @@ Param :
   | x=ID { (x, None) }
   | LPAREN x=ID COLON u=Type RPAREN { (x, Some u) }
 
-%inline Let_type_annot :
+%inline Opt_type_annot :
   | /* empty */ { None }
   | COLON u=Type { Some u }
-
-%inline Let_rec_type_annot :
-  | /* empty */ { Typing.fresh_tyvar () }
-  | COLON u2=Type { u2 }
 
 Seq_expr :
   | e1=Seq_expr SEMI e2=Seq_expr {
