@@ -194,11 +194,11 @@ let test_examples =
     (string_of_int i) >:: fun ctxt ->
       ignore @@ List.fold_left
         (fun (env, tyenv) (program, expected_ty, expected_value) ->
-          let env, tyenv, actual_ty, actual_value = run env tyenv program in
-          assert_equal ~ctxt:ctxt ~printer:id expected_ty actual_ty;
-          assert_equal ~ctxt:ctxt ~printer:id expected_value actual_value;
-          env, tyenv
-          )
+           let env, tyenv, actual_ty, actual_value = run env tyenv program in
+           assert_equal ~ctxt:ctxt ~printer:id expected_ty actual_ty;
+           assert_equal ~ctxt:ctxt ~printer:id expected_value actual_value;
+           env, tyenv
+        )
         Stdlib.pervasives
         cases
   in

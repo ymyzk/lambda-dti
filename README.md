@@ -21,7 +21,7 @@ Please see [HOW_TO_USE_ARTIFACT.md](HOW_TO_USE_ARTIFACT.md).
 - Dune 1.2.0+ (formerly known as Jbuilder)
 - Menhir
 - OUnit 2 (for running unit tests)
-- rlwrap (for line editing and input history)
+- [rlwrap](https://github.com/hanslub42/rlwrap) (for line editing and input history)
 
 ## Getting started
 ### A. Building from source
@@ -48,10 +48,16 @@ $ docker run -it --rm ymyzk/lambda-dti
 $ dune runtest
 ```
 
-### Using debug mode
+### Debug mode
 By enabling the debug mode, our interpreter show various messages to stderr.
 ```console
 $ ldti -d
+```
+
+### Non-interactive mode
+You can specify a file as a command line argument. Our interpreter executes the programs in the file then exits.
+```console
+$ ldti ./sample.ldti
 ```
 
 ### Line editing
