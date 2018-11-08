@@ -20,8 +20,8 @@ Please see [HOW_TO_USE_ARTIFACT.md](HOW_TO_USE_ARTIFACT.md).
 - OCaml 4.03.0+
 - Dune 1.2.0+ (formerly known as Jbuilder)
 - Menhir
-- OUnit 2 (for running unit tests)
-- [rlwrap](https://github.com/hanslub42/rlwrap) (for line editing and input history)
+- OUnit 2 (optional for running unit tests)
+- [rlwrap](https://github.com/hanslub42/rlwrap) (optional for line editing and input history)
 
 ## Getting started
 ### A. Building from source
