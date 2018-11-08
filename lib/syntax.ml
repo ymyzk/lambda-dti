@@ -29,11 +29,6 @@ let is_ground = function
   | TyFun (u1, u2) when u1 = TyDyn && u2 = TyDyn -> true
   | _ -> false
 
-let ground_of_ty = function
-  | TyInt | TyBool | TyUnit as u -> Some u
-  | TyFun _ -> Some (TyFun (TyDyn, TyDyn))
-  | _ -> None
-
 (* Set of type variables used for let polymorphism *)
 
 (** Module for a set of type variables *)
