@@ -18,7 +18,7 @@ Please see [HOW_TO_USE_ARTIFACT.md](HOW_TO_USE_ARTIFACT.md).
 ## Requirements
 - opam 2.0.0+
 - OCaml 4.03.0+
-- Dune 1.3.0+ (formerly known as Jbuilder)
+- Dune 1.2.0+ (formerly known as Jbuilder)
 - Menhir
 - OUnit 2 (for running unit tests)
 - rlwrap (for line editing and input history)
