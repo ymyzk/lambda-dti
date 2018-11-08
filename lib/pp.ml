@@ -13,6 +13,7 @@ let rec gt_ty (u1: ty) u2 = match u1, u2 with
   | _, TyFun _ -> true
   | _ -> false
 
+(** Pretty-printer for types. Show the raw index of a type variable (e.g., 'x123->'x124). *)
 let rec pp_ty ppf = function
   | TyDyn -> pp_print_string ppf "?"
   | TyVar (a, { contents = None }) -> fprintf ppf "'x%d" a
@@ -25,6 +26,7 @@ let rec pp_ty ppf = function
       (with_paren (gt_ty u u1) pp_ty) u1
       pp_ty u2
 
+(** Pretty-printer for types. Type variables are renamed (e.g., 'a->'b). *)
 let pp_ty2 ppf u =
   let tyvars = ref [] in
   let pp_tyvar ppf (a, _) =

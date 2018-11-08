@@ -1,3 +1,4 @@
+(** Utility functions to handle ranges. *)
 module Error = struct
   open Format
   open Lexing
@@ -32,11 +33,14 @@ module Error = struct
       (p2.pos_cnum - p2.pos_bol)
 end
 
+(** Utility functions for Format module. *)
 module Format = struct
   open Format
 
+  (** No-op formatter. *)
   let empty_formatter = make_formatter (fun _ _ _ -> ()) (fun _ -> ())
 
+  (** If "debug" is true, then returns err_formatter. Otherwise returns empty_formatter. *)
   let make_print_debug debug f =
     if debug then
       fprintf err_formatter f
@@ -44,14 +48,18 @@ module Format = struct
       fprintf empty_formatter f
 end
 
+(** Utility functions for Lexing module. *)
 module Lexing = struct
-  (* Altenative to Lexing.flush_input so that pos_bol is also reset to 0 *)
+  (** Altenative to Lexing.flush_input so that pos_bol is also reset to 0. *)
   let flush_input lexbuf =
     Lexing.flush_input lexbuf;
     lexbuf.lex_curr_p <- {lexbuf.lex_curr_p with pos_bol = 0}
 end
 
+(** Utility functions for List module. *)
 module List = struct
+
+  (** Zip two lists. The length of the result will be the same as the length of the shorter list. *)
   let zip l1 l2 =
     let rec zip' l1 l2 l = match l1, l2 with
       | [], _ | _, [] -> List.rev l
@@ -59,6 +67,7 @@ module List = struct
     in
     zip' l1 l2 []
 
+  (** Generate a list of length "n" where all items are "i". *)
   let repeat i n =
     let rec f i n l = if n <= 0 then l else f i (n - 1) @@ i :: l in
     f i n []

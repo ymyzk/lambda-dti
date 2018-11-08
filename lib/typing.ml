@@ -3,12 +3,10 @@ open Format
 open Pp
 open Syntax
 
-(* Type error in the given program *)
 exception Type_error of string
 (* Bug in this implementation *)
 exception Type_bug of string
 
-(** Returns a fresh type variable *)
 let fresh_tyvar =
   let counter = ref 0 in
   let body () =

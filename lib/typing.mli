@@ -1,7 +1,9 @@
 open Syntax
 
+(** Type error in the given program. *)
 exception Type_error of string
 
+(** Returns a fresh type variable. *)
 val fresh_tyvar : unit -> ty
 
 val is_equal : ty -> ty -> bool

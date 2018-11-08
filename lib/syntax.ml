@@ -1,7 +1,9 @@
 open Utils.Error
 
+(** Identifier used for names of variables. *)
 type id = string
 
+(** Module used to implement environment and type environment. *)
 module Environment = Map.Make (
   struct
     type t = id
@@ -18,12 +20,17 @@ type ty =
   | TyBool
   | TyUnit
   | TyFun of ty * ty
-and tyvar = int * ty option ref
+and
+(* int value is used to identify type variables.
+ * ty option ref value is used to implement instantiation.
+ * Some u means this variable is instantiated with u. *)
+  tyvar = int * ty option ref
 
 type tysc = TyScheme of tyvar list * ty
 
 let tysc_of_ty u = TyScheme ([], u)
 
+(** Returns true if the given argument is a ground type. Othewise returns false. *)
 let is_ground = function
   | TyInt | TyBool | TyUnit -> true
   | TyFun (u1, u2) when u1 = TyDyn && u2 = TyDyn -> true
@@ -31,7 +38,7 @@ let is_ground = function
 
 (* Set of type variables used for let polymorphism *)
 
-(** Module for a set of type variables *)
+(** Module for a set of type variables. *)
 module TV = struct
   include Set.Make (
     struct
@@ -42,6 +49,7 @@ module TV = struct
   let big_union vars = List.fold_right union vars empty
 end
 
+(** Returns a set of free type variables in a given type. *)
 let rec ftv_ty: ty -> TV.t = function
   | TyVar (_, { contents = None } as x) -> TV.singleton x
   | TyVar (_, { contents = Some u }) -> ftv_ty u
@@ -54,6 +62,7 @@ let ftv_tysc: tysc -> TV.t = function
 let ftv_tyenv (env: tysc Environment.t): TV.t =
   Environment.fold (fun _ us vars -> TV.union vars (ftv_tysc us)) env TV.empty
 
+(** Syntax of the surface language, the ITGL with extensions. *)
 module ITGL = struct
   type constr =
     | CEqual of ty * ty
@@ -124,12 +133,13 @@ module ITGL = struct
     | LetDecl of id * exp
 end
 
+(** Syntax of the blame calculus with dynamic type inference. *)
 module CC = struct
   type tyarg = Ty of ty | TyNu
 
   type polarity = Pos | Neg
 
-  (** Returns the negation of the given polarity *)
+  (** Returns the negation of the given polarity. *)
   let neg = function Pos -> Neg | Neg -> Pos
 
   type exp =
