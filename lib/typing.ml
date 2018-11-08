@@ -306,6 +306,9 @@ module ITGL = struct
         is_tyvar_value env x e
     | _ -> false
 
+  (** Returns true if a given expression is a "value" under the given environment.
+   * The definition of "value" slightly differs that in the paper
+   * to allow more type variables are generalized by let. *)
   let rec is_value env = function
     | Var _
     | IConst _
