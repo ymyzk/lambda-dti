@@ -12,9 +12,6 @@ This implementation consists of:
 
 This is the artifact of "Dynamic Type Inference for Gradual Hindley-Milner Typing" in POPL 2019.
 
-## How to use the artifact
-Please see [HOW_TO_USE_ARTIFACT.md](HOW_TO_USE_ARTIFACT.md).
-
 ## Requirements
 - opam 2.0.0+
 - OCaml 4.03.0+
