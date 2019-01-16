@@ -10,7 +10,9 @@ This implementation consists of:
 - an evaluator of the blame calculus with dynamic type inference; and
 - some extensions (recursion, operators, and libraries) to the ITGL.
 
-This is the artifact of "Dynamic Type Inference for Gradual Hindley-Milner Typing" in POPL 2019.
+This is the artifact of the following paper in POPL 2019.
+
+- Yusuke Miyazaki, Taro Sekiyama, and Atsushi Igarashi. [Dynamic Type Inference for Gradual Hindley–Milner Typing](https://doi.org/10.1145/3290331). POPL 2019.
 
 ## Requirements
 - opam 2.0.0+
