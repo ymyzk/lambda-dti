@@ -1,0 +1,53 @@
+cff-version: "1.2.0"
+message: "If you use this software, please cite it using these metadata."
+doi: "10.1145/3291628"
+title: lambda-dti
+abstract: |
+    "lambda-dti is an interpreter of the implicitly typed gradual language (ITGL) which uses dynamic type inference for evaluating programs. This implementation consists of:
+    - Garcia and Cimini's type inference algorithm;
+    - a cast-inserting translator from the ITGL to the blame calculus;
+    - an evaluator of the blame calculus with dynamic type inference; and
+    - some extensions (recursion, operators, and libraries) to the ITGL.
+    The artifact helps to understand the ideas from the paper by trying examples."
+authors:
+  - affiliation: "Kyoto University"
+    family-names: Miyazaki
+    given-names: Yusuke
+    orcid: "https://orcid.org/0000-0003-3884-2636"
+  - affiliation: "National Institute of Informatics"
+    family-names: Sekiyama
+    given-names: Taro
+    orcid: "https://orcid.org/0000-0001-9286-230X"
+  - affiliation: "Kyoto University"
+    family-names: Igarashi
+    given-names: Atsushi
+    orcid: "https://orcid.org/0000-0002-5143-9764"
+license: MIT
+repository-code: "https://github.com/ymyzk/lambda-dti"
+type: software
+references:
+  - type: article
+    authors:
+      - affiliation: "Kyoto University"
+        family-names: Miyazaki
+        given-names: Yusuke
+        orcid: "https://orcid.org/0000-0003-3884-2636"
+      - affiliation: "National Institute of Informatics"
+        family-names: Sekiyama
+        given-names: Taro
+        orcid: "https://orcid.org/0000-0001-9286-230X"
+      - affiliation: "Kyoto University"
+        family-names: Igarashi
+        given-names: Atsushi
+        orcid: "https://orcid.org/0000-0002-5143-9764"
+    title: "Dynamic type inference for gradual Hindley–Milner typing"
+    doi: 10.1145/3290331
+    url: "https://doi.org/10.1145/3290331"
+    year: 2019
+    month: 1
+    publisher:
+      name: "Association for Computing Machinery"
+    volume: 3
+    number: POPL
+    pages: "18:1-18:29"
+    journal: "Proc. ACM Program. Lang."
