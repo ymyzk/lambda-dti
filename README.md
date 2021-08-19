@@ -1,7 +1,6 @@
 # lambda-dti
 
 [![CI](https://github.com/ymyzk/lambda-dti/actions/workflows/ci.yml/badge.svg)](https://github.com/ymyzk/lambda-dti/actions/workflows/ci.yml)
-[![Build Status](https://travis-ci.org/ymyzk/lambda-dti.svg?branch=master)](https://travis-ci.org/ymyzk/lambda-dti)
 
 **lambda-dti** is an interpreter of the implicitly typed gradual language (ITGL) which uses **dynamic type inference** for evaluating programs.
 This implementation consists of:
