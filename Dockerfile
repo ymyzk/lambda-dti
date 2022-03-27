@@ -1,4 +1,4 @@
-FROM ocaml/opam2:alpine-3.8-ocaml-4.07
+FROM ocaml/opam:alpine-3.15-ocaml-4.07
 
 USER root
 RUN apk --update add m4
@@ -7,7 +7,7 @@ USER opam
 COPY . ./app/
 RUN opam pin add lambda-dti ./app
 
-FROM alpine:3.8
+FROM alpine:3.15
 
 RUN echo "@testing http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
 RUN apk --update add rlwrap@testing
