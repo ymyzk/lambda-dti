@@ -27,12 +27,43 @@ jobs:
           - 4.11.x
     runs-on: ${{ matrix.os }}
     steps:
-    - name: Check out code
-      uses: actions/checkout@v2
-    - name: Use OCaml ${{ matrix.ocaml-compiler }}
-      uses: ocaml/setup-ocaml@v2
-      with:
-        ocaml-compiler: ${{ matrix.ocaml-compiler }}
-    - run: opam install . --deps-only --with-test
-    - run: opam exec -- dune build
-    - run: opam exec -- dune runtest
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Use OCaml ${{ matrix.ocaml-compiler }}
+        uses: ocaml/setup-ocaml@v2
+        with:
+          ocaml-compiler: ${{ matrix.ocaml-compiler }}
+      - run: opam install . --deps-only --with-test
+      - run: opam exec -- dune build
+      - run: opam exec -- dune runtest
+  build-and-push-image:
+    runs-on: ubuntu-latest
+    needs:
+      - build-and-test
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGE_NAME: ${{ github.repository }}
+      REGISTRY: ghcr.io
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v2
+      - name: Log in to the GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Extract metadata (tags, labels) for Docker
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v2
+        with:
+          context: .
+          push: ${{ github.ref == 'refs/heads/master' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
