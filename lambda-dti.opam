@@ -1,21 +1,22 @@
-opam-version: "1.2"
+opam-version: "2.0"
 version: "2.1"
+synopsis: "Interpreter of the ITGL with dynamic type inference"
 maintainer: "miyazaki@fos.kuis.kyoto-u.ac.jp"
 authors: ["Yusuke Miyazaki <miyazaki@fos.kuis.kyoto-u.ac.jp>"]
 homepage: "https://github.com/ymyzk/lambda-dti"
 bug-reports: "https://github.com/ymyzk/lambda-dti/issues"
-dev-repo: "https://github.com/ymyzk/lambda-dti.git"
+dev-repo: "git+https://github.com/ymyzk/lambda-dti.git"
 license: "MIT"
 build: [
   ["dune" "build" "-p" name "-j" jobs]
 ]
-build-test: [
+run-test: [
   ["dune" "runtest" "-p" name "-j" jobs]
 ]
 depends: [
-  "dune" {build & >="2.0" & < "3"}
+  "ocaml" {>= "4.03"}
+  "dune" {>= "2.0" & < "3"}
   "menhir"
   # 2.2.2 is the final version to support OCaml 4.03
-  "ounit" {test & >="2.2.2" & < "3"}
+  "ounit" {with-test & >= "2.2.2" & < "3"}
 ]
-available: [ocaml-version >= "4.03.0"]
