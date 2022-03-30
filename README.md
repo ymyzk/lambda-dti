@@ -41,6 +41,10 @@ $ ldti
 $ docker run -it --rm ymyzk/lambda-dti
 ```
 
+### C. Running a virtual machine
+Please see [HOW_TO_USE_ARTIFACT.md](./HOW_TO_USE_ARTIFACT.md) for details.
+The virtual machine image contains [lambda-dti v2.1](https://github.com/ymyzk/lambda-dti/tree/v2.1).
+
 ## Tips
 ### Running tests
 ```console
