@@ -37,8 +37,10 @@ $ ldti
 ```
 
 ### B. Running a Docker image
+Docker images are available on [GitHub](https://github.com/ymyzk/lambda-dti/pkgs/container/lambda-dti).
+
 ```console
-$ docker run -it --rm ymyzk/lambda-dti
+$ docker run -it --rm ghcr.io/ymyzk/lambda-dti:latest
 ```
 
 ### C. Running a virtual machine
