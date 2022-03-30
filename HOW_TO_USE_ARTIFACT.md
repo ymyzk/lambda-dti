@@ -2,19 +2,21 @@
 ## Requirements
 - VM Player: VirtualBox 5.2.18 r124319 (Qt5.6.3)
 - Appliance of the artifact: `lambda-dti.ova`
-  - URL: https://www.fos.kuis.kyoto-u.ac.jp/~miyazaki/popl19/lambda-dti.ova
+  - URL: https://dl.acm.org/do/10.1145/3291628/full/
 
 ## Getting Started
-1. [Download the appliance](https://www.fos.kuis.kyoto-u.ac.jp/~miyazaki/popl19/lambda-dti.ova) (the image of the VM)
+1. [Download the appliance](https://dl.acm.org/do/10.1145/3291628/full/) (the image of the VM)
 
-2. Import the appliance and create a VM
-  - Click `File` -> `Import Appliance` on VirtualBox and choose `lambda-dti.ova`
+2. Extract the downloaded artifact.
+
+3. Import the appliance and create a VM
+  - Click `File` -> `Import Appliance` on VirtualBox and choose `lambda-dti/vm/lambda-dti.ova`
   - A new VM will be created
 
-3. Start the VM
+4. Start the VM
   - The VM is configured to automatically login as `popl` user and open a terminal
 
-4. Start the interpreter and try it!
+5. Start the interpreter and try it!
   - Run `ldti` on the terminal
   - Try some inputs
     - Input: `# (fun (x:?) -> x 2) (fun y -> y);;`
