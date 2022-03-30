@@ -25,8 +25,8 @@ This is the artifact of the following paper in POPL 2019.
 ## Getting started
 ### A. Building from source
 ```console
-$ dune build
-$ ./_build/default/bin/main.exe
+dune build
+./_build/default/bin/main.exe
 ```
 Run `$ ./_build/default/bin/main.exe --help` for command line options.
 
@@ -40,7 +40,7 @@ $ ldti
 Docker images are available on [GitHub](https://github.com/ymyzk/lambda-dti/pkgs/container/lambda-dti).
 
 ```console
-$ docker run -it --rm ghcr.io/ymyzk/lambda-dti:latest
+docker run -it --rm ghcr.io/ymyzk/lambda-dti:latest
 ```
 
 ### C. Running a virtual machine
@@ -50,25 +50,25 @@ The virtual machine image contains [lambda-dti v2.1](https://github.com/ymyzk/la
 ## Tips
 ### Running tests
 ```console
-$ dune runtest
+dune runtest
 ```
 
 ### Debug mode
 By enabling the debug mode, our interpreter show various messages to stderr.
 ```console
-$ ldti -d
+ldti -d
 ```
 
 ### Non-interactive mode
 You can specify a file as a command line argument. Our interpreter executes the programs in the file then exits.
 ```console
-$ ldti ./sample.ldti
+ldti ./sample.ldti
 ```
 
 ### Line editing
 You may want to use rlwrap for line editing and input history.
 ```console
-$ rlwrap ldti
+rlwrap ldti
 ```
 
 ## Syntax
