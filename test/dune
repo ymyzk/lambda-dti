@@ -2,7 +2,6 @@
   (name runtests)
   (libraries oUnit lambda_dti))
 
-(alias
-  (name    runtest)
-  (deps    runtests.exe)
-  (action  (run %{deps})))
+(rule
+   (alias runtest)
+   (action (run ./runtests.exe)))
