@@ -17,7 +17,7 @@ This is the artifact of the following paper in POPL 2019.
 ## Requirements
 - opam 2.0.0+
 - OCaml 4.03.0+
-- Dune 1.2.0+ (formerly known as Jbuilder)
+- Dune 2.0.0+ (formerly known as Jbuilder)
 - Menhir
 - OUnit 2 (optional for running unit tests)
 - [rlwrap](https://github.com/hanslub42/rlwrap) (optional for line editing and input history)
