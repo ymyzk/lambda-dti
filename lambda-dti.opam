@@ -1,5 +1,5 @@
 opam-version: "2.0"
-version: "2.1"
+version: "2.2"
 synopsis: "Interpreter of the ITGL with dynamic type inference"
 maintainer: "miyazaki@fos.kuis.kyoto-u.ac.jp"
 authors: ["Yusuke Miyazaki <miyazaki@fos.kuis.kyoto-u.ac.jp>"]
