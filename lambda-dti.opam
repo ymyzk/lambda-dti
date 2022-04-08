@@ -15,7 +15,7 @@ run-test: [
 ]
 depends: [
   "ocaml" {>= "4.03"}
-  "dune" {>= "2.0" & < "3"}
+  "dune" {>= "2.0"}
   "menhir"
   "ounit2" {with-test & >= "2" & < "3"}
 ]
