@@ -12,7 +12,7 @@ FROM alpine:3.19
 RUN echo "@testing http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
 RUN apk --update add rlwrap@testing
 
-COPY --from=0 /home/opam/.opam/4.14/bin/ldti /usr/bin/
+COPY --from=0 /home/opam/.opam/5.1/bin/ldti /usr/bin/
 
 # Workaround: sleep for 1 second to avoid the following error:
 # rlwrap: error: My terminal reports width=0
