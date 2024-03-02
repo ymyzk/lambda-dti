@@ -1,4 +1,4 @@
-FROM ocaml/opam:alpine-3.15-ocaml-4.14
+FROM ocaml/opam:alpine-3.15-ocaml-5.1
 
 USER root
 RUN apk --update add m4
