@@ -33,11 +33,14 @@ jobs:
           - 4.14.x
           - 5.0.x
           - 5.1.x
+          - 5.2.x
         exclude:
           - os: windows-latest
             ocaml-compiler: 5.0.x
           - os: windows-latest
             ocaml-compiler: 5.1.x
+          - os: windows-latest
+            ocaml-compiler: 5.2.x
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out code
