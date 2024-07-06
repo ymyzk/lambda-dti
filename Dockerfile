@@ -9,8 +9,7 @@ RUN opam pin add lambda-dti ./app
 
 FROM alpine:3.20
 
-RUN echo "@testing http://dl-cdn.alpinelinux.org/alpine/edge/testing" >> /etc/apk/repositories
-RUN apk --update add rlwrap@testing
+RUN apk --update add rlwrap
 
 COPY --from=0 /home/opam/.opam/5.1/bin/ldti /usr/bin/
 
