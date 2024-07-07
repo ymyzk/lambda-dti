@@ -15,7 +15,8 @@ jobs:
       fail-fast: false
       matrix:
         os:
-          - macos-13
+          - macos-13 # Intel (x86_64)
+          - macos-latest # M1 (aarch64)
           - ubuntu-latest
           - windows-latest
         ocaml-compiler:
@@ -35,6 +36,22 @@ jobs:
           - 5.1.x
           - 5.2.x
         exclude:
+          - os: macos-latest
+            ocaml-compiler: 4.03.x
+          - os: macos-latest
+            ocaml-compiler: 4.04.x
+          - os: macos-latest
+            ocaml-compiler: 4.05.x
+          - os: macos-latest
+            ocaml-compiler: 4.06.x
+          - os: macos-latest
+            ocaml-compiler: 4.07.x
+          - os: macos-latest
+            ocaml-compiler: 4.08.x
+          - os: macos-latest
+            ocaml-compiler: 4.09.x
+          - os: macos-latest
+            ocaml-compiler: 4.11.x
           - os: windows-latest
             ocaml-compiler: 5.0.x
           - os: windows-latest
