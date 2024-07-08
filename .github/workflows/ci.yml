@@ -101,7 +101,7 @@ jobs:
             type=ref,event=tag,enable=true,priority=600
             type=ref,event=pr,prefix=pr-,enable=true,priority=600
       - name: Build and push Docker image
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           push: ${{ github.ref == 'refs/heads/master' || startsWith(github.ref, 'refs/tags/') }}
