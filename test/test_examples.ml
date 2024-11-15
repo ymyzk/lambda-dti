@@ -156,6 +156,12 @@ let test_cases = [
     "let dyn x = ((fun (y: 'b) -> y): ? -> ?) x", "'a -> ?", "<fun>";
     "f (dyn 2) (dyn true)", "int", "0";
   ];
+  [
+    "let f = fun x -> x", "'a -> 'a", "<fun>";
+    "let f = fun x -> x f", "(('a -> 'a) -> 'b) -> 'b", "<fun>";
+    "f (fun x -> x) 4", "int", "4";
+    "f", "(('a -> 'a) -> 'b) -> 'b", "<fun>";
+  ];
   (* let-poly & recursion *)
   ["let rec fact n = if n <= 1 then 1 else n * fact (n - 1) in fact 5", "int", "120"];
   ["let rec fact (n:?) = if n <= 1 then 1 else n * fact (n - 1) in fact 5", "int", "120"];
@@ -176,15 +182,15 @@ let id x = x
 let run env tyenv program =
   let parse str = Parser.toplevel Lexer.main @@ Lexing.from_string str in
   let e = parse @@ program ^ ";;" in
-  let tyenv, e, u = Typing.ITGL.type_of_program tyenv e in
+  let e, u = Typing.ITGL.type_of_program tyenv e in
   let tyenv, e, u = Typing.ITGL.normalize tyenv e u in
-  let tyenv, f, u' = Typing.ITGL.translate tyenv e in
+  let new_tyenv, f, u' = Typing.ITGL.translate tyenv e in
   assert (Typing.is_equal u u');
   let u'' = Typing.CC.type_of_program tyenv f in
   assert (Typing.is_equal u u'');
   try
     let env, _, v = Eval.eval_program env f in
-    env, tyenv, asprintf "%a" Pp.pp_ty2 u, asprintf "%a" Pp.CC.pp_value v
+    env, new_tyenv, asprintf "%a" Pp.pp_ty2 u, asprintf "%a" Pp.CC.pp_value v
   with
   | Eval.Blame (_, CC.Pos) -> env, tyenv, asprintf "%a" Pp.pp_ty2 u, "blame+"
   | Eval.Blame (_, CC.Neg) -> env, tyenv, asprintf "%a" Pp.pp_ty2 u, "blame-"

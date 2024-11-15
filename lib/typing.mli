@@ -19,7 +19,7 @@ val tyarg_to_ty : Syntax.CC.tyarg -> ty
 module ITGL : sig
   open Syntax.ITGL
 
-  val type_of_program : tysc Environment.t -> program -> (tysc Environment.t * program * ty)
+  val type_of_program : tysc Environment.t -> program -> (program * ty)
 
   val normalize : tysc Environment.t -> program -> ty -> (tysc Environment.t * program * ty)
   val normalize_type : ty -> ty

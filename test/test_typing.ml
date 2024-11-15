@@ -19,7 +19,7 @@ module ITGL = struct
     let test (program, expected) =
       program >:: fun ctxt ->
         let e = parse @@ program ^ ";;" in
-        let _, _, u = Typing.ITGL.type_of_program tyenv e in
+        let _, u = Typing.ITGL.type_of_program tyenv e in
         let u = Typing.ITGL.normalize_type u in
         assert_equal ~ctxt:ctxt ~printer:id expected @@ asprintf "%a" Pp.pp_ty2 u
     in

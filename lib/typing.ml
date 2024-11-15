@@ -387,12 +387,10 @@ module ITGL = struct
 
   let type_of_program env = function
     | Exp e ->
-      env, Exp e, type_of_exp env e
+      Exp e, type_of_exp env e
     | LetDecl (x, e) ->
       let u = type_of_exp env e in
-      let xs = if is_value env e then closure_tyvars_let_decl e u env else [] in
-      let env = Environment.add x (TyScheme (xs, u)) env in
-      env, LetDecl (x, e), u
+      LetDecl (x, e), u
 
   (* Normalize type variables *)
 
@@ -517,6 +515,7 @@ module ITGL = struct
       env, CC.LetDecl (x, xs @ ys, f), u
     | LetDecl (x, e) ->
       let f, u = translate_exp env e in
+      let env = Environment.add x (tysc_of_ty u) env in
       env, CC.LetDecl (x, [], f), u
 end
 
