@@ -19,7 +19,7 @@ let rec read_eval_print lexbuf env tyenv =
 
       (* Type inference *)
       print_debug "***** Typing *****\n";
-      let tyenv, e, u = Typing.ITGL.type_of_program tyenv e in
+      let e, u = Typing.ITGL.type_of_program tyenv e in
       print_debug "e: %a\n" Pp.ITGL.pp_program e;
       print_debug "U: %a\n" Pp.pp_ty u;
 
@@ -29,7 +29,7 @@ let rec read_eval_print lexbuf env tyenv =
 
       (* Translation *)
       print_debug "***** Cast-insertion *****\n";
-      let tyenv, f, u' = Typing.ITGL.translate tyenv e in
+      let new_tyenv, f, u' = Typing.ITGL.translate tyenv e in
       print_debug "f: %a\n" Pp.CC.pp_program f;
       print_debug "U: %a\n" Pp.pp_ty u';
       assert (Typing.is_equal u u');
@@ -43,7 +43,7 @@ let rec read_eval_print lexbuf env tyenv =
         pp_print_string x
         Pp.pp_ty2 u
         Pp.CC.pp_value v;
-      read_eval_print lexbuf env tyenv
+      read_eval_print lexbuf env new_tyenv
     with
     | Failure message ->
       print "Failure: %s\n" message;

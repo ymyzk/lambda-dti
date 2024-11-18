@@ -169,6 +169,7 @@ module CC = struct
     | LetExp (r, _, _, _, _) -> r
 
   let rec is_value = function
+    | Var _
     | IConst _
     | BConst _
     | UConst _
