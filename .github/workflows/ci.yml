@@ -36,6 +36,7 @@ jobs:
           - 5.1.x
           - 5.2.x
         exclude:
+          # See https://github.com/ocaml/setup-ocaml?tab=readme-ov-file#ocaml-compiler-support-matrix
           - os: macos-latest
             ocaml-compiler: 4.03.x
           - os: macos-latest
@@ -53,11 +54,25 @@ jobs:
           - os: macos-latest
             ocaml-compiler: 4.11.x
           - os: windows-latest
-            ocaml-compiler: 5.0.x
+            ocaml-compiler: 4.03.x
           - os: windows-latest
-            ocaml-compiler: 5.1.x
+            ocaml-compiler: 4.04.x
           - os: windows-latest
-            ocaml-compiler: 5.2.x
+            ocaml-compiler: 4.05.x
+          - os: windows-latest
+            ocaml-compiler: 4.06.x
+          - os: windows-latest
+            ocaml-compiler: 4.07.x
+          - os: windows-latest
+            ocaml-compiler: 4.08.x
+          - os: windows-latest
+            ocaml-compiler: 4.09.x
+          - os: windows-latest
+            ocaml-compiler: 4.10.x
+          - os: windows-latest
+            ocaml-compiler: 4.11.x
+          - os: windows-latest
+            ocaml-compiler: 4.12.x
     runs-on: ${{ matrix.os }}
     steps:
       - name: Check out code
