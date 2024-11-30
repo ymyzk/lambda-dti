@@ -59,7 +59,11 @@ let rec eval ?(debug=false) (env: (tyvar list * value) Environment.t) f =
     let xs, v = Environment.find x env in
     let us = List.map nu_to_fresh us in
     begin match v with
-      | FunV proc -> FunV (fun _ -> proc (xs, us))
+      | FunV proc -> FunV (
+          fun (xs', us') ->
+            let us = List.map (subst_type (Utils.List.zip xs' us')) us in
+            proc (xs, us)
+        )
       | _ -> v
     end
   | IConst (_, i) -> IntV i
