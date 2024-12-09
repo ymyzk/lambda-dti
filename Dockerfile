@@ -7,7 +7,7 @@ USER opam
 COPY . ./app/
 RUN opam pin add lambda-dti ./app
 
-FROM alpine:3.20
+FROM alpine:3.21
 
 RUN apk --update add rlwrap
 
