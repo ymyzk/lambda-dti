@@ -1,4 +1,4 @@
-FROM ocaml/opam:alpine-3.21-ocaml-5.2
+FROM ocaml/opam:alpine-3.21-ocaml-5.3
 
 USER root
 RUN apk --update add m4
@@ -11,7 +11,7 @@ FROM alpine:3.21
 
 RUN apk --update add rlwrap
 
-COPY --from=0 /home/opam/.opam/5.2/bin/ldti /usr/bin/
+COPY --from=0 /home/opam/.opam/5.3/bin/ldti /usr/bin/
 
 # Workaround: sleep for 1 second to avoid the following error:
 # rlwrap: error: My terminal reports width=0
